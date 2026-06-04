@@ -1,0 +1,29 @@
+{
+  "name": "sanay3i-matrouh",
+  "version": "1.0.0",
+  "description": "Local and online directory app for craftsmen in Marsa Matrouh",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "sanay3i",
+    "matrouh",
+    "directory",
+    "craftsmen",
+    "nodejs",
+    "express",
+    "sqlite"
+  ],
+  "author": "Sanay3i Matrouh",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.3",
+    "multer": "^1.4.5-lts.1",
+    "sqlite3": "^5.1.7"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

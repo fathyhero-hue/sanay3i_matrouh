@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>تفاصيل الصنايعي | صنايعي مطروح</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+  <link rel="stylesheet" href="/style.css" />
+
+  <style>
+    .worker-details-page {
+      min-height: calc(100vh - 82px);
+      padding: 46px 0 90px;
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.22), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.18), transparent 30%),
+        linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+    }
+
+    .details-loading,
+    .details-error {
+      background: rgba(255,255,255,0.94);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 50px 20px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .details-loading .spinner {
+      margin: 0 auto 16px;
+    }
+
+    .details-error i {
+      font-size: 42px;
+      color: var(--danger);
+      margin-bottom: 14px;
+    }
+
+    .details-error h2 {
+      color: var(--primary);
+      font-size: 25px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .details-error p {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .details-hero {
+      background:
+        linear-gradient(135deg, rgba(15,23,42,0.98), rgba(29,78,216,0.95)),
+        radial-gradient(circle at top left, rgba(56,189,248,0.3), transparent 35%);
+      border-radius: 34px;
+      padding: 26px;
+      color: #fff;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 26px;
+    }
+
+    .details-hero::before {
+      content: "";
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      top: -90px;
+      left: -90px;
+    }
+
+    .details-hero::after {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      bottom: -130px;
+      right: -100px;
+    }
+
+    .details-hero-content {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .hero-worker-image {
+      width: 180px;
+      height: 180px;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 4px solid rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.10);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+    }
+
+    .hero-worker-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .details-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.78);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .details-breadcrumb a {
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .details-title h1 {
+      font-size: 38px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin: 0 0 9px;
+    }
+
+    .details-title p {
+      margin: 0;
+      color: rgba(255,255,255,0.82);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.9;
+    }
+
+    .details-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .details-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 9px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .featured-badge-details {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, var(--gold), #fbbf24);
+      color: var(--primary);
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      width: fit-content;
+      margin-top: 14px;
+    }
+
+    .featured-badge-details.show {
+      display: inline-flex;
+    }
+
+    .rating-summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 13px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 22px;
+      padding: 12px 14px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .rating-number {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      color: var(--primary);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .rating-stars {
+      color: #fbbf24;
+      font-size: 19px;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .rating-count {
+      color: rgba(255,255,255,0.78);
+      font-weight: 800;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .details-main-card,
+    .details-side-card {
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(226,232,240,0.9);
+      border-radius: 30px;
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .details-side-card {
+      position: sticky;
+      top: 106px;
+    }
+
+    .details-section-box {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 22px;
+      margin-bottom: 22px;
+    }
+
+    .details-section-box:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .details-section-box h2 {
+      color: var(--primary);
+      font-size: 22px;
+      font-weight: 900;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .details-section-box h2 i {
+      color: var(--blue);
+    }
+
+    .details-description {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 2;
+      white-space: pre-line;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 13px;
+    }
+
+    .info-item-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      background: rgba(29, 78, 216, 0.10);
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+
+    .info-item small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .info-item strong {
+      color: var(--primary);
+      font-size: 15px;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .contact-actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .details-action {
+      min-height: 58px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 900;
+      transition: 0.25s ease;
+    }
+
+    .details-action:hover {
+      transform: translateY(-2px);
+    }
+
+    .details-call {
+      background: rgba(29, 78, 216, 0.09);
+      color: var(--blue);
+      border: 1px solid rgba(29, 78, 216, 0.16);
+    }
+
+    .details-whatsapp {
+      background: rgba(34, 197, 94, 0.10);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, 0.18);
+    }
+
+    .details-back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 900;
+      transition: 0.25s ease;
+      margin-top: 16px;
+      width: 100%;
+    }
+
+    .details-back:hover {
+      background: var(--blue);
+      transform: translateY(-2px);
+    }
+
+    .work-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .work-gallery img {
+      width: 100%;
+      height: 165px;
+      object-fit: cover;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: #dbeafe;
+      cursor: pointer;
+      transition: 0.25s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .work-gallery img:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: var(--shadow-md);
+    }
+
+    .gallery-empty,
+    .review-empty {
+      color: var(--muted);
+      font-weight: 800;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .reviews-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .review-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 15px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .review-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .review-card strong {
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    .review-card p {
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.8;
+      margin: 0;
+    }
+
+    .review-stars {
+      color: #f59e0b;
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    .review-form {
+      display: grid;
+      gap: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .review-form input,
+    .review-form textarea,
+    .review-form select {
+      width: 100%;
+      border: 1px solid var(--border);
+      outline: none;
+      background: #fff;
+      border-radius: 16px;
+      padding: 13px 14px;
+      font-family: inherit;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .review-form textarea {
+      min-height: 100px;
+      resize: vertical;
+      line-height: 1.8;
+    }
+
+    .review-form button {
+      border: 0;
+      background: linear-gradient(135deg,var(--blue),#2563eb);
+      color: #fff;
+      min-height: 50px;
+      border-radius: 999px;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: 0.25s ease;
+    }
+
+    .review-form button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 24px rgba(29,78,216,0.18);
+    }
+
+    .review-message {
+      display: none;
+      border-radius: 16px;
+      padding: 12px;
+      font-weight: 900;
+    }
+
+    .review-message.show {
+      display: block;
+    }
+
+    .review-message.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .review-message.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.84);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      padding: 20px;
+    }
+
+    .lightbox.show {
+      display: flex;
+    }
+
+    .lightbox img {
+      max-width: 95%;
+      max-height: 92vh;
+      border-radius: 24px;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.35);
+    }
+
+    .lightbox button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 48px;
+      height: 48px;
+      border: 0;
+      border-radius: 16px;
+      background: #fff;
+      color: var(--primary);
+      font-size: 22px;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+    }
+
+
+    .details-share {
+      background: rgba(15, 23, 42, 0.07);
+      color: var(--primary);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+    }
+
+    .details-share:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .copy-toast {
+      position: fixed;
+      bottom: 22px;
+      left: 22px;
+      z-index: 3500;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 18px;
+      padding: 13px 16px;
+      font-weight: 900;
+      box-shadow: 0 18px 35px rgba(15,23,42,0.22);
+      display: none;
+      align-items: center;
+      gap: 9px;
+      max-width: calc(100% - 44px);
+    }
+
+    .copy-toast.show {
+      display: flex;
+    }
+
+    .mobile-sticky-contact {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255,255,255,0.95);
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      z-index: 1200;
+      box-shadow: 0 -10px 30px rgba(15,23,42,0.10);
+      backdrop-filter: blur(18px);
+      gap: 10px;
+    }
+
+    .mobile-sticky-contact a {
+      flex: 1;
+      min-height: 50px;
+      border-radius: 16px;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    @media(max-width: 980px) {
+      .details-hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-worker-image {
+        margin: auto;
+      }
+
+      .details-breadcrumb,
+      .details-tags,
+      .rating-summary,
+      .featured-badge-details {
+        justify-content: center;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .details-side-card {
+        position: static;
+      }
+    }
+
+    @media(max-width: 640px) {
+      .worker-details-page {
+        padding: 28px 0 90px;
+      }
+
+      .details-hero {
+        padding: 20px;
+        border-radius: 26px;
+      }
+
+      .details-title h1 {
+        font-size: 30px;
+      }
+
+      .hero-worker-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 24px;
+      }
+
+      .details-main-card,
+      .details-side-card {
+        border-radius: 24px;
+        padding: 18px;
+      }
+
+      .work-gallery {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .work-gallery img {
+        height: 135px;
+        border-radius: 16px;
+      }
+
+      .contact-actions {
+        display: none;
+      }
+
+  
+    .details-share {
+      background: rgba(15, 23, 42, 0.07);
+      color: var(--primary);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+    }
+
+    .details-share:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .copy-toast {
+      position: fixed;
+      bottom: 22px;
+      left: 22px;
+      z-index: 3500;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 18px;
+      padding: 13px 16px;
+      font-weight: 900;
+      box-shadow: 0 18px 35px rgba(15,23,42,0.22);
+      display: none;
+      align-items: center;
+      gap: 9px;
+      max-width: calc(100% - 44px);
+    }
+
+    .copy-toast.show {
+      display: flex;
+    }
+
+    .mobile-sticky-contact {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="container header-content">
+
+      <a href="/" class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>دليل موثوق لصنايعية مرسى مطروح</span>
+        </div>
+      </a>
+
+      <nav class="main-nav">
+        <a href="/">الرئيسية</a>
+        <a href="/#workers">الصنايعية</a>
+        <a href="/#features">المميزات</a>
+      </nav>
+
+      <a href="/register" class="header-btn">
+        <i class="fa-solid fa-user-plus"></i>
+        سجل كصنايعي
+      </a>
+
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+
+    <div class="mobile-nav" id="mobileNav">
+      <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
+      <a href="/#workers" onclick="toggleMobileMenu()">الصنايعية</a>
+      <a href="/#features" onclick="toggleMobileMenu()">المميزات</a>
+      <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
+    </div>
+  </header>
+
+  <main class="worker-details-page">
+    <div class="container">
+
+      <div class="details-loading" id="loadingBox">
+        <div class="spinner"></div>
+        <p>جاري تحميل بيانات الصنايعي...</p>
+      </div>
+
+      <div class="details-error" id="errorBox" style="display:none;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <h2>الصنايعي غير موجود</h2>
+        <p>قد يكون تم حذف الصنايعي أو الرابط غير صحيح.</p>
+        <a href="/" class="details-back">
+          <i class="fa-solid fa-arrow-right"></i>
+          رجوع للرئيسية
+        </a>
+      </div>
+
+      <div id="detailsContent" style="display:none;">
+
+        <section class="details-hero">
+          <div class="details-hero-content">
+
+            <div class="hero-worker-image">
+              <img id="workerImage" src="" alt="صورة الصنايعي">
+            </div>
+
+            <div>
+              <div class="details-breadcrumb">
+                <a href="/">الرئيسية</a>
+                <i class="fa-solid fa-chevron-left"></i>
+                <a href="/#workers">الصنايعية</a>
+                <i class="fa-solid fa-chevron-left"></i>
+                <span id="breadcrumbName">تفاصيل الصنايعي</span>
+              </div>
+
+              <div class="details-title">
+                <h1 id="workerName">اسم الصنايعي</h1>
+                <p>تواصل مباشرة مع الصنايعي من خلال الاتصال أو الواتساب، وراجع التقييمات وصور الأعمال السابقة.</p>
+              </div>
+
+              <div class="details-tags">
+                <span class="details-tag">
+                  <i class="fa-solid fa-screwdriver-wrench"></i>
+                  <span id="workerTrade">الحرفة</span>
+                </span>
+
+                <span class="details-tag">
+                  <i class="fa-solid fa-location-dot"></i>
+                  <span id="workerArea">المنطقة</span>
+                </span>
+              </div>
+
+              <div class="featured-badge-details" id="featuredBadge">
+                <i class="fa-solid fa-star"></i>
+                صنايعي مميز
+              </div>
+
+              <div class="rating-summary">
+                <div class="rating-number" id="ratingAverage">0</div>
+                <div>
+                  <div class="rating-stars" id="ratingStars">☆☆☆☆☆</div>
+                  <div class="rating-count" id="ratingCount">لا توجد تقييمات بعد</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section class="details-grid">
+
+          <div class="details-main-card">
+
+            <div class="details-section-box">
+              <h2>
+                <i class="fa-solid fa-circle-info"></i>
+                نبذة عن الصنايعي
+              </h2>
+
+              <div class="details-description" id="workerDescription">
+                لا يوجد وصف متاح حاليًا.
+              </div>
+            </div>
+
+            <div class="details-section-box">
+              <h2>
+                <i class="fa-solid fa-images"></i>
+                أعمال سابقة
+              </h2>
+
+              <div class="work-gallery" id="workGallery"></div>
+            </div>
+
+            <div class="details-section-box">
+              <h2>
+                <i class="fa-solid fa-star"></i>
+                تقييمات العملاء
+              </h2>
+
+              <div class="reviews-list" id="reviewsList"></div>
+
+              <form class="review-form" id="reviewForm">
+                <input type="text" id="reviewerName" placeholder="اسمك" />
+
+                <select id="reviewRating" required>
+                  <option value="">اختر التقييم</option>
+                  <option value="5">5 نجوم - ممتاز</option>
+                  <option value="4">4 نجوم - جيد جدًا</option>
+                  <option value="3">3 نجوم - جيد</option>
+                  <option value="2">2 نجوم - مقبول</option>
+                  <option value="1">1 نجمة - ضعيف</option>
+                </select>
+
+                <textarea id="reviewComment" placeholder="اكتب رأيك في الصنايعي..." required></textarea>
+
+                <button type="submit" id="reviewBtn">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  إرسال التقييم
+                </button>
+
+                <div class="review-message" id="reviewMessage"></div>
+              </form>
+            </div>
+
+          </div>
+
+          <aside class="details-side-card">
+            <div class="details-section-box">
+              <h2>
+                <i class="fa-solid fa-address-card"></i>
+                بيانات التواصل
+              </h2>
+
+              <div class="info-list">
+                <div class="info-item">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-phone"></i>
+                  </div>
+                  <div>
+                    <small>رقم الاتصال</small>
+                    <strong id="workerPhone">غير متاح</strong>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <div class="info-item-icon">
+                    <i class="fa-brands fa-whatsapp"></i>
+                  </div>
+                  <div>
+                    <small>رقم الواتساب</small>
+                    <strong id="workerWhatsapp">غير متاح</strong>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-location-dot"></i>
+                  </div>
+                  <div>
+                    <small>المنطقة</small>
+                    <strong id="sideArea">غير محدد</strong>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                  </div>
+                  <div>
+                    <small>الحرفة</small>
+                    <strong id="sideTrade">غير محدد</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="contact-actions">
+                <a href="#" class="details-action details-call" id="callBtn">
+                  <i class="fa-solid fa-phone"></i>
+                  اتصال مباشر
+                </a>
+
+                <a href="#" target="_blank" class="details-action details-whatsapp" id="whatsappBtn">
+                  <i class="fa-brands fa-whatsapp"></i>
+                  تواصل واتساب
+                </a>
+
+                <button type="button" class="details-action details-share" id="shareBtn">
+                  <i class="fa-solid fa-share-nodes"></i>
+                  مشاركة الصفحة
+                </button>
+              </div>
+
+              <a href="/" class="details-back">
+                <i class="fa-solid fa-arrow-right"></i>
+                رجوع للدليل
+              </a>
+            </div>
+          </aside>
+
+        </section>
+
+      </div>
+
+    </div>
+  </main>
+
+  <div class="mobile-sticky-contact" id="mobileStickyContact">
+    <a href="#" class="details-call" id="mobileCallBtn">
+      <i class="fa-solid fa-phone"></i>
+      اتصال
+    </a>
+
+    <a href="#" target="_blank" class="details-whatsapp" id="mobileWhatsappBtn">
+      <i class="fa-brands fa-whatsapp"></i>
+      واتساب
+    </a>
+
+    <a href="#" class="details-share" id="mobileShareBtn">
+      <i class="fa-solid fa-share-nodes"></i>
+      مشاركة
+    </a>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-content">
+
+      <div>
+        <h3>صنايعي مطروح</h3>
+        <p>دليل محلي بسيط لربط أهالي مرسى مطروح بالصنايعية والحرفيين.</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="/">الرئيسية</a>
+        <a href="/#workers">الصنايعية</a>
+        <a href="/register">سجل كصنايعي</a>
+      </div>
+
+    </div>
+  </footer>
+
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button onclick="closeLightbox()">×</button>
+    <img id="lightboxImg" src="">
+  </div>
+
+
+  <div class="copy-toast" id="copyToast">
+    <i class="fa-solid fa-circle-check"></i>
+    تم نسخ رابط الصنايعي
+  </div>
+
+  <script>
+    function toggleMobileMenu() {
+      const nav = document.getElementById("mobileNav");
+      nav.classList.toggle("show");
+    }
+
+    function idFromUrl() {
+      const p = location.pathname.split("/");
+      return p[p.length - 1];
+    }
+
+    function getName(w) {
+      return w.name || w.full_name || w.worker_name || "صنايعي";
+    }
+
+    function getTrade(w) {
+      return w.trade || w.craft || w.job || w.profession || w.trade_name || "حرفة غير محددة";
+    }
+
+    function getArea(w) {
+      return w.area || w.location || w.region || w.area_name || "منطقة غير محددة";
+    }
+
+    function getDesc(w) {
+      return w.description || w.about || w.notes || "لا يوجد وصف متاح حاليًا.";
+    }
+
+    function getPhone(w) {
+      return w.phone || w.mobile || w.phone_number || "";
+    }
+
+    function getWhatsapp(w) {
+      return w.whatsapp || w.whatsapp_number || w.whats || getPhone(w);
+    }
+
+    function featured(w) {
+      const f = w.featured ?? w.is_featured ?? w.special ?? 0;
+      return f === 1 || f === true || f === "1" || f === "true";
+    }
+
+    function imgPath(image) {
+      if (!image) {
+        return "https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=500";
+      }
+
+      if (image.startsWith("http")) return image;
+      if (image.startsWith("/uploads")) return image;
+      if (image.startsWith("uploads")) return "/" + image;
+
+      return "/uploads/" + image;
+    }
+
+    function convertArabicNumbers(value) {
+      const map = {
+        "٠": "0",
+        "١": "1",
+        "٢": "2",
+        "٣": "3",
+        "٤": "4",
+        "٥": "5",
+        "٦": "6",
+        "٧": "7",
+        "٨": "8",
+        "٩": "9",
+        "۰": "0",
+        "۱": "1",
+        "۲": "2",
+        "۳": "3",
+        "۴": "4",
+        "۵": "5",
+        "۶": "6",
+        "۷": "7",
+        "۸": "8",
+        "۹": "9"
+      };
+
+      return value.toString().replace(/[٠-٩۰-۹]/g, n => map[n]);
+    }
+
+    function waNum(phone) {
+      if (!phone) return "";
+
+      let d = convertArabicNumbers(phone).replace(/[^\d]/g, "");
+
+      if (d.startsWith("00")) d = d.slice(2);
+
+      if (d.startsWith("0") && d.length === 11) {
+        d = "20" + d.slice(1);
+      }
+
+      if (
+        !d.startsWith("20") &&
+        d.length === 10 &&
+        (
+          d.startsWith("10") ||
+          d.startsWith("11") ||
+          d.startsWith("12") ||
+          d.startsWith("15")
+        )
+      ) {
+        d = "20" + d;
+      }
+
+      return d;
+    }
+
+    function callNum(phone) {
+      if (!phone) return "";
+
+      let d = convertArabicNumbers(phone).replace(/[^\d]/g, "");
+
+      if (d.startsWith("20") && d.length === 12) {
+        return "0" + d.slice(2);
+      }
+
+      if (d.startsWith("0020")) {
+        return "0" + d.slice(4);
+      }
+
+      if (d.startsWith("0")) {
+        return d;
+      }
+
+      if (
+        d.length === 10 &&
+        (
+          d.startsWith("10") ||
+          d.startsWith("11") ||
+          d.startsWith("12") ||
+          d.startsWith("15")
+        )
+      ) {
+        return "0" + d;
+      }
+
+      return d;
+    }
+
+    function renderStars(value) {
+      const rating = Math.round(Number(value) || 0);
+      return "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating);
+    }
+
+    function openLightbox(src) {
+      document.getElementById("lightboxImg").src = src;
+      document.getElementById("lightbox").classList.add("show");
+    }
+
+    function closeLightbox() {
+      document.getElementById("lightbox").classList.remove("show");
+    }
+
+
+    function showCopyToast(message) {
+      const toast = document.getElementById("copyToast");
+      if (!toast) return;
+
+      toast.innerHTML = `
+        <i class="fa-solid fa-circle-check"></i>
+        ${message}
+      `;
+
+      toast.classList.add("show");
+
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2200);
+    }
+
+    async function shareCurrentWorker(workerName) {
+      const workerUrl = window.location.href;
+      const shareText = "شوف بيانات " + workerName + " على تطبيق صنايعي مطروح";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: workerName + " | صنايعي مطروح",
+            text: shareText,
+            url: workerUrl
+          });
+          return;
+        } catch (error) {}
+      }
+
+      try {
+        await navigator.clipboard.writeText(workerUrl);
+        showCopyToast("تم نسخ رابط الصنايعي");
+      } catch (error) {
+        const tempInput = document.createElement("input");
+        tempInput.value = workerUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        showCopyToast("تم نسخ رابط الصنايعي");
+      }
+    }
+
+    async function loadPhotos(id) {
+      const gallery = document.getElementById("workGallery");
+
+      try {
+        const r = await fetch("/api/workers/" + id + "/photos");
+        const photos = r.ok ? await r.json() : [];
+
+        gallery.innerHTML = "";
+
+        if (!photos.length) {
+          gallery.innerHTML = '<div class="gallery-empty">لا توجد صور أعمال مضافة حاليًا.</div>';
+          return;
+        }
+
+        photos.forEach(p => {
+          const src = imgPath(p.image);
+          const im = document.createElement("img");
+          im.src = src;
+          im.onclick = () => openLightbox(src);
+          gallery.appendChild(im);
+        });
+      } catch(e) {
+        gallery.innerHTML = '<div class="gallery-empty">لا توجد صور أعمال مضافة حاليًا.</div>';
+      }
+    }
+
+    async function loadReviews(id) {
+      const list = document.getElementById("reviewsList");
+      const avgEl = document.getElementById("ratingAverage");
+      const starsEl = document.getElementById("ratingStars");
+      const countEl = document.getElementById("ratingCount");
+
+      try {
+        const [summaryRes, reviewsRes] = await Promise.all([
+          fetch("/api/workers/" + id + "/reviews/summary"),
+          fetch("/api/workers/" + id + "/reviews")
+        ]);
+
+        const summary = summaryRes.ok ? await summaryRes.json() : {average:0,count:0};
+        const reviews = reviewsRes.ok ? await reviewsRes.json() : [];
+
+        avgEl.textContent = summary.average || 0;
+        starsEl.textContent = renderStars(summary.average || 0);
+        countEl.textContent = summary.count ? "بناءً على " + summary.count + " تقييم" : "لا توجد تقييمات بعد";
+
+        list.innerHTML = "";
+
+        if (!reviews.length) {
+          list.innerHTML = '<div class="review-empty">لا توجد ريفيوهات معتمدة حتى الآن. كن أول من يقيّم هذا الصنايعي.</div>';
+          return;
+        }
+
+        reviews.forEach(r => {
+          const card = document.createElement("div");
+          card.className = "review-card";
+
+          card.innerHTML = `
+            <div class="review-card-head">
+              <strong>${r.customer_name || "عميل"}</strong>
+              <span class="review-stars">${renderStars(r.rating)}</span>
+            </div>
+            <p>${r.comment || ""}</p>
+          `;
+
+          list.appendChild(card);
+        });
+      } catch(e) {
+        list.innerHTML = '<div class="review-empty">تعذر تحميل التقييمات حاليًا.</div>';
+      }
+    }
+
+    function showReviewMessage(type, text) {
+      const box = document.getElementById("reviewMessage");
+      box.className = "review-message show " + type;
+      box.innerHTML = text;
+    }
+
+    document.addEventListener("submit", async function(e) {
+      if (e.target && e.target.id === "reviewForm") {
+        e.preventDefault();
+
+        const workerId = idFromUrl();
+        const name = document.getElementById("reviewerName").value.trim();
+        const rating = document.getElementById("reviewRating").value;
+        const comment = document.getElementById("reviewComment").value.trim();
+        const btn = document.getElementById("reviewBtn");
+
+        if (!rating || !comment) {
+          showReviewMessage("error", "من فضلك اختر التقييم واكتب الريفيو.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+
+        try {
+          const res = await fetch("/api/workers/" + workerId + "/reviews", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+              customer_name: name || "عميل",
+              rating: Number(rating),
+              comment
+            })
+          });
+
+          if (!res.ok) throw new Error();
+
+          showReviewMessage("success", "تم إرسال تقييمك بنجاح، وسيظهر بعد مراجعة الإدارة.");
+          document.getElementById("reviewForm").reset();
+        } catch(err) {
+          showReviewMessage("error", "لم يتم إرسال التقييم. حاول مرة أخرى.");
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> إرسال التقييم';
+      }
+    });
+
+    async function loadWorker() {
+      const id = idFromUrl();
+
+      const loading = document.getElementById("loadingBox");
+      const error = document.getElementById("errorBox");
+      const content = document.getElementById("detailsContent");
+      const sticky = document.getElementById("mobileStickyContact");
+
+      try {
+        const r = await fetch("/api/workers/" + id);
+
+        if (!r.ok) throw new Error();
+
+        const w = await r.json();
+
+        const name = getName(w);
+        const trade = getTrade(w);
+        const area = getArea(w);
+        const desc = getDesc(w);
+        const phone = getPhone(w);
+        const whatsappPhone = getWhatsapp(w);
+
+        const call = callNum(phone);
+        const wa = waNum(whatsappPhone);
+        const txt = encodeURIComponent("السلام عليكم، شوفت بياناتك على تطبيق صنايعي مطروح وعايز أستفسر عن شغلك.");
+
+        document.title = name + " | صنايعي مطروح";
+
+        const shareBtn = document.getElementById("shareBtn");
+        const mobileShareBtn = document.getElementById("mobileShareBtn");
+
+        if (shareBtn) {
+          shareBtn.onclick = function () {
+            shareCurrentWorker(name);
+          };
+        }
+
+        if (mobileShareBtn) {
+          mobileShareBtn.onclick = function (e) {
+            e.preventDefault();
+            shareCurrentWorker(name);
+          };
+        }
+
+        document.getElementById("workerImage").src = imgPath(w.image || w.photo || "");
+        document.getElementById("workerImage").onerror = function () {
+          this.src = "https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=500";
+        };
+
+        document.getElementById("breadcrumbName").textContent = name;
+        document.getElementById("workerName").textContent = name;
+        document.getElementById("workerTrade").textContent = trade;
+        document.getElementById("workerArea").textContent = area;
+        document.getElementById("workerDescription").textContent = desc;
+
+        document.getElementById("workerPhone").textContent = phone || "غير متاح";
+        document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
+        document.getElementById("sideArea").textContent = area;
+        document.getElementById("sideTrade").textContent = trade;
+
+        if (featured(w)) {
+          document.getElementById("featuredBadge").classList.add("show");
+        }
+
+        const callUrl = call ? "tel:" + call : "#";
+        const whatsappUrl = wa ? "https://wa.me/" + wa + "?text=" + txt : "#";
+
+        document.getElementById("callBtn").href = callUrl;
+        document.getElementById("whatsappBtn").href = whatsappUrl;
+        document.getElementById("mobileCallBtn").href = callUrl;
+        document.getElementById("mobileWhatsappBtn").href = whatsappUrl;
+
+        await loadPhotos(id);
+        await loadReviews(id);
+
+        loading.style.display = "none";
+        error.style.display = "none";
+        content.style.display = "block";
+        sticky.style.display = "";
+      } catch(e) {
+        loading.style.display = "none";
+        content.style.display = "none";
+        error.style.display = "block";
+        sticky.style.display = "none";
+      }
+    }
+
+    loadWorker();
+  </script>
+
+</body>
+</html>
