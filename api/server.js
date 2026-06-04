@@ -8,6 +8,42 @@ try { require("dotenv").config(); } catch(e) {}
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// ===============================
+// Static / PWA files for Vercel
+// ===============================
+const STATIC_DIR = path.join(__dirname, "..");
+
+app.use(express.static(STATIC_DIR));
+
+app.get("/style.css", (req, res) => {
+  res.type("text/css");
+  res.sendFile(path.join(STATIC_DIR, "style.css"));
+});
+
+app.get("/manifest.json", (req, res) => {
+  res.type("application/manifest+json");
+  res.sendFile(path.join(STATIC_DIR, "manifest.json"));
+});
+
+app.get("/service-worker.js", (req, res) => {
+  res.type("application/javascript");
+  res.setHeader("Service-Worker-Allowed", "/");
+  res.sendFile(path.join(STATIC_DIR, "service-worker.js"));
+});
+
+app.get("/offline.html", (req, res) => {
+  res.type("text/html");
+  res.sendFile(path.join(STATIC_DIR, "offline.html"));
+});
+
+app.get("/privacy-policy.html", (req, res) => {
+  res.type("text/html");
+  res.sendFile(path.join(STATIC_DIR, "privacy-policy.html"));
+});
+
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end();
+});
 
 // ===============================
 // Static files for Local + Vercel
