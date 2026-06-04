@@ -1,22 +1,594 @@
-<!DOCTYPE html><html lang='ar' dir='rtl'><head><meta charset='UTF-8'><title>صنايعي مطروح</title>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#1d4ed8">
-  <meta name="background-color" content="#f8fafc">
-  <meta name="application-name" content="صنايعي مطروح">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة الإدارة | صنايعي مطروح</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body{background:#f8fafc}.admin-login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#f8fafc,#eef6ff)}.admin-login-card{width:min(460px,100%);background:#fff;border:1px solid var(--border);border-radius:30px;padding:34px;box-shadow:var(--shadow-lg);text-align:center}.login-icon{width:82px;height:82px;margin:0 auto 18px;border-radius:28px;background:linear-gradient(135deg,var(--primary),var(--blue));color:#fff;display:flex;align-items:center;justify-content:center;font-size:34px}.admin-login-card h1{font-size:28px;font-weight:900;color:var(--primary)}.admin-login-card p{color:var(--muted);font-weight:700;margin:6px 0 24px}.admin-password-box{position:relative;margin-bottom:14px}.admin-password-box i{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:var(--blue)}.admin-password-box input{width:100%;height:56px;border:1px solid var(--border);outline:none;border-radius:18px;background:var(--bg);padding:0 48px 0 18px;font-size:16px;font-weight:800}.admin-login-btn{width:100%;min-height:56px;border:0;border-radius:999px;background:linear-gradient(135deg,var(--blue),#2563eb);color:#fff;font-weight:900;cursor:pointer}.login-error{display:none;margin-top:14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:12px;border-radius:16px;font-weight:800}.login-error.show{display:block}
+    .admin-dashboard{display:none;min-height:100vh;background:linear-gradient(135deg,#f8fafc,#eef6ff);padding-bottom:70px}.admin-dashboard.show{display:block}.admin-topbar{position:sticky;top:0;z-index:999;background:rgba(255,255,255,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(18px)}.admin-topbar-content{height:82px;display:flex;align-items:center;justify-content:space-between;gap:18px}.admin-actions-top{display:flex;gap:10px;align-items:center}.admin-mini-btn{min-height:42px;border:1px solid var(--border);background:#fff;color:var(--primary);border-radius:999px;padding:10px 16px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.logout-btn{background:#fee2e2;color:#991b1b}
+    .admin-hero{padding:44px 0 26px}.admin-hero-box,.admin-panel{background:#fff;border:1px solid var(--border);border-radius:28px;padding:24px;box-shadow:var(--shadow-md);margin-bottom:24px}.admin-hero-box{display:flex;align-items:center;justify-content:space-between;gap:20px}.admin-hero-box h2{font-size:34px;color:var(--primary);font-weight:900}.admin-hero-box p,.admin-panel p{color:var(--muted);font-weight:700}.admin-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 24px}.admin-tab{border:1px solid var(--border);background:#fff;color:var(--primary);border-radius:999px;padding:12px 18px;font-weight:900;cursor:pointer}.admin-tab.active{background:var(--blue);color:#fff}
+    .admin-section{display:none}.admin-section.active{display:block}.admin-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}.admin-stat{background:#fff;border:1px solid var(--border);border-radius:24px;padding:20px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:14px}.admin-stat-icon{width:56px;height:56px;border-radius:18px;background:rgba(29,78,216,.09);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:22px}.admin-stat h3{font-size:26px;font-weight:900;color:var(--primary)}.admin-stat p{color:var(--muted);font-size:13px;font-weight:800}
+    .admin-filter-grid{display:grid;grid-template-columns:1fr 190px 190px 190px 190px auto;gap:12px}.admin-input-wrap{position:relative;height:54px}.admin-input-wrap i{position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--blue)}.admin-input-wrap input,.admin-input-wrap select{width:100%;height:100%;border:1px solid var(--border);outline:none;background:var(--bg);border-radius:18px;padding:0 46px 0 14px;font-weight:800}.admin-workers-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.admin-worker-card{background:#fff;border:1px solid var(--border);border-radius:24px;padding:16px;box-shadow:var(--shadow-sm);display:grid;grid-template-columns:116px 1fr;gap:16px}.admin-worker-img{width:116px;height:116px;border-radius:22px;object-fit:cover;background:#dbeafe}.admin-worker-main h3{font-size:20px;color:var(--primary);font-weight:900}.worker-tags,.status-row,.card-actions{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}.worker-tag,.status-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900;background:var(--bg);border:1px solid var(--border);color:var(--primary-light)}.status-green{background:#dcfce7;color:#166534}.status-red{background:#fee2e2;color:#991b1b}.status-yellow{background:#fef3c7;color:#92400e}.status-blue{background:#dbeafe;color:var(--blue)}
+    .subscription-box{background:#f8fafc;border:1px solid var(--border);border-radius:18px;padding:12px;margin:10px 0}.subscription-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px}.subscription-date{background:#fff;border:1px solid var(--border);border-radius:14px;padding:8px}.subscription-date small{display:block;color:var(--muted);font-weight:800}.subscription-date strong{font-weight:900}.subscription-status{display:inline-flex;margin-top:8px;align-items:center;gap:6px;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:900}.sub-active{background:#dcfce7;color:#166534}.sub-soon{background:#fef3c7;color:#92400e}.sub-expired{background:#fee2e2;color:#991b1b}
+    .work-admin-gallery{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0}.work-admin-photo{position:relative}.work-admin-photo img{width:100%;height:70px;object-fit:cover;border-radius:12px;border:1px solid var(--border)}.work-admin-photo button{position:absolute;top:3px;left:3px;border:0;background:#fee2e2;color:#991b1b;width:24px;height:24px;border-radius:8px;cursor:pointer}.no-photos{font-size:12px;color:var(--muted);font-weight:800;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:9px;margin:8px 0}
+    .action-btn{border:0;border-radius:12px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:5px}.btn-dark{background:var(--primary);color:#fff}.btn-blue{background:#dbeafe;color:var(--blue)}.btn-green{background:#dcfce7;color:#166534}.btn-yellow{background:#fef3c7;color:#92400e}.btn-red{background:#fee2e2;color:#991b1b}.btn-purple{background:#ede9fe;color:#6d28d9}
+    .simple-form{display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:18px}.simple-form input{height:54px;border:1px solid var(--border);outline:none;background:var(--bg);border-radius:18px;padding:0 16px;font-weight:800}.simple-form button{height:54px;border:0;background:var(--blue);color:#fff;border-radius:18px;padding:0 18px;font-weight:900;cursor:pointer}.items-list{display:grid;gap:10px}.list-item{background:#fff;border:1px solid var(--border);border-radius:18px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow-sm)}.message-toast{position:fixed;bottom:22px;left:22px;z-index:2000;display:none;min-width:280px;border-radius:18px;padding:14px 16px;font-weight:900;box-shadow:var(--shadow-lg)}.message-toast.show{display:block}.message-toast.success{background:#dcfce7;color:#166534}.message-toast.error{background:#fee2e2;color:#991b1b}.empty-admin{background:#fff;border:1px solid var(--border);border-radius:24px;padding:40px 20px;text-align:center;color:var(--muted);font-weight:800}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1500;display:none;align-items:center;justify-content:center;padding:18px}.modal-backdrop.show{display:flex}.modal-card{width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:var(--shadow-lg);padding:24px}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.close-modal{width:44px;height:44px;border:0;border-radius:14px;background:var(--bg);font-size:18px;cursor:pointer}.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.edit-field{display:grid;gap:7px}.edit-field.full{grid-column:1/-1}.edit-field input,.edit-field textarea,.edit-field select{border:1px solid var(--border);outline:none;background:var(--bg);border-radius:16px;padding:13px;font-weight:800}.edit-field textarea{min-height:100px}.modal-actions{margin-top:18px;display:flex;justify-content:flex-end;gap:10px}.big-btn{border:0;min-height:48px;border-radius:999px;padding:12px 20px;font-weight:900;cursor:pointer}
 
-</head><body>
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function () {
-        navigator.serviceWorker.register("/service-worker.js").catch(function (error) {
-          console.log("Service Worker registration failed:", error);
-        });
-      });
+
+    .admin-card-rating {
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      width:fit-content;
+      background:rgba(245,158,11,.12);
+      color:#92400e;
+      border:1px solid rgba(245,158,11,.24);
+      border-radius:999px;
+      padding:7px 11px;
+      font-size:12px;
+      font-weight:900;
+      margin:4px 0 8px;
     }
-  </script>
+    .admin-card-rating i {
+      color:#f59e0b;
+    }
+    .admin-card-rating.no-rating {
+      background:rgba(100,116,139,.10);
+      color:#475569;
+      border-color:rgba(100,116,139,.18);
+    }
+    .admin-card-rating.no-rating i {
+      color:#94a3b8;
+    }
 
-</body></html>
+
+    .notifications-grid {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+      margin-bottom:24px;
+    }
+    .notification-card {
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:var(--shadow-sm);
+      display:flex;
+      align-items:center;
+      gap:12px;
+      cursor:pointer;
+      transition:.25s ease;
+    }
+    .notification-card:hover {
+      transform:translateY(-2px);
+      box-shadow:var(--shadow-md);
+    }
+    .notification-icon {
+      width:52px;
+      height:52px;
+      border-radius:17px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:21px;
+      flex-shrink:0;
+    }
+    .notification-icon.blue {
+      background:#dbeafe;
+      color:#1d4ed8;
+    }
+    .notification-icon.yellow {
+      background:#fef3c7;
+      color:#92400e;
+    }
+    .notification-icon.red {
+      background:#fee2e2;
+      color:#991b1b;
+    }
+    .notification-icon.green {
+      background:#dcfce7;
+      color:#166534;
+    }
+    .notification-card h4 {
+      font-size:24px;
+      color:var(--primary);
+      font-weight:900;
+      line-height:1.1;
+    }
+    .notification-card p {
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+      margin-top:3px;
+    }
+
+    .review-admin-card {
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:var(--shadow-sm);
+    }
+    .review-admin-head {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .review-admin-head h3 {
+      color:var(--primary);
+      font-weight:900;
+      font-size:18px;
+    }
+    .review-stars {
+      color:#f59e0b;
+      font-weight:900;
+      font-size:16px;
+    }
+    .review-comment {
+      color:var(--muted);
+      font-weight:700;
+      line-height:1.8;
+      background:var(--bg);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      margin:10px 0;
+    }
+
+    @media(max-width:1100px){.notifications-grid{grid-template-columns:repeat(2,1fr)}.admin-stats-grid{grid-template-columns:repeat(2,1fr)}.admin-filter-grid{grid-template-columns:1fr 1fr}.admin-workers-grid{grid-template-columns:1fr}}@media(max-width:700px){.notifications-grid{grid-template-columns:1fr}.admin-topbar-content{height:auto;padding:16px 0;flex-direction:column;align-items:flex-start}.admin-actions-top{width:100%;flex-wrap:wrap}.admin-mini-btn{flex:1;justify-content:center}.admin-hero-box{flex-direction:column;align-items:flex-start}.admin-stats-grid,.admin-filter-grid,.edit-grid,.subscription-dates{grid-template-columns:1fr}.admin-worker-card{grid-template-columns:1fr}.admin-worker-img{width:100%;height:210px}.simple-form{grid-template-columns:1fr}.work-admin-gallery{grid-template-columns:repeat(3,1fr)}}
+  </style>
+</head>
+<body>
+<section class="admin-login-wrap" id="loginScreen"><div class="admin-login-card"><div class="login-icon"><i class="fa-solid fa-user-shield"></i></div><h1>لوحة إدارة صنايعي مطروح</h1><p>اكتب كلمة سر الإدارة للدخول للوحة التحكم.</p><form onsubmit="loginAdmin(event)"><div class="admin-password-box"><i class="fa-solid fa-lock"></i><input type="password" id="adminPassword" placeholder="كلمة سر الإدارة" autocomplete="off" /></div><button class="admin-login-btn" type="submit"><i class="fa-solid fa-right-to-bracket"></i> دخول لوحة الإدارة</button><div class="login-error" id="loginError">كلمة السر غير صحيحة</div></form></div></section>
+<main class="admin-dashboard" id="dashboard"><header class="admin-topbar"><div class="container admin-topbar-content"><a href="/admin" class="brand"><div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="brand-text"><h1>صنايعي مطروح</h1><span>لوحة الإدارة والتحكم</span></div></a><div class="admin-actions-top"><button class="admin-mini-btn" onclick="loadAllData()"><i class="fa-solid fa-rotate"></i> تحديث</button><button class="admin-mini-btn" onclick="downloadBackup()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button><button class="admin-mini-btn" onclick="exportWorkersReport()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button><a href="/" class="admin-mini-btn"><i class="fa-solid fa-house"></i> الرئيسية</a><button class="admin-mini-btn logout-btn" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button></div></div></header>
+<section class="admin-hero"><div class="container"><div class="admin-hero-box"><div><span class="section-label">Dashboard</span><h2>إدارة دليل صنايعي مطروح</h2><p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p></div><button class="btn btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button></div></div></section>
+<section class="container"><div class="admin-tabs"><button class="admin-tab active" onclick="switchTab('workers',this)"><i class="fa-solid fa-users-gear"></i> الصنايعية</button><button class="admin-tab" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button><button class="admin-tab" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
+<button class="admin-tab" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button></div>
+
+<div class="notifications-grid" id="notificationsGrid">
+  <div class="notification-card" onclick="showPendingWorkers()">
+    <div class="notification-icon blue">
+      <i class="fa-solid fa-user-clock"></i>
+    </div>
+    <div>
+      <h4 id="notifyPendingWorkers">0</h4>
+      <p>صنايعية بانتظار الموافقة</p>
+    </div>
+  </div>
+
+  <div class="notification-card" onclick="showPendingReviews()">
+    <div class="notification-icon yellow">
+      <i class="fa-solid fa-comment-dots"></i>
+    </div>
+    <div>
+      <h4 id="notifyPendingReviews">0</h4>
+      <p>تقييمات بانتظار الموافقة</p>
+    </div>
+  </div>
+
+  <div class="notification-card" onclick="showSubscriptionsSoon()">
+    <div class="notification-icon green">
+      <i class="fa-solid fa-calendar-days"></i>
+    </div>
+    <div>
+      <h4 id="notifySubscriptionsSoon">0</h4>
+      <p>اشتراكات قربت تنتهي</p>
+    </div>
+  </div>
+
+  <div class="notification-card" onclick="showSubscriptionsExpired()">
+    <div class="notification-icon red">
+      <i class="fa-solid fa-calendar-xmark"></i>
+    </div>
+    <div>
+      <h4 id="notifySubscriptionsExpired">0</h4>
+      <p>اشتراكات منتهية</p>
+    </div>
+  </div>
+</div>
+
+<section class="admin-section active" id="workersSection"><div class="admin-stats-grid"><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-users"></i></div><div><h3 id="totalCount">0</h3><p>إجمالي الصنايعية</p></div></div><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div><h3 id="approvedCount">0</h3><p>موافق عليهم</p></div></div><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-clock"></i></div><div><h3 id="pendingCount">0</h3><p>بانتظار الموافقة</p></div></div><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-star"></i></div><div><h3 id="featuredCount">0</h3><p>مميزين</p></div></div>
+<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-comments"></i></div><div><h3 id="pendingReviewsCount">0</h3><p>تقييمات منتظرة</p></div></div></div>
+<div class="admin-panel"><div><h3>بحث وفلترة</h3><p>ابحث بالاسم أو الهاتف أو الحرفة أو المنطقة أو حالة الاشتراك.</p></div><div class="admin-filter-grid"><div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="adminSearch" type="text" placeholder="بحث..." oninput="filterAdminWorkers()" /></div><div class="admin-input-wrap"><i class="fa-solid fa-screwdriver-wrench"></i><select id="adminTradeFilter" onchange="filterAdminWorkers()"><option value="">كل الحرف</option></select></div><div class="admin-input-wrap"><i class="fa-solid fa-location-dot"></i><select id="adminAreaFilter" onchange="filterAdminWorkers()"><option value="">كل المناطق</option></select></div><div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="adminStatusFilter" onchange="filterAdminWorkers()"><option value="">كل الحالات</option><option value="approved">موافق عليه</option><option value="pending">بانتظار الموافقة</option><option value="active">نشط</option><option value="inactive">متوقف</option><option value="featured">مميز</option><option value="sub_active">اشتراك شغال</option><option value="sub_soon">اشتراك قرب ينتهي</option><option value="sub_expired">اشتراك منتهي</option></select></div><div class="admin-input-wrap"><i class="fa-solid fa-arrow-down-wide-short"></i><select id="adminSortFilter" onchange="filterAdminWorkers()"><option value="default">الترتيب الافتراضي</option><option value="rating">الأعلى تقييمًا</option><option value="newest">الأحدث</option><option value="featured">المميزين أولًا</option><option value="pending_reviews">الأكثر تقييمات منتظرة</option></select></div><button class="clear-btn" onclick="clearAdminFilters()"><i class="fa-solid fa-rotate-right"></i> مسح</button></div></div><div id="adminWorkersGrid" class="admin-workers-grid"></div></section>
+<section class="admin-section" id="tradesSection"><div class="admin-panel"><h3>إدارة الحرف</h3><p>أضف أو احذف الحرف التي تظهر في التسجيل والفلترة.</p><form class="simple-form" onsubmit="addTrade(event)"><input id="newTradeInput" type="text" placeholder="مثال: سباك، كهربائي، نجار..." /><button type="submit"><i class="fa-solid fa-plus"></i> إضافة حرفة</button></form><div class="items-list" id="tradesList"></div></div></section>
+<section class="admin-section" id="areasSection"><div class="admin-panel"><h3>إدارة المناطق</h3><p>أضف أو احذف المناطق التي تظهر في صفحة التسجيل.</p><form class="simple-form" onsubmit="addArea(event)"><input id="newAreaInput" type="text" placeholder="مثال: وسط البلد، علم الروم..." /><button type="submit"><i class="fa-solid fa-plus"></i> إضافة منطقة</button></form><div class="items-list" id="areasList"></div></div></section>
+
+<section class="admin-section" id="reviewsSection">
+  <div class="admin-panel">
+    <h3>إدارة تقييمات العملاء</h3>
+    <p>راجع الريفيوهات قبل ظهورها في صفحة الصنايعي.</p>
+    <div class="admin-filter-grid" style="margin-top:14px">
+      <div class="admin-input-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="reviewSearch" type="text" placeholder="بحث في التقييمات..." oninput="renderReviews()" />
+      </div>
+      <div class="admin-input-wrap">
+        <i class="fa-solid fa-filter"></i>
+        <select id="reviewStatusFilter" onchange="renderReviews()">
+          <option value="">كل التقييمات</option>
+          <option value="pending">بانتظار الموافقة</option>
+          <option value="approved">معتمدة</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="admin-workers-grid" id="reviewsGrid"></div>
+</section>
+
+</section></main>
+<div class="modal-backdrop" id="editModal"><div class="modal-card"><div class="modal-head"><h3>تعديل بيانات الصنايعي</h3><button class="close-modal" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button></div><form onsubmit="submitEditWorker(event)"><input type="hidden" id="editId"><div class="edit-grid"><div class="edit-field"><label>الاسم</label><input id="editName" required></div><div class="edit-field"><label>رقم الاتصال</label><input id="editPhone" required></div><div class="edit-field"><label>رقم الواتساب</label><input id="editWhatsapp" placeholder="اتركه فارغًا لو نفس رقم الاتصال"></div><div class="edit-field"><label>الحرفة</label><select id="editTrade" required></select></div><div class="edit-field"><label>المنطقة</label><select id="editArea" required></select></div><div class="edit-field full"><label>الوصف</label><textarea id="editDescription"></textarea></div></div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeEditModal()">إلغاء</button><button type="submit" class="big-btn btn-dark">حفظ التعديل</button></div></form></div></div>
+<div class="message-toast" id="toast"></div>
+<script>
+const ADMIN_PASSWORD="123456";let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications={};
+function loginAdmin(e){e.preventDefault();const p=document.getElementById("adminPassword").value.trim();if(p===ADMIN_PASSWORD){localStorage.setItem("sanay3i_admin_logged_in","yes");showDashboard()}else document.getElementById("loginError").classList.add("show")}function showDashboard(){document.getElementById("loginScreen").style.display="none";document.getElementById("dashboard").classList.add("show");loadAllData()}function logoutAdmin(){localStorage.removeItem("sanay3i_admin_logged_in");location.reload()}function checkLogin(){if(localStorage.getItem("sanay3i_admin_logged_in")==="yes")showDashboard()}function switchTab(t,b){document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
+async function fetchJson(urls){for(const u of urls){try{const r=await fetch(u);if(r.ok)return await r.json()}catch(e){}}return []}function arr(d){if(Array.isArray(d))return d;for(const k of["data","workers","sanaieya","trades","crafts","areas","items"])if(d&&Array.isArray(d[k]))return d[k];return[]}function itemName(i){if(typeof i==="string")return i;return i.name||i.title||i.trade||i.craft||i.area||i.location||""}function itemId(i){if(typeof i==="string")return i;return i.id||i._id||i.name||i.title||""}
+async function loadAllData(){await loadTrades();await loadAreas();await loadWorkers();await loadPhotosForAll();await loadReviewsAdmin();await loadNotifications();buildRatingMaps();fillTradeSelects();fillAreaSelects();renderWorkers(allWorkers);stats()}
+async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers","/api/workers/all"]))}async function loadTrades(){allTrades=arr(await fetchJson(["/api/trades","/api/crafts","/trades","/crafts"]));renderTrades();fillTradeSelects()}async function loadAreas(){allAreas=arr(await fetchJson(["/api/areas","/api/locations","/areas","/locations"]));renderAreas();fillAreaSelects()}
+async function loadPhotosForAll(){photosByWorker={};for(const w of allWorkers){const id=wid(w);photosByWorker[id]=arr(await fetchJson(["/api/workers/"+id+"/photos"]))}}
+function fillTradeSelects(){const f=document.getElementById("adminTradeFilter"),e=document.getElementById("editTrade");if(!f||!e)return;f.innerHTML='<option value="">كل الحرف</option>';e.innerHTML='<option value="">اختر الحرفة</option>';allTrades.forEach(i=>{const name=itemName(i);if(name){f.innerHTML+=`<option value="${name}">${name}</option>`;e.innerHTML+=`<option value="${name}">${name}</option>`}})}function fillAreaSelects(){
+  const e=document.getElementById("editArea");
+  const filter=document.getElementById("adminAreaFilter");
+  if(e)e.innerHTML='<option value="">اختر المنطقة</option>';
+  if(filter)filter.innerHTML='<option value="">كل المناطق</option>';
+  allAreas.forEach(i=>{
+    const name=itemName(i);
+    if(!name)return;
+    if(e)e.innerHTML+=`<option value="${name}">${name}</option>`;
+    if(filter)filter.innerHTML+=`<option value="${name}">${name}</option>`;
+  });
+}
+function wid(w){return w.id||w._id||w.worker_id}function wname(w){return w.name||w.full_name||w.worker_name||"صنايعي"}function wphone(w){return w.phone||w.mobile||w.phone_number||""}function wwhatsapp(w){return w.whatsapp||w.whatsapp_number||w.whats||""}function wtrade(w){return w.trade||w.craft||w.job||w.profession||w.trade_name||"غير محدد"}function warea(w){return w.area||w.location||w.region||w.area_name||"غير محدد"}function wdesc(w){return w.description||w.about||w.notes||""}function wimg(w){const image=w.image||w.photo||w.image_url||w.photo_url||"";if(!image)return"https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=300";if(image.startsWith("http"))return image;if(image.startsWith("/uploads"))return image;if(image.startsWith("uploads"))return"/"+image;return"/uploads/"+image}
+function ok(v){return v===1||v===true||v==="1"||v==="true"||v==="approved"||v==="active"}function isApproved(w){return ok(w.approved??w.is_approved??w.visible??0)}function isActive(w){return ok(w.active??w.is_active??w.status??1)}function isFeatured(w){return ok(w.featured??w.is_featured??w.special??0)}
+function formatDate(x){if(!x)return"غير محدد";const d=new Date(x);return isNaN(d.getTime())?"غير محدد":d.toLocaleDateString("ar-EG",{year:"numeric",month:"long",day:"numeric"})}function daysLeft(w){const end=w.subscription_end||w.subscriptionEnd||w.end_date;if(!end)return null;const t=new Date(),e=new Date(end);t.setHours(0,0,0,0);e.setHours(0,0,0,0);if(isNaN(e.getTime()))return null;return Math.ceil((e-t)/(86400000))}
+function subInfo(w){const d=daysLeft(w);let cls="sub-active",icon="fa-circle-check",text="الاشتراك شغال";if(d===null){cls="sub-soon";icon="fa-circle-question";text="لم يتم تحديد نهاية الاشتراك"}else if(d<0){cls="sub-expired";icon="fa-circle-xmark";text="الاشتراك منتهي"}else if(d===0){cls="sub-soon";icon="fa-triangle-exclamation";text="ينتهي اليوم"}else if(d<=7){cls="sub-soon";icon="fa-triangle-exclamation";text=`قرب ينتهي - متبقي ${d} يوم`}else{text=`شغال - متبقي ${d} يوم`}return{start:w.subscription_start||"",end:w.subscription_end||"",daysLeft:d,cls,icon,text}}
+function stats(){document.getElementById("totalCount").textContent=allWorkers.length;document.getElementById("approvedCount").textContent=allWorkers.filter(isApproved).length;document.getElementById("pendingCount").textContent=allWorkers.length-allWorkers.filter(isApproved).length;document.getElementById("featuredCount").textContent=allWorkers.filter(isFeatured).length;
+  const pendingReviews = allReviews.filter(r=>!ok(r.approved)).length;
+  const pendingEl=document.getElementById("pendingReviewsCount");
+  if(pendingEl) pendingEl.textContent=pendingReviews;
+}
+function imgPath(image){if(!image)return"";if(image.startsWith("http"))return image;if(image.startsWith("/uploads"))return image;if(image.startsWith("uploads"))return"/"+image;return"/uploads/"+image}
+function renderPhotoAdmin(id){const photos=photosByWorker[id]||[];if(!photos.length)return'<div class="no-photos">لا توجد صور أعمال مضافة</div>';return`<div class="work-admin-gallery">${photos.map(p=>`<div class="work-admin-photo"><img src="${imgPath(p.image)}"><button onclick="deleteWorkPhoto(event,'${p.id}')">×</button></div>`).join("")}</div>`}
+function buildRatingMaps(){
+  ratingsByWorker={};
+  pendingReviewsByWorker={};
+
+  allWorkers.forEach(w=>{
+    const id=String(wid(w));
+    ratingsByWorker[id]={average:0,count:0};
+    pendingReviewsByWorker[id]=0;
+  });
+
+  const approvedGroups={};
+
+  allReviews.forEach(r=>{
+    const workerId=String(r.worker_id);
+    if(!pendingReviewsByWorker[workerId]) pendingReviewsByWorker[workerId]=0;
+
+    if(ok(r.approved)){
+      if(!approvedGroups[workerId]) approvedGroups[workerId]=[];
+      approvedGroups[workerId].push(Number(r.rating)||0);
+    }else{
+      pendingReviewsByWorker[workerId]=(pendingReviewsByWorker[workerId]||0)+1;
+    }
+  });
+
+  Object.keys(approvedGroups).forEach(workerId=>{
+    const list=approvedGroups[workerId];
+    const sum=list.reduce((a,b)=>a+b,0);
+    ratingsByWorker[workerId]={
+      average: list.length ? Math.round((sum/list.length)*10)/10 : 0,
+      count: list.length
+    };
+  });
+}
+
+function getRatingSummary(id){
+  return ratingsByWorker[String(id)] || {average:0,count:0};
+}
+
+function getPendingReviewsCount(id){
+  return pendingReviewsByWorker[String(id)] || 0;
+}
+
+function renderAdminRating(id){
+  const summary=getRatingSummary(id);
+  const pending=getPendingReviewsCount(id);
+
+  if(!summary.count && !pending){
+    return '<div class="admin-card-rating no-rating"><i class="fa-regular fa-star"></i> لا توجد تقييمات</div>';
+  }
+
+  let text='';
+  if(summary.count){
+    text += `<i class="fa-solid fa-star"></i> ${summary.average} من 5 (${summary.count})`;
+  }else{
+    text += '<i class="fa-regular fa-star"></i> لا توجد تقييمات معتمدة';
+  }
+
+  if(pending){
+    text += ` - ${pending} منتظر`;
+  }
+
+  return `<div class="admin-card-rating">${text}</div>`;
+}
+
+function sortAdminWorkers(workers){
+  const sortEl=document.getElementById("adminSortFilter");
+  const sortValue=sortEl ? sortEl.value : "default";
+  const sorted=[...workers];
+
+  if(sortValue==="rating"){
+    sorted.sort((a,b)=>{
+      const ar=getRatingSummary(wid(a));
+      const br=getRatingSummary(wid(b));
+      if(br.average !== ar.average) return br.average - ar.average;
+      return br.count - ar.count;
+    });
+  }
+
+  if(sortValue==="newest"){
+    sorted.sort((a,b)=>(Number(wid(b))||0)-(Number(wid(a))||0));
+  }
+
+  if(sortValue==="featured"){
+    sorted.sort((a,b)=>{
+      const af=isFeatured(a)?1:0;
+      const bf=isFeatured(b)?1:0;
+      if(bf !== af) return bf-af;
+      return (Number(wid(b))||0)-(Number(wid(a))||0);
+    });
+  }
+
+  if(sortValue==="pending_reviews"){
+    sorted.sort((a,b)=>getPendingReviewsCount(wid(b))-getPendingReviewsCount(wid(a)));
+  }
+
+  return sorted;
+}
+
+function renderWorkers(workers){const grid=document.getElementById("adminWorkersGrid");grid.innerHTML="";if(!workers.length){grid.innerHTML='<div class="empty-admin" style="grid-column:1/-1">لا يوجد صنايعية للعرض حاليًا</div>';return}workers.forEach(w=>{const id=wid(w),sub=subInfo(w),approved=isApproved(w),active=isActive(w),featured=isFeatured(w);const card=document.createElement("article");card.className="admin-worker-card";card.innerHTML=`<img class="admin-worker-img" src="${wimg(w)}"><div class="admin-worker-main"><h3>${wname(w)}</h3>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div><div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p><strong><i class="fa-solid fa-images"></i> صور الأعمال</strong>${renderPhotoAdmin(id)}<div class="card-actions"><button class="action-btn ${approved?'btn-yellow':'btn-green'}" onclick="toggleApprove('${id}',${approved})">${approved?"إلغاء الموافقة":"موافقة"}</button><button class="action-btn ${active?'btn-yellow':'btn-green'}" onclick="toggleActive('${id}',${active})">${active?"إيقاف":"تفعيل"}</button><button class="action-btn ${featured?'btn-purple':'btn-yellow'}" onclick="toggleFeatured('${id}',${featured})">${featured?"إلغاء التمييز":"تمييز"}</button><button class="action-btn btn-blue" onclick="renewWorker('${id}','month')">شهر 100</button><button class="action-btn btn-blue" onclick="renewWorker('${id}','half')">نصف سنة 600</button><button class="action-btn btn-blue" onclick="renewWorker('${id}','year')">سنة 1200</button><button class="action-btn btn-dark" onclick="openEditModal('${id}')">تعديل</button><button class="action-btn btn-red" onclick="deleteWorker('${id}')">حذف</button></div></div>`;grid.appendChild(card)})}
+function filterAdminWorkers(){
+  const s=document.getElementById("adminSearch").value.trim().toLowerCase();
+  const tf=document.getElementById("adminTradeFilter").value.trim().toLowerCase();
+  const af=document.getElementById("adminAreaFilter").value.trim().toLowerCase();
+  const sf=document.getElementById("adminStatusFilter").value;
+
+  const filtered=allWorkers.filter(w=>{
+    const search=wname(w).toLowerCase().includes(s)||wphone(w).toLowerCase().includes(s)||wwhatsapp(w).toLowerCase().includes(s)||wtrade(w).toLowerCase().includes(s)||warea(w).toLowerCase().includes(s)||wdesc(w).toLowerCase().includes(s);
+    const trade=!tf||wtrade(w).toLowerCase()===tf;
+    const area=!af||warea(w).toLowerCase()===af;
+
+    let status=true;
+    if(sf==="approved")status=isApproved(w);
+    if(sf==="pending")status=!isApproved(w);
+    if(sf==="active")status=isActive(w);
+    if(sf==="inactive")status=!isActive(w);
+    if(sf==="featured")status=isFeatured(w);
+
+    const sub=subInfo(w);
+    if(sf==="sub_active")status=sub.daysLeft===null||sub.daysLeft>=0;
+    if(sf==="sub_soon")status=sub.daysLeft!==null&&sub.daysLeft>=0&&sub.daysLeft<=7;
+    if(sf==="sub_expired")status=sub.daysLeft!==null&&sub.daysLeft<0;
+
+    return search&&trade&&area&&status;
+  });
+
+  renderWorkers(sortAdminWorkers(filtered));
+}
+function clearAdminFilters(){
+  document.getElementById("adminSearch").value="";
+  document.getElementById("adminTradeFilter").value="";
+  document.getElementById("adminAreaFilter").value="";
+  document.getElementById("adminStatusFilter").value="";
+  document.getElementById("adminSortFilter").value="default";
+  renderWorkers(allWorkers);
+}
+async function reqs(list){for(const r of list){try{const opt={method:r.method||"POST",headers:{"Content-Type":"application/json"}};if(r.body)opt.body=JSON.stringify(r.body);const res=await fetch(r.url,opt);if(res.ok)return true}catch(e){}}return false}
+function after(ok,msg){if(ok){toast("success",msg);loadAllData()}else toast("error","لم يتم تنفيذ الأمر")}
+async function toggleApprove(id,c){after(await reqs([{url:`/api/workers/${id}/approve`,method:"PUT",body:{approved:c?0:1}}]),"تم تحديث الموافقة")}
+async function toggleActive(id,c){after(await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]),"تم تحديث التفعيل")}
+async function toggleFeatured(id,c){after(await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]),"تم تحديث التمييز")}
+async function renewWorker(id,plan){const months=plan==="half"?6:plan==="year"?12:1;after(await reqs([{url:`/api/workers/${id}/renew`,method:"PUT",body:{plan,months}}]),"تم تجديد الاشتراك")}
+async function deleteWorker(id){if(!confirm("هل أنت متأكد؟"))return;after(await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]),"تم حذف الصنايعي")}
+async function deleteWorkPhoto(e,id){e.stopPropagation();if(!confirm("حذف صورة العمل؟"))return;after(await reqs([{url:`/api/workers/photos/${id}`,method:"DELETE"}]),"تم حذف الصورة")}
+function openEditModal(id){const w=allWorkers.find(x=>String(wid(x))===String(id));if(!w)return;document.getElementById("editId").value=id;document.getElementById("editName").value=wname(w);document.getElementById("editPhone").value=wphone(w);document.getElementById("editWhatsapp").value=wwhatsapp(w);document.getElementById("editTrade").value=wtrade(w);document.getElementById("editArea").value=warea(w);document.getElementById("editDescription").value=wdesc(w);document.getElementById("editModal").classList.add("show")}function closeEditModal(){document.getElementById("editModal").classList.remove("show")}
+async function submitEditWorker(e){e.preventDefault();const id=document.getElementById("editId").value;const body={name:document.getElementById("editName").value.trim(),phone:document.getElementById("editPhone").value.trim(),whatsapp:document.getElementById("editWhatsapp").value.trim(),trade:document.getElementById("editTrade").value.trim(),area:document.getElementById("editArea").value.trim(),description:document.getElementById("editDescription").value.trim()};const ok=await reqs([{url:`/api/workers/${id}`,method:"PUT",body}]);if(ok)closeEditModal();after(ok,"تم تعديل البيانات")}
+function renderTrades(){const list=document.getElementById("tradesList");list.innerHTML=allTrades.length?allTrades.map(i=>`<div class="list-item"><strong>${itemName(i)}</strong><button class="action-btn btn-red" onclick="deleteTrade('${itemId(i)}')">حذف</button></div>`).join(""):'<div class="empty-admin">لا توجد حرف</div>'}async function addTrade(e){e.preventDefault();const input=document.getElementById("newTradeInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم الحرفة");const ok=await reqs([{url:"/api/trades",method:"POST",body:{name}}]);if(ok){input.value="";await loadTrades();toast("success","تمت إضافة الحرفة")}else toast("error","لم تتم الإضافة")}async function deleteTrade(id){if(!confirm("حذف الحرفة؟"))return;const ok=await reqs([{url:`/api/trades/${id}`,method:"DELETE"}]);if(ok){await loadTrades();toast("success","تم حذف الحرفة")}else toast("error","لم يتم الحذف")}
+function renderAreas(){const list=document.getElementById("areasList");list.innerHTML=allAreas.length?allAreas.map(i=>`<div class="list-item"><strong>${itemName(i)}</strong><button class="action-btn btn-red" onclick="deleteArea('${itemId(i)}')">حذف</button></div>`).join(""):'<div class="empty-admin">لا توجد مناطق</div>'}async function addArea(e){e.preventDefault();const input=document.getElementById("newAreaInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم المنطقة");const ok=await reqs([{url:"/api/areas",method:"POST",body:{name}}]);if(ok){input.value="";await loadAreas();toast("success","تمت إضافة المنطقة")}else toast("error","لم تتم الإضافة")}async function deleteArea(id){if(!confirm("حذف المنطقة؟"))return;const ok=await reqs([{url:`/api/areas/${id}`,method:"DELETE"}]);if(ok){await loadAreas();toast("success","تم حذف المنطقة")}else toast("error","لم يتم الحذف")}
+
+async function loadReviewsAdmin(){
+  allReviews = arr(await fetchJson(["/api/admin/reviews"]));
+  buildRatingMaps();
+}
+
+function renderReviewStars(value){
+  const rating = Math.round(Number(value) || 0);
+  return "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating);
+}
+
+function renderReviews(){
+  const grid = document.getElementById("reviewsGrid");
+  if(!grid) return;
+
+  const searchEl = document.getElementById("reviewSearch");
+  const statusEl = document.getElementById("reviewStatusFilter");
+
+  const search = searchEl ? searchEl.value.trim().toLowerCase() : "";
+  const status = statusEl ? statusEl.value : "";
+
+  const filtered = allReviews.filter(r => {
+    const text = [
+      r.customer_name,
+      r.comment,
+      r.worker_name,
+      r.worker_trade,
+      r.worker_area
+    ].join(" ").toLowerCase();
+
+    let statusOk = true;
+    if(status === "pending") statusOk = !ok(r.approved);
+    if(status === "approved") statusOk = ok(r.approved);
+
+    return text.includes(search) && statusOk;
+  });
+
+  grid.innerHTML = "";
+
+  if(!filtered.length){
+    grid.innerHTML = '<div class="empty-admin" style="grid-column:1/-1">لا توجد تقييمات للعرض حاليًا</div>';
+    return;
+  }
+
+  filtered.forEach(r => {
+    const approved = ok(r.approved);
+    const card = document.createElement("div");
+    card.className = "review-admin-card";
+    card.innerHTML = `
+      <div class="review-admin-head">
+        <div>
+          <h3>${r.worker_name || "صنايعي محذوف"}</h3>
+          <div class="worker-tags">
+            <span class="worker-tag"><i class="fa-solid fa-user"></i>${r.customer_name || "عميل"}</span>
+            <span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${r.worker_trade || "غير محدد"}</span>
+            <span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${r.worker_area || "غير محدد"}</span>
+          </div>
+        </div>
+        <span class="status-badge ${approved ? "status-green" : "status-yellow"}">
+          ${approved ? "معتمد" : "بانتظار الموافقة"}
+        </span>
+      </div>
+
+      <div class="review-stars">${renderReviewStars(r.rating)}</div>
+      <div class="review-comment">${r.comment || ""}</div>
+
+      <div class="card-actions">
+        <button class="action-btn ${approved ? "btn-yellow" : "btn-green"}" onclick="toggleReviewApprove('${r.id}', ${approved})">
+          ${approved ? "إلغاء الموافقة" : "موافقة"}
+        </button>
+        <button class="action-btn btn-red" onclick="deleteReview('${r.id}')">
+          حذف
+        </button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+async function toggleReviewApprove(id, current){
+  const approved = current ? 0 : 1;
+  const okReq = await reqs([{url:`/api/reviews/${id}/approve`,method:"PUT",body:{approved}}]);
+  if(okReq){
+    toast("success","تم تحديث حالة التقييم");
+    await loadReviewsAdmin();
+    renderReviews();
+  }else{
+    toast("error","لم يتم تحديث التقييم");
+  }
+}
+
+async function deleteReview(id){
+  if(!confirm("هل تريد حذف هذا التقييم؟")) return;
+  const okReq = await reqs([{url:`/api/reviews/${id}`,method:"DELETE"}]);
+  if(okReq){
+    toast("success","تم حذف التقييم");
+    await loadReviewsAdmin();
+    renderReviews();
+  }else{
+    toast("error","لم يتم حذف التقييم");
+  }
+}
+
+
+function downloadBackup(){
+  window.location.href = "/api/backup-db";
+}
+
+
+function exportWorkersReport(){
+  window.location.href = "/api/export-workers";
+}
+
+
+
+async function loadNotifications(){
+  try{
+    const data = await fetchJson(["/api/admin/notifications"]);
+    adminNotifications = data || {};
+  }catch(e){
+    adminNotifications = {};
+  }
+
+  renderNotifications();
+}
+
+function renderNotifications(){
+  const pendingWorkers = adminNotifications.pendingWorkers || 0;
+  const pendingReviews = adminNotifications.pendingReviews || 0;
+  const soon = adminNotifications.subscriptionsSoon || 0;
+  const expired = adminNotifications.subscriptionsExpired || 0;
+
+  const a=document.getElementById("notifyPendingWorkers");
+  const b=document.getElementById("notifyPendingReviews");
+  const c=document.getElementById("notifySubscriptionsSoon");
+  const d=document.getElementById("notifySubscriptionsExpired");
+
+  if(a)a.textContent=pendingWorkers;
+  if(b)b.textContent=pendingReviews;
+  if(c)c.textContent=soon;
+  if(d)d.textContent=expired;
+}
+
+function activateWorkersTab(){
+  const workersBtn = document.querySelector(".admin-tab");
+  if(workersBtn) switchTab("workers", workersBtn);
+}
+
+function showPendingWorkers(){
+  activateWorkersTab();
+  document.getElementById("adminStatusFilter").value = "pending";
+  filterAdminWorkers();
+  document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});
+}
+
+function showSubscriptionsSoon(){
+  activateWorkersTab();
+  document.getElementById("adminStatusFilter").value = "sub_soon";
+  filterAdminWorkers();
+  document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});
+}
+
+function showSubscriptionsExpired(){
+  activateWorkersTab();
+  document.getElementById("adminStatusFilter").value = "sub_expired";
+  filterAdminWorkers();
+  document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});
+}
+
+function showPendingReviews(){
+  const tabs = Array.from(document.querySelectorAll(".admin-tab"));
+  const reviewsBtn = tabs.find(btn => btn.textContent.includes("التقييمات"));
+  if(reviewsBtn) switchTab("reviews", reviewsBtn);
+
+  const status = document.getElementById("reviewStatusFilter");
+  if(status) status.value = "pending";
+
+  if(typeof renderReviews === "function") renderReviews();
+
+  const section = document.getElementById("reviewsSection");
+  if(section) section.scrollIntoView({behavior:"smooth"});
+}
+
+checkLogin();
+</script>
+</body>
+</html>
