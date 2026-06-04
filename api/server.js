@@ -9,8 +9,23 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Serve static files like style.css, images, and public assets
-app.use(express.static(process.cwd()));
+// ===============================
+// Static files for Local + Vercel
+// ===============================
+const STATIC_DIR = path.join(__dirname, "..");
+
+app.use(express.static(STATIC_DIR));
+
+app.get("/style.css", (req, res) => {
+  res.sendFile(path.join(STATIC_DIR, "style.css"));
+});
+
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end();
+});
+
+
+
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
