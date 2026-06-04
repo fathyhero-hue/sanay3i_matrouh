@@ -1,30 +1,9 @@
-# Dependencies
 node_modules/
-
-# Database
-sanaiey.db
-*.db
-*.sqlite
-*.sqlite3
-
-# Uploaded files
+.env
+.env.local
+.env.production
+*.log
 uploads/
 backups/
-
-# Environment variables
-.env
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-logs/
-*.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor files
-.vscode/
-.idea/
+sanaiey.db
+*.db
