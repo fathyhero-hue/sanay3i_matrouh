@@ -46,6 +46,11 @@ app.get("/favicon.ico", (req, res) => {
   res.status(204).end();
 });
 
+app.get("/icons/:fileName", (req, res) => {
+  res.type("image/png");
+  res.sendFile(path.join(STATIC_DIR, "icons", req.params.fileName));
+});
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "uploads";
