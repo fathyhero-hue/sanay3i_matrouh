@@ -1,0 +1,10 @@
+انسخ هذه السطور قبل </head> داخل كل صفحة HTML شغالة:
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="background-color" content="#f8fafc">
+<meta name="application-name" content="صنايعي مطروح">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">

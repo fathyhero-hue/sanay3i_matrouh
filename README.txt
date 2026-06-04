@@ -1,30 +1,45 @@
-إصلاح نهائي لمشكلة style.css على Vercel:
+ملفات التطبيق بعد إضافة PWA بأمان
 
-المشكلة:
-رابط https://sanay3i-matrouh.vercel.app/style.css كان يظهر:
-Cannot GET /style.css
+المحتوى:
+- index.html
+- register.html
+- admin.html
+- worker.html
+- manifest.json
+- service-worker.js
+- offline.html
+- privacy-policy.html
+- icons folder
 
-الحل:
-استبدل:
-api/server.js
-vercel.json
-
-داخل فولدر:
+طريقة الاستخدام:
+1) فك الضغط.
+2) انسخ كل الملفات والفولدرات داخل:
 Desktop\sanay3i_matrouh\backend
 
-ثم من CMD:
+3) ارفع على GitHub:
 cd %USERPROFILE%\Desktop\sanay3i_matrouh\backend
-git add api/server.js vercel.json style.css index.html
-git commit -m "fix style css route on vercel"
+git add -A
+git commit -m "add pwa to working pages"
 git push
 
-بعد ما Vercel يخلص Deploy:
-افتح:
-https://sanay3i-matrouh.vercel.app/style.css
+4) بعد Deploy على Vercel اختبر:
+https://sanay3i-matrouh.vercel.app
+https://sanay3i-matrouh.vercel.app/register
+https://sanay3i-matrouh.vercel.app/admin
+https://sanay3i-matrouh.vercel.app/manifest.json
+https://sanay3i-matrouh.vercel.app/service-worker.js
+https://sanay3i-matrouh.vercel.app/privacy-policy.html
+https://sanay3i-matrouh.vercel.app/icons/icon-192.png
 
-لازم يظهر كود CSS.
-ثم افتح:
+لو ظهرت نسخة قديمة:
+افتح DevTools > Application > Clear site data
+أو افتح من Incognito.
+
+رابط PWABuilder:
+https://www.pwabuilder.com/
+
+رابط الموقع:
 https://sanay3i-matrouh.vercel.app
 
-واعمل:
-Ctrl + F5
+رابط سياسة الخصوصية:
+https://sanay3i-matrouh.vercel.app/privacy-policy.html

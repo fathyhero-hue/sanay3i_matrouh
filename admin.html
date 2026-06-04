@@ -147,6 +147,17 @@
 
     @media(max-width:1100px){.notifications-grid{grid-template-columns:repeat(2,1fr)}.admin-stats-grid{grid-template-columns:repeat(2,1fr)}.admin-filter-grid{grid-template-columns:1fr 1fr}.admin-workers-grid{grid-template-columns:1fr}}@media(max-width:700px){.notifications-grid{grid-template-columns:1fr}.admin-topbar-content{height:auto;padding:16px 0;flex-direction:column;align-items:flex-start}.admin-actions-top{width:100%;flex-wrap:wrap}.admin-mini-btn{flex:1;justify-content:center}.admin-hero-box{flex-direction:column;align-items:flex-start}.admin-stats-grid,.admin-filter-grid,.edit-grid,.subscription-dates{grid-template-columns:1fr}.admin-worker-card{grid-template-columns:1fr}.admin-worker-img{width:100%;height:210px}.simple-form{grid-template-columns:1fr}.work-admin-gallery{grid-template-columns:repeat(3,1fr)}}
   </style>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="background-color" content="#f8fafc">
+  <meta name="application-name" content="صنايعي مطروح">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
 </head>
 <body>
 <section class="admin-login-wrap" id="loginScreen"><div class="admin-login-card"><div class="login-icon"><i class="fa-solid fa-user-shield"></i></div><h1>لوحة إدارة صنايعي مطروح</h1><p>اكتب كلمة سر الإدارة للدخول للوحة التحكم.</p><form onsubmit="loginAdmin(event)"><div class="admin-password-box"><i class="fa-solid fa-lock"></i><input type="password" id="adminPassword" placeholder="كلمة سر الإدارة" autocomplete="off" /></div><button class="admin-login-btn" type="submit"><i class="fa-solid fa-right-to-bracket"></i> دخول لوحة الإدارة</button><div class="login-error" id="loginError">كلمة السر غير صحيحة</div></form></div></section>
@@ -590,5 +601,17 @@ function showPendingReviews(){
 
 checkLogin();
 </script>
+
+  <!-- Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/service-worker.js").catch(function (error) {
+          console.log("Service Worker registration failed:", error);
+        });
+      });
+    }
+  </script>
+
 </body>
 </html>
