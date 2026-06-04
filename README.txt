@@ -1,26 +1,30 @@
-حل مشكلة الصفحة بدون تنسيق في نسخة Supabase:
+إصلاح نهائي لمشكلة style.css على Vercel:
 
-سبب المشكلة:
-api/server.js لم يكن يقدم الملفات الثابتة مثل style.css.
+المشكلة:
+رابط https://sanay3i-matrouh.vercel.app/style.css كان يظهر:
+Cannot GET /style.css
 
 الحل:
-استبدل الملف:
+استبدل:
 api/server.js
+vercel.json
 
-داخل:
-Desktop\sanay3i_matrouh\backend\api\server.js
+داخل فولدر:
+Desktop\sanay3i_matrouh\backend
 
-ثم اقفل السيرفر وشغله:
+ثم من CMD:
 cd %USERPROFILE%\Desktop\sanay3i_matrouh\backend
-npm start
+git add api/server.js vercel.json style.css index.html
+git commit -m "fix style css route on vercel"
+git push
 
+بعد ما Vercel يخلص Deploy:
+افتح:
+https://sanay3i-matrouh.vercel.app/style.css
+
+لازم يظهر كود CSS.
 ثم افتح:
-http://localhost:3000
+https://sanay3i-matrouh.vercel.app
 
 واعمل:
 Ctrl + F5
-
-بعد ما الشكل يرجع:
-git add api/server.js style.css
-git commit -m "fix static files serving"
-git push
