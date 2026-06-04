@@ -8,8 +8,9 @@ try { require("dotenv").config(); } catch(e) {}
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
 // ===============================
-// Static / PWA files for Vercel
+// Static / PWA files for Local + Vercel
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
@@ -45,24 +46,6 @@ app.get("/favicon.ico", (req, res) => {
   res.status(204).end();
 });
 
-// ===============================
-// Static files for Local + Vercel
-// ===============================
-const STATIC_DIR = path.join(__dirname, "..");
-
-app.use(express.static(STATIC_DIR));
-
-app.get("/style.css", (req, res) => {
-  res.sendFile(path.join(STATIC_DIR, "style.css"));
-});
-
-app.get("/favicon.ico", (req, res) => {
-  res.status(204).end();
-});
-
-
-
-
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || "uploads";
@@ -86,10 +69,10 @@ function mainFile(req){ return req.files && req.files.image && req.files.image[0
 function workFiles(req){ return req.files && req.files.workPhotos ? req.files.workPhotos : []; }
 
 // Local page fallback
-app.get("/", (req,res)=>res.sendFile(path.join(process.cwd(),"index.html")));
-app.get("/register", (req,res)=>res.sendFile(path.join(process.cwd(),"register.html")));
-app.get("/admin", (req,res)=>res.sendFile(path.join(process.cwd(),"admin.html")));
-app.get("/worker/:id", (req,res)=>res.sendFile(path.join(process.cwd(),"worker.html")));
+app.get("/", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
+app.get("/register", (req,res)=>res.sendFile(path.join(STATIC_DIR,"register.html")));
+app.get("/admin", (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin.html")));
+app.get("/worker/:id", (req,res)=>res.sendFile(path.join(STATIC_DIR,"worker.html")));
 
 // Workers
 app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select("*").eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).order("featured",{ascending:false}).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
