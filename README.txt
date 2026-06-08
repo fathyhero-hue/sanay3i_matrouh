@@ -1,45 +1,41 @@
-ملفات التطبيق بعد إضافة PWA بأمان
+إصلاح أخطاء أيقونات PWABuilder
 
-المحتوى:
-- index.html
-- register.html
-- admin.html
-- worker.html
-- manifest.json
-- service-worker.js
-- offline.html
-- privacy-policy.html
-- icons folder
+المشكلة:
+PWABuilder يظهر:
+- Fix the links to your icons in your web manifest
+- Fix the icon types in your web manifest
+- Fix shortcut icons
+- Fix icon sizes
 
-طريقة الاستخدام:
-1) فك الضغط.
-2) انسخ كل الملفات والفولدرات داخل:
+طريقة الإصلاح:
+
+1) استبدل ملف manifest.json داخل:
 Desktop\sanay3i_matrouh\backend
 
-3) ارفع على GitHub:
+بالملف الموجود هنا.
+
+2) تأكد أن فولدر icons موجود داخل:
+Desktop\sanay3i_matrouh\backend\icons
+
+ولازم يكون فيه على الأقل:
+icon-192.png
+icon-512.png
+
+3) افتح:
+Desktop\sanay3i_matrouh\backend\api\server.js
+
+وتحت route favicon.ico أو تحت Routes الملفات الثابتة، أضف الكود الموجود في:
+SERVER-ICONS-ROUTE.txt
+
+4) ارفع على GitHub:
 cd %USERPROFILE%\Desktop\sanay3i_matrouh\backend
-git add -A
-git commit -m "add pwa to working pages"
+git add manifest.json icons api/server.js
+git commit -m "fix pwa icons for pwabuilder"
 git push
 
-4) بعد Deploy على Vercel اختبر:
-https://sanay3i-matrouh.vercel.app
-https://sanay3i-matrouh.vercel.app/register
-https://sanay3i-matrouh.vercel.app/admin
-https://sanay3i-matrouh.vercel.app/manifest.json
-https://sanay3i-matrouh.vercel.app/service-worker.js
-https://sanay3i-matrouh.vercel.app/privacy-policy.html
+5) بعد Deploy اختبر:
 https://sanay3i-matrouh.vercel.app/icons/icon-192.png
+https://sanay3i-matrouh.vercel.app/icons/icon-512.png
+https://sanay3i-matrouh.vercel.app/manifest.json
 
-لو ظهرت نسخة قديمة:
-افتح DevTools > Application > Clear site data
-أو افتح من Incognito.
-
-رابط PWABuilder:
-https://www.pwabuilder.com/
-
-رابط الموقع:
-https://sanay3i-matrouh.vercel.app
-
-رابط سياسة الخصوصية:
-https://sanay3i-matrouh.vercel.app/privacy-policy.html
+لو الأيقونات فتحت كصور، ارجع PWABuilder واضغط Scan مرة تانية.
