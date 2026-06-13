@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <title>صنايعي مطروح | دليل الصنايعية في مرسى مطروح</title>
   <meta id="metaDescription" name="description" content="صنايعي مطروح هو دليل مباشر للوصول إلى أفضل الصنايعية والحرفيين في مرسى مطروح حسب الحرفة والمنطقة مع اتصال وواتساب مباشر." />
@@ -531,111 +531,100 @@
       }
     }
 
+  
 
-    /* Patch 23: Performance and mobile loading improvements */
-    .workers-grid.is-rendering {
-      min-height: 260px;
+
+    /* ===============================
+       Patch 24 - Mobile layout polish
+       ملاءمة وتنظيم أفضل لشاشات الموبايل
+    ================================ */
+    html { scroll-padding-top: 88px; }
+    body { overflow-x: hidden; }
+
+    @media (max-width: 760px) {
+      .container { width: min(100% - 24px, 1180px); }
+
+      .site-header { top: 0; }
+      .header-content { min-height: 70px; gap: 10px; }
+      .brand { min-width: 0; }
+      .brand-icon { width: 46px; height: 46px; border-radius: 16px; font-size: 19px; }
+      .brand-text { min-width: 0; }
+      .brand-text h1 { font-size: 18px; white-space: nowrap; }
+      .brand-text span { max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+      .mobile-menu-btn { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; }
+      .mobile-nav { padding: 10px 12px 14px; box-shadow: 0 18px 28px rgba(15,23,42,.08); }
+      .mobile-nav a { min-height: 46px; display: flex; align-items: center; justify-content: center; }
+
+      .hero { padding: 28px 0 18px; }
+      .hero-grid { gap: 18px; }
+      .hero-text h2 { font-size: clamp(30px, 9vw, 38px); line-height: 1.35; letter-spacing: 0; }
+      .hero-text p { font-size: 14.5px; line-height: 1.9; margin-top: 12px; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+      .hero-actions .btn, .hero-actions a { width: 100%; justify-content: center; min-height: 50px; }
+      .hero-card { border-radius: 24px; padding: 18px; }
+      .hero-mini-list { gap: 10px; }
+      .mini-worker { padding: 11px; border-radius: 18px; }
+
+      .stats-grid { grid-template-columns: 1fr !important; gap: 12px; }
+      .stat-box { padding: 15px; border-radius: 22px; }
+
+      .trade-icons-section, .area-icons-section, .workers-section, .features-section { padding-block: 28px; }
+      .section-head, .trade-icons-head, .area-icons-head { display: flex !important; flex-direction: column; align-items: stretch !important; gap: 12px; margin-bottom: 16px; }
+      .section-head h2, .section-center h2 { font-size: 24px; line-height: 1.35; }
+      .section-head p, .section-center p { font-size: 14px; line-height: 1.8; }
+      .join-link { width: 100%; min-height: 48px; justify-content: center; margin-top: 0; }
+
+      .trade-icons-grid, .area-icons-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+      .trade-icon-card, .area-icon-card { min-height: 122px; padding: 14px 10px !important; border-radius: 20px !important; }
+      .trade-icon, .area-icon { width: 48px !important; height: 48px !important; border-radius: 16px !important; font-size: 20px !important; }
+      .trade-icon-card h3, .area-icon-card h3 { font-size: 14px !important; line-height: 1.35; }
+      .trade-icon-count, .area-icon-count { font-size: 11px !important; }
+
+      .search-panel { grid-template-columns: 1fr !important; padding: 12px; gap: 10px; border-radius: 22px; margin-bottom: 14px; }
+      .search-input-wrap, .select-wrap, .sort-wrap, .verified-filter-wrap, .featured-filter-wrap, .clear-btn { width: 100%; min-width: 0 !important; height: 50px; }
+      .verified-filter-wrap, .featured-filter-wrap { justify-content: flex-start; }
+      .search-input-wrap input, .select-wrap select, .sort-wrap select { border-radius: 16px; font-size: 13px; }
+
+      .quick-trades { flex-wrap: nowrap; overflow-x: auto; padding: 12px; gap: 8px; border-radius: 20px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .quick-trades::-webkit-scrollbar { display: none; }
+      .quick-trades-label, .quick-trade-btn { flex: 0 0 auto; width: auto; }
+      .quick-trade-btn { min-height: 40px; }
+
+      .workers-grid { grid-template-columns: 1fr !important; gap: 14px; }
+      .worker-card { display: grid; grid-template-columns: 104px 1fr; border-radius: 22px; min-height: 160px; }
+      .worker-card:hover { transform: none; }
+      .worker-image-wrap { aspect-ratio: auto; height: 100%; min-height: 160px; }
+      .worker-content { padding: 14px; min-width: 0; }
+      .worker-content h3 { font-size: 18px; margin-bottom: 8px; line-height: 1.35; }
+      .worker-trust-line, .card-rating { font-size: 11px; padding: 6px 8px; margin-bottom: 8px; }
+      .worker-meta { gap: 6px; margin-bottom: 9px; }
+      .worker-meta span { font-size: 11px; padding: 6px 8px; max-width: 100%; }
+      .worker-desc { font-size: 13px; line-height: 1.7; min-height: 0; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .worker-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .call-btn, .whatsapp-btn, .share-btn { min-height: 42px; border-radius: 14px; font-size: 12px; padding: 8px; }
+      .featured-badge, .verified-badge { font-size: 10px; padding: 6px 8px; right: 8px; }
+      .featured-badge { top: 8px; }
+      .verified-badge { bottom: 8px; }
+
+      .features-grid { grid-template-columns: 1fr !important; gap: 12px; }
+      .feature-card { border-radius: 22px; padding: 18px; }
+      .footer-content { text-align: center; gap: 12px; }
+      .footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; justify-content: stretch; }
+      .footer-links a { background: rgba(255,255,255,.1); border-radius: 14px; padding: 10px; }
+      .copy-toast { left: 12px; right: 12px; bottom: 14px; max-width: none; justify-content: center; }
     }
 
-    .skeleton-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 28px;
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      min-height: 370px;
-      position: relative;
+    @media (max-width: 430px) {
+      .container { width: min(100% - 18px, 1180px); }
+      .brand-text span { display: none; }
+      .trade-icons-grid, .area-icons-grid { gap: 8px !important; }
+      .worker-card { grid-template-columns: 1fr; }
+      .worker-image-wrap { height: auto; aspect-ratio: 16 / 10; min-height: 0; }
+      .worker-actions { position: sticky; bottom: 8px; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); padding-top: 8px; margin-top: 8px; }
+      .footer-links { grid-template-columns: 1fr; }
     }
 
-    .skeleton-card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      transform: translateX(100%);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
-      animation: skeletonShimmer 1.15s infinite;
-    }
-
-    .skeleton-image,
-    .skeleton-line,
-    .skeleton-pill,
-    .skeleton-btn {
-      background: #e5e7eb;
-    }
-
-    .skeleton-image {
-      height: 190px;
-    }
-
-    .skeleton-body {
-      padding: 18px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .skeleton-line {
-      height: 16px;
-      border-radius: 999px;
-    }
-
-    .skeleton-line.title {
-      width: 62%;
-      height: 22px;
-    }
-
-    .skeleton-line.short {
-      width: 44%;
-    }
-
-    .skeleton-pills {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .skeleton-pill {
-      width: 92px;
-      height: 28px;
-      border-radius: 999px;
-    }
-
-    .skeleton-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 8px;
-    }
-
-    .skeleton-btn {
-      height: 42px;
-      border-radius: 16px;
-    }
-
-    @keyframes skeletonShimmer {
-      100% { transform: translateX(-100%); }
-    }
-
-    .worker-image {
-      content-visibility: auto;
-      contain-intrinsic-size: 260px 210px;
-    }
-
-    @media (max-width: 640px) {
-      .workers-grid {
-        gap: 14px;
-      }
-
-      .skeleton-card {
-        min-height: 340px;
-        border-radius: 22px;
-      }
-
-      .skeleton-image {
-        height: 165px;
-      }
-    }
-
-  </style>
+</style>
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -892,7 +881,7 @@
             type="text"
             id="searchInput"
             placeholder="ابحث باسم الصنايعي أو الحرفة أو المنطقة..."
-            oninput="debouncedFilterWorkers()"
+            oninput="filterWorkers()"
           />
         </div>
 
@@ -1063,9 +1052,6 @@
     let allTrades = [];
     let allAreas = [];
     let ratingsByWorker = {};
-    let filterDebounceTimer = null;
-    let renderWorkersToken = 0;
-    const WORKER_RENDER_BATCH_SIZE = 24;
 
     function toggleMobileMenu() {
       const nav = document.getElementById("mobileNav");
@@ -1753,7 +1739,7 @@
 
       loadingBox.style.display = "flex";
       emptyBox.style.display = "none";
-      renderSkeletonCards(8);
+      workersGrid.innerHTML = "";
 
       const data = await fetchJsonWithFallback([
         "/api/workers",
@@ -1801,41 +1787,37 @@
     async function loadRatingsForWorkers() {
       ratingsByWorker = {};
 
-      const workersWithIds = allWorkers
-        .map(worker => getWorkerId(worker))
-        .filter(Boolean);
+      const requests = allWorkers.map(async worker => {
+        const id = getWorkerId(worker);
 
-      const batchSize = 8;
+        if (!id) return;
 
-      for (let i = 0; i < workersWithIds.length; i += batchSize) {
-        const batch = workersWithIds.slice(i, i + batchSize);
+        try {
+          const response = await fetch("/api/workers/" + id + "/reviews/summary");
 
-        await Promise.all(batch.map(async id => {
-          try {
-            const response = await fetch("/api/workers/" + id + "/reviews/summary");
-
-            if (!response.ok) {
-              ratingsByWorker[id] = {
-                average: 0,
-                count: 0
-              };
-              return;
-            }
-
-            const summary = await response.json();
-
-            ratingsByWorker[id] = {
-              average: Number(summary.average) || 0,
-              count: Number(summary.count) || 0
-            };
-          } catch (error) {
+          if (!response.ok) {
             ratingsByWorker[id] = {
               average: 0,
               count: 0
             };
+            return;
           }
-        }));
-      }
+
+          const summary = await response.json();
+
+          ratingsByWorker[id] = {
+            average: Number(summary.average) || 0,
+            count: Number(summary.count) || 0
+          };
+        } catch (error) {
+          ratingsByWorker[id] = {
+            average: 0,
+            count: 0
+          };
+        }
+      });
+
+      await Promise.all(requests);
     }
 
     function getRatingSummary(workerId) {
@@ -2184,133 +2166,6 @@
     }
 
 
-    function debouncedFilterWorkers() {
-      window.clearTimeout(filterDebounceTimer);
-      filterDebounceTimer = window.setTimeout(function () {
-        filterWorkers();
-      }, 180);
-    }
-
-    function renderSkeletonCards(count) {
-      const workersGrid = document.getElementById("workersGrid");
-      if (!workersGrid) return;
-
-      const total = count || 8;
-      const fragment = document.createDocumentFragment();
-
-      for (let i = 0; i < total; i++) {
-        const card = document.createElement("article");
-        card.className = "skeleton-card";
-        card.setAttribute("aria-hidden", "true");
-        card.innerHTML = `
-          <div class="skeleton-image"></div>
-          <div class="skeleton-body">
-            <div class="skeleton-line title"></div>
-            <div class="skeleton-pills">
-              <div class="skeleton-pill"></div>
-              <div class="skeleton-pill"></div>
-            </div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-actions">
-              <div class="skeleton-btn"></div>
-              <div class="skeleton-btn"></div>
-            </div>
-          </div>
-        `;
-        fragment.appendChild(card);
-      }
-
-      workersGrid.classList.add("is-rendering");
-      workersGrid.replaceChildren(fragment);
-    }
-
-    function createWorkerCard(worker) {
-      const name = getWorkerName(worker);
-      const trade = getWorkerTrade(worker);
-      const area = getWorkerArea(worker);
-      const description = getWorkerDescription(worker);
-      const phone = getWorkerPhone(worker);
-      const whatsappPhone = getWorkerWhatsapp(worker);
-      const image = getWorkerImage(worker);
-      const featured = isFeatured(worker);
-      const verified = isVerified(worker);
-      const workerId = getWorkerId(worker);
-
-      const whatsappNumber = normalizeWhatsAppNumber(whatsappPhone);
-      const callNumber = normalizeCallNumber(phone);
-
-      const whatsappText = encodeURIComponent("السلام عليكم، شوفت بياناتك على تطبيق صنايعي مطروح وعايز أستفسر عن شغلك.");
-      const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${whatsappText}` : "#";
-      const phoneLink = callNumber ? `tel:${callNumber}` : "#";
-
-      const card = document.createElement("article");
-      card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
-      card.style.cursor = "pointer";
-
-      card.addEventListener("click", function () {
-        if (workerId) {
-          window.location.href = "/worker/" + workerId;
-        }
-      });
-
-      card.innerHTML = `
-        <div class="worker-image-wrap">
-          <img src="${image}" alt="${name}" class="worker-image" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
-
-          ${featured ? `
-            <div class="featured-badge">
-              <i class="fa-solid fa-star"></i>
-              مميز
-            </div>
-          ` : ""}
-
-          ${verified ? `
-            <div class="verified-badge">
-              <i class="fa-solid fa-shield-halved"></i>
-              موثّق
-            </div>
-          ` : ""}
-        </div>
-
-        <div class="worker-content">
-          <h3>${name}</h3>
-
-          ${renderVerifiedTrustLine(worker)}
-
-          ${renderRatingBadge(workerId)}
-
-          <div class="worker-meta">
-            <span>
-              <i class="fa-solid fa-screwdriver-wrench"></i>
-              ${trade}
-            </span>
-
-            <span>
-              <i class="fa-solid fa-location-dot"></i>
-              ${area}
-            </span>
-          </div>
-
-          <p class="worker-desc">${description}</p>
-
-          <div class="worker-actions">
-            <a href="${phoneLink}" onclick="event.stopPropagation()" class="call-btn ${!callNumber ? "disabled" : ""}">
-              <i class="fa-solid fa-phone"></i>
-              اتصال
-            </a>
-
-            <a href="${whatsappLink}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!whatsappNumber ? "disabled" : ""}">
-              <i class="fa-brands fa-whatsapp"></i>
-              واتساب
-            </a>
-          </div>
-        </div>
-      `;
-
-      return card;
-    }
-
     function showCopyToast(message) {
       const toast = document.getElementById("copyToast");
       if (!toast) return;
@@ -2363,41 +2218,101 @@
     function renderWorkers(workers) {
       const workersGrid = document.getElementById("workersGrid");
       const emptyBox = document.getElementById("emptyBox");
-      const currentToken = ++renderWorkersToken;
 
-      workersGrid.classList.add("is-rendering");
-      workersGrid.replaceChildren();
+      workersGrid.innerHTML = "";
 
       if (!workers.length) {
-        workersGrid.classList.remove("is-rendering");
         emptyBox.style.display = "block";
         return;
       }
 
       emptyBox.style.display = "none";
 
-      let index = 0;
+      workers.forEach(worker => {
+        const name = getWorkerName(worker);
+        const trade = getWorkerTrade(worker);
+        const area = getWorkerArea(worker);
+        const description = getWorkerDescription(worker);
+        const phone = getWorkerPhone(worker);
+        const whatsappPhone = getWorkerWhatsapp(worker);
+        const image = getWorkerImage(worker);
+        const featured = isFeatured(worker);
+        const verified = isVerified(worker);
+        const workerId = getWorkerId(worker);
 
-      function renderBatch() {
-        if (currentToken !== renderWorkersToken) return;
+        const whatsappNumber = normalizeWhatsAppNumber(whatsappPhone);
+        const callNumber = normalizeCallNumber(phone);
 
-        const fragment = document.createDocumentFragment();
-        const end = Math.min(index + WORKER_RENDER_BATCH_SIZE, workers.length);
+        const whatsappText = encodeURIComponent("السلام عليكم، شوفت بياناتك على تطبيق صنايعي مطروح وعايز أستفسر عن شغلك.");
+        const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${whatsappText}` : "#";
+        const phoneLink = callNumber ? `tel:${callNumber}` : "#";
 
-        for (; index < end; index++) {
-          fragment.appendChild(createWorkerCard(workers[index]));
-        }
+        const card = document.createElement("article");
+        card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
+        card.style.cursor = "pointer";
 
-        workersGrid.appendChild(fragment);
+        card.addEventListener("click", function () {
+          if (workerId) {
+            window.location.href = "/worker/" + workerId;
+          }
+        });
 
-        if (index < workers.length) {
-          window.requestAnimationFrame(renderBatch);
-        } else {
-          workersGrid.classList.remove("is-rendering");
-        }
-      }
+        card.innerHTML = `
+          <div class="worker-image-wrap">
+            <img src="${image}" alt="${name}" class="worker-image" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
 
-      window.requestAnimationFrame(renderBatch);
+            ${featured ? `
+              <div class="featured-badge">
+                <i class="fa-solid fa-star"></i>
+                مميز
+              </div>
+            ` : ""}
+
+            ${verified ? `
+              <div class="verified-badge">
+                <i class="fa-solid fa-shield-halved"></i>
+                موثّق
+              </div>
+            ` : ""}
+          </div>
+
+          <div class="worker-content">
+            <h3>${name}</h3>
+
+            ${renderVerifiedTrustLine(worker)}
+
+            ${renderRatingBadge(workerId)}
+
+            <div class="worker-meta">
+              <span>
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                ${trade}
+              </span>
+
+              <span>
+                <i class="fa-solid fa-location-dot"></i>
+                ${area}
+              </span>
+            </div>
+
+            <p class="worker-desc">${description}</p>
+
+            <div class="worker-actions">
+              <a href="${phoneLink}" onclick="event.stopPropagation()" class="call-btn ${!callNumber ? "disabled" : ""}">
+                <i class="fa-solid fa-phone"></i>
+                اتصال
+              </a>
+
+              <a href="${whatsappLink}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!whatsappNumber ? "disabled" : ""}">
+                <i class="fa-brands fa-whatsapp"></i>
+                واتساب
+              </a>
+            </div>
+          </div>
+        `;
+
+        workersGrid.appendChild(card);
+      });
     }
 
 
@@ -2511,9 +2426,8 @@
       updateQuickTradeActiveState();
       updateTradeIconsActiveState();
       updateAreaIconsActiveState();
-      const sortedWorkers = sortWorkers(allWorkers);
-      updateWorkersHeading("", "", sortedWorkers.length);
-      renderWorkers(sortedWorkers);
+      updateWorkersHeading("", "", allWorkers.length);
+      renderWorkers(allWorkers);
     }
 
     async function initPage() {

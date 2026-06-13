@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <title>تفاصيل الصنايعي | صنايعي مطروح</title>
   <meta id="metaDescription" name="description" content="صفحة تفاصيل الصنايعي على صنايعي مطروح: بيانات التواصل، الحرفة، المنطقة، صور الأعمال والتقييمات." />
@@ -764,7 +764,63 @@
         display: flex;
       }
     }
-  </style>
+  
+
+
+    /* ===============================
+       Patch 24 - Worker details mobile polish
+    ================================ */
+    html { scroll-padding-top: 88px; }
+    body { overflow-x: hidden; }
+
+    @media (max-width: 760px) {
+      .container { width: min(100% - 24px, 1180px); }
+      .header-content { min-height: 70px; gap: 10px; }
+      .brand { min-width: 0; }
+      .brand-icon { width: 46px; height: 46px; border-radius: 16px; font-size: 19px; }
+      .brand-text { min-width: 0; }
+      .brand-text h1 { font-size: 18px; white-space: nowrap; }
+      .brand-text span { max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+      .mobile-menu-btn { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; }
+      .mobile-nav a { min-height: 46px; display: flex; align-items: center; justify-content: center; }
+
+      .worker-details-page { padding-bottom: 92px; }
+      .details-hero { padding: 22px 0 12px; }
+      .details-hero-content { grid-template-columns: 1fr !important; gap: 16px; }
+      .details-breadcrumb { overflow-x: auto; white-space: nowrap; padding-bottom: 4px; scrollbar-width: none; }
+      .details-breadcrumb::-webkit-scrollbar { display: none; }
+      .details-title h2, .details-title h1 { font-size: clamp(26px, 8vw, 34px); line-height: 1.35; }
+      .details-title p { font-size: 14px; line-height: 1.9; }
+      .details-tags { gap: 7px; }
+      .details-tag, .verified-badge-details, .featured-badge-details { font-size: 12px; padding: 7px 10px; }
+      .hero-worker-image { width: 100%; max-height: 320px; object-fit: cover; border-radius: 24px; }
+
+      .details-grid { grid-template-columns: 1fr !important; gap: 14px; }
+      .details-main-card, .details-side-card, .details-section-box { border-radius: 22px; padding: 16px; }
+      .contact-actions { grid-template-columns: 1fr !important; gap: 10px; }
+      .details-call, .details-whatsapp, .details-share, .details-action { width: 100%; min-height: 50px; justify-content: center; }
+      .info-list { display: grid; gap: 10px; }
+      .info-item { border-radius: 18px; padding: 12px; }
+      .work-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
+      .work-gallery img, .work-gallery a { border-radius: 16px; }
+      .rating-summary { grid-template-columns: 1fr !important; text-align: center; gap: 12px; }
+      .review-form { gap: 10px; }
+      .review-form input, .review-form textarea, .review-form select { min-height: 48px; border-radius: 16px; }
+      .footer-content { text-align: center; gap: 12px; }
+      .footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; justify-content: stretch; }
+
+      .mobile-sticky-contact { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.95); border-top: 1px solid rgba(226,232,240,.9); backdrop-filter: blur(16px); }
+      .mobile-sticky-contact a { min-height: 48px; border-radius: 16px; font-weight: 900; }
+    }
+
+    @media (max-width: 430px) {
+      .container { width: min(100% - 18px, 1180px); }
+      .brand-text span { display: none; }
+      .work-gallery { grid-template-columns: 1fr !important; }
+      .footer-links { grid-template-columns: 1fr; }
+    }
+
+</style>
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">

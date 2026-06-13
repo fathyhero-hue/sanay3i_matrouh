@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>لوحة الإدارة | صنايعي مطروح</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -155,7 +155,66 @@
     .registration-code-badge{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;margin:6px 0}.registration-code-badge i{color:#1d4ed8}
     .whatsapp-summary{background:#f8fafc;border:1px solid var(--border);border-radius:20px;padding:14px;margin-bottom:14px;display:grid;gap:6px}.whatsapp-summary strong{font-size:18px;color:var(--primary);font-weight:900}.whatsapp-summary span{color:var(--muted);font-weight:800;font-size:13px}.whatsapp-template-grid{display:grid;gap:12px}.whatsapp-template-grid select,.whatsapp-template-grid textarea{width:100%;border:1px solid var(--border);outline:none;background:var(--bg);border-radius:16px;padding:13px;font-weight:800}.whatsapp-template-grid textarea{min-height:210px;line-height:1.9;resize:vertical}.whatsapp-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.whatsapp-actions .big-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn-whatsapp{background:#dcfce7;color:#166534}.btn-copy{background:#dbeafe;color:var(--blue)}.whatsapp-hint{background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;border-radius:16px;padding:12px;font-weight:800;line-height:1.8;font-size:13px;margin-top:12px}
     @media(max-width:1100px){.notifications-grid{grid-template-columns:repeat(2,1fr)}.admin-stats-grid{grid-template-columns:repeat(2,1fr)}.admin-filter-grid{grid-template-columns:1fr 1fr}.admin-workers-grid{grid-template-columns:1fr}}@media(max-width:700px){.notifications-grid{grid-template-columns:1fr}.admin-topbar-content{height:auto;padding:16px 0;flex-direction:column;align-items:flex-start}.admin-actions-top{width:100%;flex-wrap:wrap}.admin-mini-btn{flex:1;justify-content:center}.admin-hero-box{flex-direction:column;align-items:flex-start}.admin-stats-grid,.admin-filter-grid,.edit-grid,.subscription-dates{grid-template-columns:1fr}.admin-worker-card{grid-template-columns:1fr}.admin-worker-img{width:100%;height:210px}.simple-form{grid-template-columns:1fr}.work-admin-gallery{grid-template-columns:repeat(3,1fr)}}
-  </style>
+  
+
+
+    /* ===============================
+       Patch 24 - Admin mobile organization
+    ================================ */
+    body { overflow-x: hidden; }
+    html { scroll-padding-top: 88px; }
+
+    @media (max-width: 760px) {
+      .container { width: min(100% - 24px, 1180px); }
+      .admin-dashboard { padding-bottom: 100px; }
+      .admin-topbar-content { height: auto !important; min-height: 70px; padding: 10px 0; flex-direction: column; align-items: stretch !important; gap: 10px; }
+      .brand { min-width: 0; }
+      .brand-icon { width: 46px; height: 46px; border-radius: 16px; font-size: 19px; }
+      .brand-text h1 { font-size: 18px; white-space: nowrap; }
+      .brand-text span { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+      .admin-actions-top { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+      .admin-mini-btn { min-height: 42px; border-radius: 14px; padding: 9px 10px; justify-content: center; font-size: 12px; }
+      .admin-hero { padding: 22px 0 12px; }
+      .admin-hero-box, .admin-panel, .admin-stat, .admin-worker-card, .review-admin-card, .notification-card { border-radius: 22px !important; }
+      .admin-hero-box { padding: 16px; }
+      .admin-hero-box h2 { font-size: 25px; line-height: 1.35; }
+      .admin-hero-box p, .admin-panel p { font-size: 13px; line-height: 1.8; }
+      .admin-hero-box .btn { width: 100%; justify-content: center; }
+
+      .admin-tabs { flex-wrap: nowrap !important; overflow-x: auto; gap: 8px; padding: 8px 0 12px; margin-bottom: 14px; position: sticky; top: 0; z-index: 60; background: rgba(248,250,252,.96); backdrop-filter: blur(12px); scrollbar-width: none; }
+      .admin-tabs::-webkit-scrollbar { display: none; }
+      .admin-tab { flex: 0 0 auto; white-space: nowrap; padding: 10px 14px; font-size: 13px; }
+
+      .notifications-grid, .admin-stats-grid { grid-template-columns: 1fr !important; gap: 10px; }
+      .notification-card, .admin-stat { padding: 14px; }
+      .admin-filter-grid, .edit-grid, .subscription-dates, .verification-status-grid, .simple-form { grid-template-columns: 1fr !important; gap: 10px; }
+      .admin-input-wrap, .admin-input-wrap input, .admin-input-wrap select, .clear-btn { width: 100%; min-width: 0; }
+      .admin-workers-grid { grid-template-columns: 1fr !important; gap: 14px; }
+      .admin-worker-card { grid-template-columns: 1fr !important; padding: 14px; gap: 12px; }
+      .admin-worker-img { width: 100% !important; height: 190px !important; border-radius: 18px !important; object-fit: cover; }
+      .admin-worker-main h3 { font-size: 20px; line-height: 1.35; }
+      .worker-tags, .status-row, .verify-actions, .whatsapp-actions { gap: 7px; }
+      .worker-tag, .status-badge { font-size: 11px; padding: 6px 8px; }
+      .subscription-box, .identity-docs-box, .verification-note, .whatsapp-summary, .identity-summary { border-radius: 18px; padding: 12px; }
+      .work-admin-gallery { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px; }
+      .card-actions { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .action-btn, .big-btn { width: 100%; justify-content: center; min-height: 42px; border-radius: 14px; font-size: 12px; padding: 9px 10px; }
+
+      .modal, .crop-modal { padding: 10px; align-items: flex-start; }
+      .modal-card, .crop-box { width: 100% !important; max-height: calc(100vh - 20px); overflow-y: auto; border-radius: 22px !important; }
+      .modal-head, .crop-head { position: sticky; top: 0; background: #fff; z-index: 2; }
+      .whatsapp-template-grid textarea { min-height: 170px; }
+      .toast, .copy-toast { left: 12px; right: 12px; bottom: 14px; max-width: none; justify-content: center; }
+    }
+
+    @media (max-width: 430px) {
+      .container { width: min(100% - 18px, 1180px); }
+      .brand-text span { display: none; }
+      .admin-actions-top, .card-actions { grid-template-columns: 1fr; }
+      .work-admin-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    }
+
+</style>
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
