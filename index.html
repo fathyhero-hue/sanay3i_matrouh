@@ -624,6 +624,112 @@
       .footer-links { grid-template-columns: 1fr; }
     }
 
+
+
+    /* ===============================
+       Patch 25 - Compact portrait mobile UI
+       تصغير الأيقونات والنصوص وتنظيم الشكل الطولي للموبايل
+    ================================ */
+    @media (max-width: 640px) and (orientation: portrait) {
+      html { scroll-padding-top: 64px; }
+      body { font-size: 13px; background: #f8fafc; }
+      .container { width: calc(100% - 16px) !important; }
+
+      .site-header { background: rgba(255,255,255,.96); }
+      .header-content { min-height: 56px !important; padding: 7px 0 !important; gap: 7px !important; }
+      .brand { gap: 7px !important; min-width: 0; }
+      .brand-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; font-size: 15px !important; }
+      .brand-text h1 { font-size: 15px !important; line-height: 1.2 !important; }
+      .brand-text span { display: none !important; }
+      .mobile-menu-btn { width: 36px !important; height: 36px !important; border-radius: 12px !important; font-size: 14px !important; }
+      .mobile-nav { padding: 7px 8px 9px !important; display: none; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .mobile-nav.show { display: grid !important; }
+      .mobile-nav a { min-height: 36px !important; border-radius: 12px !important; font-size: 11.5px !important; padding: 7px 8px !important; }
+
+      .hero { padding: 14px 0 8px !important; }
+      .hero-grid { display: block !important; }
+      .hero-badge { font-size: 10.5px !important; padding: 5px 8px !important; margin-bottom: 8px !important; }
+      .hero-text h2 { font-size: 24px !important; line-height: 1.28 !important; margin: 0 0 8px !important; }
+      .hero-text p { font-size: 12.5px !important; line-height: 1.75 !important; margin-top: 8px !important; }
+      .hero-actions { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 7px !important; margin-top: 12px !important; }
+      .hero-actions .btn:first-child { grid-column: 1 / -1; }
+      .hero-actions .btn, .hero-actions a { min-height: 40px !important; border-radius: 13px !important; font-size: 11.5px !important; padding: 8px 9px !important; }
+      .hero-points { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px !important; margin-top: 10px !important; }
+      .hero-points div { justify-content: center; text-align: center; font-size: 9.5px !important; padding: 6px 4px !important; border-radius: 12px !important; }
+      .hero-points i { font-size: 10px !important; }
+      .hero-card { display: none !important; }
+
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+      .stat-box { padding: 9px 8px !important; border-radius: 15px !important; min-height: 76px; }
+      .stat-box i { font-size: 15px !important; margin-bottom: 3px !important; }
+      .stat-box strong { font-size: 18px !important; line-height: 1.1; }
+      .stat-box span { font-size: 9.5px !important; line-height: 1.35; }
+
+      .trade-icons-section, .area-icons-section, .workers-section, .features-section { padding-block: 18px !important; }
+      .section-head, .trade-icons-head, .area-icons-head { gap: 7px !important; margin-bottom: 10px !important; }
+      .section-head h2, .section-center h2 { font-size: 18px !important; line-height: 1.32 !important; }
+      .section-head p, .section-center p { font-size: 11.5px !important; line-height: 1.65 !important; }
+      .join-link { min-height: 38px !important; border-radius: 12px !important; font-size: 11px !important; }
+
+      .trade-icons-grid, .area-icons-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 7px !important; }
+      .trade-icon-card, .area-icon-card { min-height: 84px !important; padding: 7px 4px !important; border-radius: 14px !important; gap: 5px !important; box-shadow: 0 6px 14px rgba(15,23,42,.05) !important; }
+      .trade-icon-card:hover, .area-icon-card:hover { transform: none !important; }
+      .trade-icon-bubble, .area-icon-bubble, .trade-icon, .area-icon { width: 32px !important; height: 32px !important; border-radius: 11px !important; font-size: 14px !important; }
+      .trade-icon-card strong, .area-icon-card strong, .trade-icon-card h3, .area-icon-card h3 { font-size: 10.5px !important; line-height: 1.25 !important; }
+      .trade-icon-card small, .area-icon-card small, .trade-icon-count, .area-icon-count { font-size: 8.5px !important; line-height: 1.2 !important; }
+      .trade-icons-empty, .area-icons-empty { padding: 14px !important; border-radius: 14px !important; font-size: 11px !important; }
+
+      .search-panel { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 7px !important; padding: 8px !important; border-radius: 16px !important; margin-bottom: 10px !important; }
+      .search-input-wrap { grid-column: 1 / -1; }
+      .sort-wrap, .clear-btn { grid-column: 1 / -1; }
+      .search-input-wrap, .select-wrap, .sort-wrap, .verified-filter-wrap, .featured-filter-wrap, .clear-btn { height: 40px !important; min-height: 40px !important; min-width: 0 !important; width: 100% !important; border-radius: 12px !important; }
+      .search-input-wrap i, .select-wrap i, .sort-wrap i { right: 11px !important; font-size: 11px !important; }
+      .search-input-wrap input, .select-wrap select, .sort-wrap select { height: 100% !important; border-radius: 12px !important; font-size: 11.5px !important; padding-right: 32px !important; padding-left: 8px !important; }
+      .verified-filter-wrap, .featured-filter-wrap { justify-content: center !important; gap: 5px !important; font-size: 10px !important; padding: 0 6px !important; }
+      .verified-filter-wrap input, .featured-filter-wrap input { width: 13px !important; height: 13px !important; }
+      .clear-btn { font-size: 11px !important; }
+      .priority-filter-note { font-size: 9.5px !important; padding: 5px 7px !important; }
+
+      .quick-trades { margin: 8px 0 12px !important; padding: 7px !important; gap: 6px !important; border-radius: 14px !important; }
+      .quick-trades-label { font-size: 10px !important; }
+      .quick-trade-btn { min-height: 32px !important; font-size: 10px !important; padding: 5px 8px !important; gap: 4px !important; }
+      .quick-trade-btn i { font-size: 10px !important; }
+
+      .workers-grid { grid-template-columns: 1fr !important; gap: 9px !important; }
+      .worker-card { display: grid !important; grid-template-columns: 82px minmax(0, 1fr) !important; min-height: 126px !important; border-radius: 16px !important; overflow: hidden; }
+      .worker-image-wrap { height: 100% !important; min-height: 126px !important; aspect-ratio: auto !important; }
+      .worker-image-wrap img { height: 100% !important; object-fit: cover; }
+      .worker-content { padding: 9px !important; min-width: 0; }
+      .worker-content h3 { font-size: 14px !important; line-height: 1.25 !important; margin: 0 0 5px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .worker-trust-line, .card-rating { font-size: 9px !important; padding: 4px 6px !important; gap: 4px !important; margin-bottom: 5px !important; }
+      .worker-meta { gap: 4px !important; margin-bottom: 5px !important; }
+      .worker-meta span { font-size: 9px !important; padding: 4px 5px !important; border-radius: 999px !important; max-width: 100%; }
+      .worker-desc { font-size: 10.5px !important; line-height: 1.45 !important; margin-bottom: 7px !important; display: -webkit-box; -webkit-line-clamp: 1 !important; -webkit-box-orient: vertical; overflow: hidden; }
+      .worker-actions { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 5px !important; position: static !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
+      .call-btn, .whatsapp-btn, .share-btn { min-height: 32px !important; border-radius: 10px !important; font-size: 10px !important; padding: 5px 4px !important; gap: 4px !important; }
+      .featured-badge, .verified-badge { font-size: 8px !important; padding: 4px 5px !important; gap: 3px !important; right: 6px !important; }
+      .featured-badge { top: 6px !important; }
+      .verified-badge { bottom: 6px !important; }
+
+      .features-grid { gap: 8px !important; }
+      .feature-card { padding: 13px !important; border-radius: 16px !important; }
+      .feature-card h3 { font-size: 14px !important; }
+      .feature-card p { font-size: 11px !important; line-height: 1.6 !important; }
+      .feature-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; font-size: 14px !important; }
+      .footer { padding: 18px 0 !important; }
+      .footer-links { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+      .footer-links a { font-size: 10.5px !important; padding: 7px !important; border-radius: 10px !important; }
+    }
+
+    @media (max-width: 370px) and (orientation: portrait) {
+      .container { width: calc(100% - 12px) !important; }
+      .trade-icons-grid, .area-icons-grid { gap: 5px !important; }
+      .trade-icon-card, .area-icon-card { min-height: 78px !important; }
+      .trade-icon-bubble, .area-icon-bubble, .trade-icon, .area-icon { width: 28px !important; height: 28px !important; font-size: 12px !important; }
+      .worker-card { grid-template-columns: 74px minmax(0,1fr) !important; min-height: 118px !important; }
+      .worker-image-wrap { min-height: 118px !important; }
+      .worker-content h3 { font-size: 13px !important; }
+    }
 </style>
 
   <!-- PWA -->

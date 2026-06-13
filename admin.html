@@ -214,6 +214,37 @@
       .work-admin-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     }
 
+
+
+    /* ===============================
+       Patch 25 - Admin compact portrait mobile
+    ================================ */
+    @media (max-width: 640px) and (orientation: portrait) {
+      .container, .admin-container, .wrap { width: calc(100% - 16px) !important; max-width: none !important; }
+      body { font-size: 12px !important; }
+      .admin-header, .topbar, header { padding: 8px !important; }
+      .brand-icon, .logo, .admin-logo { width: 34px !important; height: 34px !important; border-radius: 11px !important; font-size: 14px !important; }
+      h1 { font-size: 18px !important; line-height: 1.25 !important; }
+      h2 { font-size: 16px !important; }
+      h3 { font-size: 14px !important; }
+      p, small, span, label { font-size: 11px; }
+      .admin-tabs, .tabs, .tab-nav { display: flex !important; overflow-x: auto !important; gap: 6px !important; padding: 7px !important; scrollbar-width: none; }
+      .admin-tabs::-webkit-scrollbar, .tabs::-webkit-scrollbar, .tab-nav::-webkit-scrollbar { display: none; }
+      .tab-btn, .admin-tab, [data-tab] { flex: 0 0 auto !important; min-height: 34px !important; border-radius: 10px !important; padding: 6px 9px !important; font-size: 10.5px !important; }
+      .panel, .card, .worker-card, .admin-card, .modal-card { border-radius: 14px !important; padding: 10px !important; }
+      .search-panel, .filters, .toolbar { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; padding: 8px !important; border-radius: 14px !important; }
+      input, select, textarea { min-height: 36px !important; border-radius: 10px !important; font-size: 11px !important; padding: 7px 9px !important; }
+      textarea { min-height: 78px !important; }
+      button, .btn, a.btn { min-height: 34px !important; border-radius: 10px !important; font-size: 10.5px !important; padding: 6px 8px !important; gap: 4px !important; }
+      .workers-grid, .cards-grid, .stats-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+      .worker-row, .worker-card { gap: 8px !important; }
+      .worker-card img, .avatar, .worker-avatar { width: 58px !important; height: 58px !important; border-radius: 12px !important; object-fit: cover; }
+      .action-row, .actions, .button-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+      table { font-size: 10.5px !important; }
+      th, td { padding: 6px !important; }
+      .modal, .dialog { padding: 8px !important; }
+      .modal-content, .dialog-content { width: calc(100vw - 18px) !important; max-height: calc(100vh - 18px) !important; border-radius: 16px !important; padding: 12px !important; }
+    }
 </style>
 
   <!-- PWA -->
