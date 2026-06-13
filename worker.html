@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>تفاصيل الصنايعي | صنايعي مطروح</title>
+  <meta id="metaDescription" name="description" content="صفحة تفاصيل الصنايعي على صنايعي مطروح: بيانات التواصل، الحرفة، المنطقة، صور الأعمال والتقييمات." />
+  <meta name="robots" content="index, follow" />
+  <link id="canonicalLink" rel="canonical" href="/" />
+  <meta id="ogTitle" property="og:title" content="تفاصيل الصنايعي | صنايعي مطروح" />
+  <meta id="ogDescription" property="og:description" content="شاهد بيانات الصنايعي وتواصل مباشرة عبر الهاتف أو واتساب على صنايعي مطروح." />
+  <meta id="ogUrl" property="og:url" content="/" />
+  <meta property="og:type" content="profile" />
+  <meta property="og:locale" content="ar_EG" />
+  <meta property="og:site_name" content="صنايعي مطروح" />
+  <meta id="ogImage" property="og:image" content="/icons/default-worker-avatar.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta id="twitterTitle" name="twitter:title" content="تفاصيل الصنايعي | صنايعي مطروح" />
+  <meta id="twitterDescription" name="twitter:description" content="شاهد بيانات الصنايعي وتواصل مباشرة عبر الهاتف أو واتساب على صنايعي مطروح." />
+  <script id="seoJsonLd" type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"صنايعي مطروح","url":"/"}</script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -189,6 +203,25 @@
     }
 
     .featured-badge-details.show {
+      display: inline-flex;
+    }
+
+    .verified-badge-details {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      width: fit-content;
+      margin-top: 14px;
+      box-shadow: 0 12px 24px rgba(22, 163, 74, 0.22);
+    }
+
+    .verified-badge-details.show {
       display: inline-flex;
     }
 
@@ -639,7 +672,8 @@
       .details-breadcrumb,
       .details-tags,
       .rating-summary,
-      .featured-badge-details {
+      .featured-badge-details,
+      .verified-badge-details {
         justify-content: center;
         margin-left: auto;
         margin-right: auto;
@@ -839,6 +873,11 @@
               <div class="featured-badge-details" id="featuredBadge">
                 <i class="fa-solid fa-star"></i>
                 صنايعي مميز
+              </div>
+
+              <div class="verified-badge-details" id="verifiedBadge">
+                <i class="fa-solid fa-shield-halved"></i>
+                موثّق من الإدارة
               </div>
 
               <div class="rating-summary">
@@ -1075,9 +1114,14 @@
       return f === 1 || f === true || f === "1" || f === "true";
     }
 
+    function verified(w) {
+      const v = w.identity_verified ?? w.identityVerified ?? w.is_verified ?? w.verified ?? false;
+      return v === 1 || v === true || v === "1" || v === "true";
+    }
+
     function imgPath(image) {
       if (!image) {
-        return "https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=500";
+        return "/icons/default-worker-avatar.png";
       }
 
       if (image.startsWith("http")) return image;
@@ -1202,6 +1246,61 @@
       setTimeout(() => {
         toast.classList.remove("show");
       }, 2200);
+    }
+
+
+    function setMetaContent(selector, value, attr) {
+      const meta = document.querySelector(selector);
+      if (!meta) return;
+      meta.setAttribute(attr || "content", value || "");
+    }
+
+    function absoluteUrl(path) {
+      if (!path) return window.location.href;
+      if (/^https?:\/\//i.test(path)) return path;
+      return window.location.origin + (path.startsWith("/") ? path : "/" + path);
+    }
+
+    function updateWorkerSeo(worker) {
+      const name = getName(worker);
+      const trade = getTrade(worker);
+      const area = getArea(worker);
+      const phone = getPhone(worker);
+      const image = absoluteUrl(imgPath(worker.image || worker.photo || ""));
+      const url = window.location.origin + window.location.pathname;
+      const title = name + " - " + trade + " في " + area + " | صنايعي مطروح";
+      const description = "بيانات " + name + "، " + trade + " في " + area + ". تواصل مباشرة عبر الهاتف أو واتساب وشاهد صور الأعمال والتقييمات على صنايعي مطروح.";
+
+      document.title = title;
+      setMetaContent('meta[name="description"]', description);
+      setMetaContent('#canonicalLink', url, "href");
+      setMetaContent('#ogTitle', title);
+      setMetaContent('#ogDescription', description);
+      setMetaContent('#ogUrl', url);
+      setMetaContent('#ogImage', image);
+      setMetaContent('#twitterTitle', title);
+      setMetaContent('#twitterDescription', description);
+
+      const jsonLd = document.getElementById("seoJsonLd");
+      if (jsonLd) {
+        jsonLd.textContent = JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": name,
+          "description": description,
+          "url": url,
+          "image": image,
+          "telephone": phone || undefined,
+          "areaServed": area || "مرسى مطروح",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": area || "مرسى مطروح",
+            "addressRegion": "مطروح",
+            "addressCountry": "EG"
+          },
+          "knowsAbout": trade || "خدمات منزلية وحرفية"
+        });
+      }
     }
 
     async function shareCurrentWorker(workerName) {
@@ -1378,7 +1477,7 @@
         const wa = waNum(whatsappPhone);
         const txt = encodeURIComponent("السلام عليكم، شوفت بياناتك على تطبيق صنايعي مطروح وعايز أستفسر عن شغلك.");
 
-        document.title = name + " | صنايعي مطروح";
+        updateWorkerSeo(w);
 
         const shareBtn = document.getElementById("shareBtn");
         const mobileShareBtn = document.getElementById("mobileShareBtn");
@@ -1398,7 +1497,8 @@
 
         document.getElementById("workerImage").src = imgPath(w.image || w.photo || "");
         document.getElementById("workerImage").onerror = function () {
-          this.src = "https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=500";
+          this.onerror = null;
+          this.src = "/icons/default-worker-avatar.png";
         };
 
         document.getElementById("breadcrumbName").textContent = name;
@@ -1414,6 +1514,10 @@
 
         if (featured(w)) {
           document.getElementById("featuredBadge").classList.add("show");
+        }
+
+        if (verified(w)) {
+          document.getElementById("verifiedBadge").classList.add("show");
         }
 
         const callUrl = call ? "tel:" + call : "#";
