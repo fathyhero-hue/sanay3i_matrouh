@@ -358,17 +358,22 @@ async function logAdminActivity(action, options={}){
   }
 }
 
-// Local page fallback
-app.get("/", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
-app.get("/register", (req,res)=>res.sendFile(path.join(STATIC_DIR,"register.html")));
-app.get("/status", (req,res)=>res.sendFile(path.join(STATIC_DIR,"status.html")));
-app.get("/admin", (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin.html")));
-app.get("/admin/add-worker", requireAdminPage, (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin-add-worker.html")));
-app.get("/admin-add-worker", requireAdminPage, (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin-add-worker.html")));
-app.get("/worker/:id", (req,res)=>res.sendFile(path.join(STATIC_DIR,"worker.html")));
-app.get("/trade/:trade/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
-app.get("/trade/:trade", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
-app.get("/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
+// Local + Vercel page fallback
+// Hotfix 22.2: serve both clean URLs and direct .html URLs.
+function sendHtmlPage(res, fileName) {
+  res.type("text/html");
+  return res.sendFile(path.join(STATIC_DIR, fileName));
+}
+
+app.get(["/", "/index.html"], (req, res) => sendHtmlPage(res, "index.html"));
+app.get(["/register", "/register/", "/register.html"], (req, res) => sendHtmlPage(res, "register.html"));
+app.get(["/status", "/status/", "/status.html"], (req, res) => sendHtmlPage(res, "status.html"));
+app.get(["/admin", "/admin/", "/admin.html"], (req, res) => sendHtmlPage(res, "admin.html"));
+app.get(["/admin/add-worker", "/admin/add-worker/", "/admin-add-worker", "/admin-add-worker/", "/admin-add-worker.html"], requireAdminPage, (req, res) => sendHtmlPage(res, "admin-add-worker.html"));
+app.get(["/worker.html", "/worker/:id"], (req, res) => sendHtmlPage(res, "worker.html"));
+app.get("/trade/:trade/area/:area", (req, res) => sendHtmlPage(res, "index.html"));
+app.get("/trade/:trade", (req, res) => sendHtmlPage(res, "index.html"));
+app.get("/area/:area", (req, res) => sendHtmlPage(res, "index.html"));
 
 // Workers
 app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).order("featured",{ascending:false}).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
@@ -921,6 +926,18 @@ function startOfCurrentMonthISO(){
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
+
+async function exactCount(table, buildQuery){
+  let query = supabase.from(table).select("id", { count: "exact", head: true });
+  if(buildQuery) query = buildQuery(query);
+  const { count, error } = await query;
+  if(error) throw error;
+  return count || 0;
+}
+
+function safePaymentStatus(row){
+  return String(row && row.payment_status ? row.payment_status : "paid");
+}
 app.get("/api/admin/dashboard-stats", requireAdmin, async (req,res)=>{
   if(!ready(res))return;
   const t=today();
@@ -928,89 +945,125 @@ app.get("/api/admin/dashboard-stats", requireAdmin, async (req,res)=>{
   soonDate.setDate(soonDate.getDate()+7);
   const st=soonDate.toISOString().split("T")[0];
 
+  // Hotfix 22.1:
+  // The old dashboard endpoint loaded full workers/reviews rows, then counted them in Node.js.
+  // This version uses Supabase HEAD count queries in parallel, so the admin dashboard receives
+  // the approved/pending/stat numbers without downloading full tables.
   try{
-    const [workersRes,reviewsRes]=await Promise.all([
-      supabase.from("workers").select("id,name,trade,area,approved,active,featured,subscription_end,created_at,identity_status,identity_verified"),
-      supabase.from("reviews").select("id,approved,rating,worker_id")
+    const [
+      totalWorkers,
+      approvedWorkers,
+      pendingWorkers,
+      featuredWorkers,
+      activeSubs,
+      soonSubs,
+      expiredSubs,
+      totalReviews,
+      pendingReviews,
+      approvedReviews,
+      identityPending,
+      identityVerified,
+      identityRejected,
+      identityNeedsData,
+      identityNeedsIdReupload,
+      topWorkersRes
+    ] = await Promise.all([
+      exactCount("workers"),
+      exactCount("workers", q => q.eq("approved", true)),
+      exactCount("workers", q => q.or("approved.is.false,approved.is.null")),
+      exactCount("workers", q => q.eq("featured", true)),
+      exactCount("workers", q => q.or(`subscription_end.is.null,subscription_end.gte.${t}`)),
+      exactCount("workers", q => q.gte("subscription_end", t).lte("subscription_end", st)),
+      exactCount("workers", q => q.lt("subscription_end", t)),
+      exactCount("reviews"),
+      exactCount("reviews", q => q.or("approved.is.false,approved.is.null")),
+      exactCount("reviews", q => q.eq("approved", true)),
+      exactCount("workers", q => q.or("identity_status.eq.pending,identity_status.is.null")),
+      exactCount("workers", q => q.or("identity_status.eq.verified,identity_verified.eq.true")),
+      exactCount("workers", q => q.eq("identity_status", "rejected")),
+      exactCount("workers", q => q.eq("identity_status", "needs_data")),
+      exactCount("workers", q => q.eq("identity_status", "needs_id_reupload")),
+      supabase.from("workers").select("trade,area").limit(10000)
     ]);
 
-    if(workersRes.error) throw workersRes.error;
-    if(reviewsRes.error) throw reviewsRes.error;
-
-    const workers=workersRes.data||[];
-    const reviews=reviewsRes.data||[];
-
-    const approvedWorkers=workers.filter(w=>bool(w.approved));
-    const pendingWorkers=workers.filter(w=>!bool(w.approved));
-    const featuredWorkers=workers.filter(w=>bool(w.featured));
-    const activeSubs=workers.filter(w=>!w.subscription_end || w.subscription_end>=t);
-    const soonSubs=workers.filter(w=>w.subscription_end && w.subscription_end>=t && w.subscription_end<=st);
-    const expiredSubs=workers.filter(w=>w.subscription_end && w.subscription_end<t);
-    const pendingReviews=reviews.filter(r=>!bool(r.approved));
-    const identityStatusCounts=workers.reduce((acc,w)=>{ const s=normalizeIdentityStatus(w.identity_status || (bool(w.identity_verified)?"verified":"pending")); acc[s]=(acc[s]||0)+1; return acc; },{pending:0,verified:0,rejected:0,needs_data:0,needs_id_reupload:0});
+    if(topWorkersRes.error) throw topWorkersRes.error;
+    const topRows = topWorkersRes.data || [];
 
     let payments={count:0,totalAmount:0,monthAmount:0,averageAmount:0,recent:[]};
     let paymentsWarning="";
 
-    const paymentsRes=await supabase
-      .from("subscription_payments")
-      .select("*, workers(name)")
-      .order("id",{ascending:false})
-      .limit(250);
+    try{
+      const [paymentsCountRes, paymentsRes] = await Promise.all([
+        supabase.from("subscription_payments").select("id", { count: "exact", head: true }),
+        supabase
+          .from("subscription_payments")
+          .select("*, workers(name)")
+          .order("id",{ascending:false})
+          .limit(250)
+      ]);
 
-    if(paymentsRes.error){
+      if(paymentsCountRes.error || paymentsRes.error){
+        paymentsWarning="جدول subscription_payments غير موجود أو غير قابل للقراءة. شغّل ملف SQL الخاص بالاشتراكات أولًا.";
+      }else{
+        const paymentRows=paymentsRes.data||[];
+        const paidRows=paymentRows.filter(p=>safePaymentStatus(p)!=="pending");
+        const currentMonthStart=startOfCurrentMonthISO();
+        const monthRows=paidRows.filter(p=>p.created_at && String(p.created_at)>=currentMonthStart);
+        payments.count=paymentsCountRes.count||paymentRows.length;
+        payments.totalAmount=sumAmounts(paidRows);
+        payments.monthAmount=sumAmounts(monthRows);
+        payments.averageAmount=paidRows.length?Math.round((payments.totalAmount/paidRows.length)*10)/10:0;
+        payments.recent=paymentRows.slice(0,10).map(p=>({
+          id:p.id,
+          worker_id:p.worker_id,
+          worker_name:p.workers&&p.workers.name?p.workers.name:"",
+          amount:p.amount,
+          plan:p.plan,
+          months:p.months,
+          payment_method:p.payment_method,
+          payment_status:p.payment_status,
+          created_at:p.created_at
+        }));
+      }
+    }catch(e){
       paymentsWarning="جدول subscription_payments غير موجود أو غير قابل للقراءة. شغّل ملف SQL الخاص بالاشتراكات أولًا.";
-    }else{
-      const paymentRows=paymentsRes.data||[];
-      const paidRows=paymentRows.filter(p=>String(p.payment_status||"paid")!=="pending");
-      const currentMonthStart=startOfCurrentMonthISO();
-      const monthRows=paidRows.filter(p=>p.created_at && String(p.created_at)>=currentMonthStart);
-      payments.count=paymentRows.length;
-      payments.totalAmount=sumAmounts(paidRows);
-      payments.monthAmount=sumAmounts(monthRows);
-      payments.averageAmount=paidRows.length?Math.round((payments.totalAmount/paidRows.length)*10)/10:0;
-      payments.recent=paymentRows.slice(0,10).map(p=>({
-        id:p.id,
-        worker_id:p.worker_id,
-        worker_name:p.workers&&p.workers.name?p.workers.name:"",
-        amount:p.amount,
-        plan:p.plan,
-        months:p.months,
-        payment_method:p.payment_method,
-        payment_status:p.payment_status,
-        created_at:p.created_at
-      }));
     }
 
+    res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=30");
     res.json({
       success:true,
       workers:{
-        total:workers.length,
-        approved:approvedWorkers.length,
-        pending:pendingWorkers.length,
-        featured:featuredWorkers.length
+        total:totalWorkers,
+        approved:approvedWorkers,
+        pending:pendingWorkers,
+        featured:featuredWorkers
       },
       subscriptions:{
-        active:activeSubs.length,
-        soon:soonSubs.length,
-        expired:expiredSubs.length
+        active:activeSubs,
+        soon:soonSubs,
+        expired:expiredSubs
       },
       reviews:{
-        total:reviews.length,
-        pending:pendingReviews.length,
-        approved:reviews.length-pendingReviews.length
+        total:totalReviews,
+        pending:pendingReviews,
+        approved:approvedReviews
       },
-      identity:identityStatusCounts,
+      identity:{
+        pending:identityPending,
+        verified:identityVerified,
+        rejected:identityRejected,
+        needs_data:identityNeedsData,
+        needs_id_reupload:identityNeedsIdReupload
+      },
       payments,
       paymentsWarning,
-      topTrades:topCounts(workers,"trade"),
-      topAreas:topCounts(workers,"area")
+      topTrades:topCounts(topRows,"trade"),
+      topAreas:topCounts(topRows,"area")
     });
   }catch(e){
     res.status(500).json({success:false,error:e.message||"تعذر تحميل الإحصائيات"});
   }
 });
-
 
 
 app.get("/api/admin/activity-log", requireAdmin, async (req,res)=>{
