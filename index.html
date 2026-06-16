@@ -8,14 +8,19 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
   <link rel="stylesheet" href="style.css" />
 
   <style>
-    /* ===== Additional styles for enhanced features ===== */
-
-    /* Card Rating */
     .card-rating {
       display: inline-flex;
       align-items: center;
@@ -30,20 +35,27 @@
       font-weight: 900;
       margin-bottom: 12px;
     }
-    .card-rating i { color: #f59e0b; }
+
+    .card-rating i {
+      color: #f59e0b;
+    }
+
     .card-rating.no-rating {
       background: rgba(100, 116, 139, 0.10);
       color: #475569;
       border-color: rgba(100, 116, 139, 0.18);
     }
-    .card-rating.no-rating i { color: #94a3b8; }
 
-    /* Sort wrap */
+    .card-rating.no-rating i {
+      color: #94a3b8;
+    }
+
     .sort-wrap {
       position: relative;
       height: 54px;
       min-width: 220px;
     }
+
     .sort-wrap i {
       position: absolute;
       right: 17px;
@@ -52,6 +64,7 @@
       color: var(--blue);
       z-index: 2;
     }
+
     .sort-wrap select {
       width: 100%;
       height: 100%;
@@ -66,11 +79,13 @@
       appearance: none;
       cursor: pointer;
     }
-    @media (max-width: 800px) {
-      .sort-wrap { width: 100%; }
-    }
 
-    /* Quick trades */
+    @media (max-width: 800px) {
+      .sort-wrap {
+        width: 100%;
+      }
+    }
+  
     .quick-trades {
       display: flex;
       align-items: center;
@@ -83,6 +98,7 @@
       padding: 14px;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
     }
+
     .quick-trades-label {
       display: inline-flex;
       align-items: center;
@@ -92,6 +108,7 @@
       font-weight: 900;
       margin-left: 4px;
     }
+
     .quick-trade-btn {
       border: 1px solid rgba(29,78,216,0.16);
       background: #fff;
@@ -108,31 +125,46 @@
       transition: 0.25s ease;
       box-shadow: 0 4px 12px rgba(15,23,42,0.04);
     }
-    .quick-trade-btn:hover, .quick-trade-btn.active {
+
+    .quick-trade-btn:hover,
+    .quick-trade-btn.active {
       background: var(--blue);
       color: #fff;
       transform: translateY(-2px);
       box-shadow: 0 10px 20px rgba(29,78,216,0.18);
     }
-    .quick-trade-btn i { font-size: 13px; }
-    @media (max-width: 640px) {
-      .quick-trades { align-items: stretch; }
-      .quick-trades-label { width: 100%; }
-      .quick-trade-btn { flex: 1 1 calc(50% - 8px); justify-content: center; }
+
+    .quick-trade-btn i {
+      font-size: 13px;
     }
 
-    /* Share button */
+    @media (max-width: 640px) {
+      .quick-trades {
+        align-items: stretch;
+      }
+
+      .quick-trades-label {
+        width: 100%;
+      }
+
+      .quick-trade-btn {
+        flex: 1 1 calc(50% - 8px);
+        justify-content: center;
+      }
+    }
+
+  
     .share-btn {
       background: rgba(15, 23, 42, 0.07);
       color: var(--primary);
       border: 1px solid rgba(15, 23, 42, 0.10);
     }
+
     .share-btn:hover {
       background: var(--primary);
       color: #fff;
     }
 
-    /* Copy toast */
     .copy-toast {
       position: fixed;
       bottom: 22px;
@@ -149,343 +181,126 @@
       gap: 9px;
       max-width: calc(100% - 44px);
     }
-    .copy-toast.show { display: flex; }
 
-    /* ============================================
-       TRADES CARDS SECTION - Complete
-       ============================================ */
-    .trades-section {
-      padding: 50px 0 30px;
-      position: relative;
-    }
-    .trades-section::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--border), transparent);
-    }
-
-    /* Loading state */
-    .trades-loading {
-      grid-column: 1 / -1;
+    .copy-toast.show {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 40px;
-      color: var(--muted);
-      font-weight: 800;
     }
 
-    /* Grid */
-    .trades-grid {
+
+
+    .trade-icons-section {
+      padding: 26px 0 14px;
+    }
+
+    .trade-icons-head {
+      margin-bottom: 18px;
+    }
+
+    .trade-icons-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 16px;
-      margin-top: 30px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
     }
 
-    /* Trade Card */
-    .trade-card {
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(226,232,240,0.8);
-      border-radius: 24px;
-      padding: 26px 14px 18px;
-      text-align: center;
+    .trade-icon-card {
+      min-height: 138px;
+      border: 1px solid rgba(226,232,240,0.95);
+      background: rgba(255,255,255,0.94);
+      color: var(--primary);
+      border-radius: 26px;
+      padding: 16px 12px;
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(15,23,42,0.06);
-      text-decoration: none;
-      color: inherit;
-      display: block;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeInUp 0.5s ease forwards;
+      display: grid;
+      place-items: center;
+      gap: 9px;
+      box-shadow: var(--shadow-sm);
+      transition: 0.25s ease;
+      text-align: center;
+      font-family: inherit;
     }
 
-    /* Stagger animation */
-    .trade-card:nth-child(1) { animation-delay: 0.05s; }
-    .trade-card:nth-child(2) { animation-delay: 0.1s; }
-    .trade-card:nth-child(3) { animation-delay: 0.15s; }
-    .trade-card:nth-child(4) { animation-delay: 0.2s; }
-    .trade-card:nth-child(5) { animation-delay: 0.25s; }
-    .trade-card:nth-child(6) { animation-delay: 0.3s; }
-    .trade-card:nth-child(7) { animation-delay: 0.35s; }
-    .trade-card:nth-child(8) { animation-delay: 0.4s; }
-    .trade-card:nth-child(9) { animation-delay: 0.45s; }
-    .trade-card:nth-child(10) { animation-delay: 0.5s; }
-    .trade-card:nth-child(11) { animation-delay: 0.55s; }
-    .trade-card:nth-child(12) { animation-delay: 0.6s; }
-    .trade-card:nth-child(13) { animation-delay: 0.65s; }
-    .trade-card:nth-child(14) { animation-delay: 0.7s; }
-    .trade-card:nth-child(15) { animation-delay: 0.75s; }
-    .trade-card:nth-child(16) { animation-delay: 0.8s; }
-    .trade-card:nth-child(17) { animation-delay: 0.85s; }
-    .trade-card:nth-child(18) { animation-delay: 0.9s; }
-    .trade-card:nth-child(19) { animation-delay: 0.95s; }
-    .trade-card:nth-child(20) { animation-delay: 1s; }
-    .trade-card:nth-child(21) { animation-delay: 1.05s; }
-    .trade-card:nth-child(22) { animation-delay: 1.1s; }
-
-    @keyframes fadeInUp {
-      to { opacity: 1; transform: translateY(0); }
+    .trade-icon-card:hover,
+    .trade-icon-card.active {
+      transform: translateY(-4px);
+      border-color: rgba(29,78,216,0.30);
+      box-shadow: 0 16px 32px rgba(29,78,216,0.13);
     }
 
-    /* Top gradient line */
-    .trade-card::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 4px;
-      border-radius: 0 0 4px 4px;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    .trade-icon-card.active {
+      background: linear-gradient(135deg, rgba(29,78,216,0.98), rgba(37,99,235,0.96));
+      color: #fff;
     }
-    .trade-card:hover::before { width: 100%; }
 
-    /* Background glow */
-    .trade-card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(29,78,216,0.06), transparent 70%);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      pointer-events: none;
-    }
-    .trade-card:hover::after { opacity: 1; }
-
-    .trade-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(15,23,42,0.12), 0 0 0 1px rgba(29,78,216,0.1);
-      border-color: rgba(29,78,216,0.2);
-    }
-    .trade-card.active {
-      border-color: var(--blue);
-      box-shadow: 0 12px 30px rgba(29,78,216,0.15);
-    }
-    .trade-card.active::before { width: 100%; }
-
-    /* Icon Container */
-    .trade-icon-wrap {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 14px;
-      border-radius: 18px;
+    .trade-icon-bubble {
+      width: 58px;
+      height: 58px;
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      background: rgba(29,78,216,0.09);
+      color: var(--blue);
       font-size: 24px;
-      color: #fff;
-    }
-    .trade-card:hover .trade-icon-wrap {
-      transform: scale(1.1) rotate(-3deg);
-    }
-    /* Ripple ring */
-    .trade-icon-wrap::before {
-      content: "";
-      position: absolute;
-      inset: -3px;
-      border-radius: inherit;
-      border: 2px solid rgba(255,255,255,0.3);
-      opacity: 0;
-      transition: all 0.4s ease;
-    }
-    .trade-card:hover .trade-icon-wrap::before {
-      opacity: 1;
-      inset: -6px;
+      transition: 0.25s ease;
     }
 
-    /* Trade Name */
-    .trade-card h3 {
-      margin: 0 0 6px;
+    .trade-icon-card.active .trade-icon-bubble,
+    .trade-icon-card:hover .trade-icon-bubble {
+      background: #fff;
+      color: var(--blue);
+    }
+
+    .trade-icon-card strong {
       font-size: 15px;
       font-weight: 900;
-      color: var(--primary);
-      transition: color 0.3s ease;
-      line-height: 1.3;
+      line-height: 1.45;
     }
-    .trade-card:hover h3 { color: var(--blue); }
 
-    /* Trade Count */
-    .trade-count {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: rgba(29,78,216,0.08);
-      color: var(--blue);
-      padding: 5px 12px;
-      border-radius: 999px;
+    .trade-icon-card small {
+      color: var(--muted);
       font-size: 12px;
-      font-weight: 800;
-      border: 1px solid rgba(29,78,216,0.12);
-      transition: all 0.3s ease;
-    }
-    .trade-card:hover .trade-count {
-      background: var(--blue);
-      color: #fff;
-      border-color: transparent;
-      transform: scale(1.05);
+      font-weight: 900;
     }
 
-    /* Arrow */
-    .trade-arrow {
-      position: absolute;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%) translateY(8px);
-      opacity: 0;
-      color: var(--blue);
-      font-size: 18px;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .trade-card:hover .trade-arrow {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
+    .trade-icon-card.active small {
+      color: rgba(255,255,255,0.82);
     }
 
-    /* ===== COLOR THEMES - 22+ trades ===== */
-    .trade-card[data-trade-color="0"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #8B4513, #D2691E);
-      box-shadow: 0 8px 25px rgba(139,69,19,0.3);
+    .trade-icons-empty {
+      grid-column: 1 / -1;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      color: var(--muted);
+      font-weight: 900;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
     }
-    .trade-card[data-trade-color="0"]::before { background: linear-gradient(90deg, #8B4513, #D2691E); }
 
-    .trade-card[data-trade-color="1"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #1e40af, #3b82f6);
-      box-shadow: 0 8px 25px rgba(30,64,175,0.3);
-    }
-    .trade-card[data-trade-color="1"]::before { background: linear-gradient(90deg, #1e40af, #3b82f6); }
-
-    .trade-card[data-trade-color="2"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
-      box-shadow: 0 8px 25px rgba(245,158,11,0.3);
-    }
-    .trade-card[data-trade-color="2"]::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-
-    .trade-card[data-trade-color="3"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #ec4899, #f472b6);
-      box-shadow: 0 8px 25px rgba(236,72,153,0.3);
-    }
-    .trade-card[data-trade-color="3"]::before { background: linear-gradient(90deg, #ec4899, #f472b6); }
-
-    .trade-card[data-trade-color="4"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #475569, #64748b);
-      box-shadow: 0 8px 25px rgba(71,85,105,0.3);
-    }
-    .trade-card[data-trade-color="4"]::before { background: linear-gradient(90deg, #475569, #64748b); }
-
-    .trade-card[data-trade-color="5"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #0d9488, #14b8a6);
-      box-shadow: 0 8px 25px rgba(13,148,136,0.3);
-    }
-    .trade-card[data-trade-color="5"]::before { background: linear-gradient(90deg, #0d9488, #14b8a6); }
-
-    .trade-card[data-trade-color="6"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #06b6d4, #22d3ee);
-      box-shadow: 0 8px 25px rgba(6,182,212,0.3);
-    }
-    .trade-card[data-trade-color="6"]::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
-
-    .trade-card[data-trade-color="7"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #71717a, #a1a1aa);
-      box-shadow: 0 8px 25px rgba(113,113,122,0.3);
-    }
-    .trade-card[data-trade-color="7"]::before { background: linear-gradient(90deg, #71717a, #a1a1aa); }
-
-    .trade-card[data-trade-color="8"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #7c3aed, #a78bfa);
-      box-shadow: 0 8px 25px rgba(124,58,237,0.3);
-    }
-    .trade-card[data-trade-color="8"]::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
-
-    .trade-card[data-trade-color="9"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
-      box-shadow: 0 8px 25px rgba(14,165,233,0.3);
-    }
-    .trade-card[data-trade-color="9"]::before { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
-
-    .trade-card[data-trade-color="10"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #dc2626, #ef4444);
-      box-shadow: 0 8px 25px rgba(220,38,38,0.3);
-    }
-    .trade-card[data-trade-color="10"]::before { background: linear-gradient(90deg, #dc2626, #ef4444); }
-
-    .trade-card[data-trade-color="11"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #92400e, #b45309);
-      box-shadow: 0 8px 25px rgba(146,64,14,0.3);
-    }
-    .trade-card[data-trade-color="11"]::before { background: linear-gradient(90deg, #92400e, #b45309); }
-
-    .trade-card[data-trade-color="12"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #16a34a, #22c55e);
-      box-shadow: 0 8px 25px rgba(22,163,74,0.3);
-    }
-    .trade-card[data-trade-color="12"]::before { background: linear-gradient(90deg, #16a34a, #22c55e); }
-
-    .trade-card[data-trade-color="13"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #ca8a04, #eab308);
-      box-shadow: 0 8px 25px rgba(202,138,4,0.3);
-    }
-    .trade-card[data-trade-color="13"]::before { background: linear-gradient(90deg, #ca8a04, #eab308); }
-
-    .trade-card[data-trade-color="14"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #1e3a5f, #2563eb);
-      box-shadow: 0 8px 25px rgba(30,58,95,0.3);
-    }
-    .trade-card[data-trade-color="14"]::before { background: linear-gradient(90deg, #1e3a5f, #2563eb); }
-
-    .trade-card[data-trade-color="15"] .trade-icon-wrap {
-      background: linear-gradient(135deg, #0891b2, #06b6d4);
-      box-shadow: 0 8px 25px rgba(8,145,178,0.3);
-    }
-    .trade-card[data-trade-color="15"]::before { background: linear-gradient(90deg, #0891b2, #06b6d4); }
-
-    /* ===== Responsive ===== */
     @media (max-width: 1100px) {
-      .trades-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 14px;
+      .trade-icons-grid {
+        grid-template-columns: repeat(4, 1fr);
       }
     }
-    @media (max-width: 640px) {
-      .trades-grid {
+
+    @media (max-width: 760px) {
+      .trade-icons-grid {
         grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
       }
-      .trade-card {
-        padding: 20px 10px 14px;
-        border-radius: 20px;
-      }
-      .trade-icon-wrap {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        font-size: 20px;
-      }
-      .trade-card h3 { font-size: 13px; }
-      .trade-count { font-size: 11px; padding: 4px 8px; }
     }
-    @media (max-width: 400px) {
-      .trades-grid {
+
+    @media (max-width: 520px) {
+      .trade-icons-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
       }
-      .trade-card {
-        padding: 18px 8px 12px;
-        border-radius: 16px;
+
+      .trade-icon-card {
+        min-height: 126px;
+        border-radius: 22px;
       }
     }
+
   </style>
 
   <!-- PWA -->
@@ -497,13 +312,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
 </head>
 
 <body>
 
-  <!-- ===== HEADER ===== -->
   <header class="site-header">
     <div class="container header-content">
+
       <a href="/" class="brand">
         <div class="brand-icon">
           <i class="fa-solid fa-screwdriver-wrench"></i>
@@ -513,62 +329,79 @@
           <span>دليل موثوق لصنايعية مرسى مطروح</span>
         </div>
       </a>
+
       <nav class="main-nav">
         <a href="#home">الرئيسية</a>
-        <a href="#trades">الحرفات</a>
         <a href="#workers">الصنايعية</a>
         <a href="#features">المميزات</a>
       </nav>
+
       <a href="/register" class="header-btn">
         <i class="fa-solid fa-user-plus"></i>
         سجل كصنايعي
       </a>
+
       <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
         <i class="fa-solid fa-bars"></i>
       </button>
     </div>
+
     <div class="mobile-nav" id="mobileNav">
       <a href="#home" onclick="toggleMobileMenu()">الرئيسية</a>
-      <a href="#trades" onclick="toggleMobileMenu()">الحرفات</a>
       <a href="#workers" onclick="toggleMobileMenu()">الصنايعية</a>
       <a href="#features" onclick="toggleMobileMenu()">المميزات</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
   </header>
 
-  <!-- ===== HERO SECTION ===== -->
   <section class="hero" id="home">
     <div class="container hero-grid">
+
       <div class="hero-text">
         <div class="hero-badge">
           <i class="fa-solid fa-location-dot"></i>
           متاح حاليًا داخل مرسى مطروح
         </div>
+
         <h2>
           أوصل لأفضل صنايعي في
           <span>مرسى مطروح</span>
           بسهولة
         </h2>
+
         <p>
           ابحث عن سباك، كهربائي، نجار، نقاش، فني تكييف، أو أي صنايعي قريب منك.
           تواصل مباشرة بالمكالمة أو الواتساب بدون وسيط.
         </p>
+
         <div class="hero-actions">
-          <a href="#trades" class="btn btn-primary">
+          <a href="#workers" class="btn btn-primary">
             <i class="fa-solid fa-magnifying-glass"></i>
-            اكتشف الحرفات
+            استعرض الصنايعية
           </a>
+
           <a href="/register" class="btn btn-secondary">
             <i class="fa-solid fa-hammer"></i>
             انضم للدليل
           </a>
         </div>
+
         <div class="hero-points">
-          <div><i class="fa-solid fa-circle-check"></i> بيانات واضحة</div>
-          <div><i class="fa-solid fa-circle-check"></i> تواصل مباشر</div>
-          <div><i class="fa-solid fa-circle-check"></i> صنايعية داخل مطروح</div>
+          <div>
+            <i class="fa-solid fa-circle-check"></i>
+            بيانات واضحة
+          </div>
+          <div>
+            <i class="fa-solid fa-circle-check"></i>
+            تواصل مباشر
+          </div>
+          <div>
+            <i class="fa-solid fa-circle-check"></i>
+            صنايعية داخل مطروح
+          </div>
         </div>
       </div>
+
       <div class="hero-card">
         <div class="hero-card-top">
           <div class="floating-icon">
@@ -579,72 +412,111 @@
             <p>اختار الحرفة والمنطقة واتواصل فورًا</p>
           </div>
         </div>
+
         <div class="hero-mini-list">
           <div class="mini-worker">
             <span><i class="fa-solid fa-bolt"></i></span>
-            <div><strong>كهربائي</strong><small>صيانة وتركيبات</small></div>
+            <div>
+              <strong>كهربائي</strong>
+              <small>صيانة وتركيبات</small>
+            </div>
           </div>
+
           <div class="mini-worker">
             <span><i class="fa-solid fa-faucet-drip"></i></span>
-            <div><strong>سباك</strong><small>إصلاح وتسليك</small></div>
+            <div>
+              <strong>سباك</strong>
+              <small>إصلاح وتسليك</small>
+            </div>
           </div>
+
           <div class="mini-worker">
             <span><i class="fa-solid fa-paint-roller"></i></span>
-            <div><strong>نقاش</strong><small>دهانات وتشطيبات</small></div>
+            <div>
+              <strong>نقاش</strong>
+              <small>دهانات وتشطيبات</small>
+            </div>
           </div>
         </div>
+
         <div class="hero-card-footer">
           <i class="fa-solid fa-shield-heart"></i>
           منصة محلية لخدمة أهالي مطروح
         </div>
       </div>
+
     </div>
   </section>
 
-  <!-- ===== TRADES CARDS SECTION ===== -->
-  <section class="trades-section" id="trades">
-    <div class="container">
-      <div class="section-center">
-        <span class="section-label">🔧 اكتشف الحرف</span>
-        <h2>جميع الحرفات المتاحة</h2>
-        <p>اختر الحرفة اللي تحتاجها وشوف أفضل الصنايعية في مطروح</p>
-      </div>
-      <div class="trades-grid" id="tradesGrid">
-        <div class="trades-loading" style="grid-column: 1 / -1;">
-          <div class="spinner"></div>
-          <p>جاري تحميل الحرفات...</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== STATS SECTION ===== -->
   <section class="stats-section">
     <div class="container stats-grid">
+
       <div class="stat-box">
-        <div class="stat-icon"><i class="fa-solid fa-users-gear"></i></div>
-        <div><h3 id="workersCount">0</h3><p>صنايعي متاح</p></div>
+        <div class="stat-icon">
+          <i class="fa-solid fa-users-gear"></i>
+        </div>
+        <div>
+          <h3 id="workersCount">0</h3>
+          <p>صنايعي متاح</p>
+        </div>
       </div>
+
       <div class="stat-box">
-        <div class="stat-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-        <div><h3 id="tradesCount">0</h3><p>حرفة مختلفة</p></div>
+        <div class="stat-icon">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div>
+          <h3 id="tradesCount">0</h3>
+          <p>حرفة مختلفة</p>
+        </div>
       </div>
+
       <div class="stat-box">
-        <div class="stat-icon"><i class="fa-solid fa-map-location-dot"></i></div>
-        <div><h3>مطروح</h3><p>خدمة محلية</p></div>
+        <div class="stat-icon">
+          <i class="fa-solid fa-map-location-dot"></i>
+        </div>
+        <div>
+          <h3>مطروح</h3>
+          <p>خدمة محلية</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+
+  <section class="trade-icons-section" id="trades">
+    <div class="container">
+      <div class="section-head trade-icons-head">
+        <div>
+          <span class="section-label">اختيار سريع حسب الحرفة</span>
+          <h2>اختار الحرفة وشوف الصنايعية فورًا</h2>
+          <p>كل أيقونة بتفتح لك الصنايعية المتاحين داخل نفس الحرفة.</p>
+        </div>
+
+        <a href="/register" class="join-link">
+          <i class="fa-solid fa-user-plus"></i>
+          سجّل كصنايعي
+        </a>
+      </div>
+
+      <div class="trade-icons-grid" id="tradeIconsGrid">
+        <div class="trade-icons-empty">جاري تحميل الحرف...</div>
       </div>
     </div>
   </section>
 
-  <!-- ===== WORKERS SECTION ===== -->
   <section class="workers-section" id="workers">
     <div class="container">
+
       <div class="section-head">
         <div>
           <span class="section-label">دليل الصنايعية</span>
-          <h2>اختار الصنايعي المناسب</h2>
-          <p>ابحث بالاسم أو الحرفة أو المنطقة، واتواصل مباشرة مع الصنايعي.</p>
+          <h2 id="workersSectionTitle">اختار الصنايعي المناسب</h2>
+          <p id="workersSectionSubtitle">ابحث بالاسم أو الحرفة أو المنطقة، واتواصل مباشرة مع الصنايعي.</p>
         </div>
+
         <a href="/register" class="join-link">
           <i class="fa-solid fa-plus"></i>
           أضف بياناتك كصنايعي
@@ -654,16 +526,28 @@
       <div class="search-panel">
         <div class="search-input-wrap">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="searchInput" placeholder="ابحث باسم الصنايعي أو الحرفة أو المنطقة..." oninput="filterWorkers()" />
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="ابحث باسم الصنايعي أو الحرفة أو المنطقة..."
+            oninput="filterWorkers()"
+          />
         </div>
+
         <div class="select-wrap">
           <i class="fa-solid fa-filter"></i>
-          <select id="tradeFilter" onchange="filterWorkers()"><option value="">كل الحرف</option></select>
+          <select id="tradeFilter" onchange="onTradeFilterChanged()">
+            <option value="">كل الحرف</option>
+          </select>
         </div>
+
         <div class="select-wrap">
           <i class="fa-solid fa-location-dot"></i>
-          <select id="areaFilter" onchange="filterWorkers()"><option value="">كل المناطق</option></select>
+          <select id="areaFilter" onchange="filterWorkers()">
+            <option value="">كل المناطق</option>
+          </select>
         </div>
+
         <div class="sort-wrap">
           <i class="fa-solid fa-arrow-down-wide-short"></i>
           <select id="sortFilter" onchange="filterWorkers()">
@@ -673,6 +557,7 @@
             <option value="featured">المميزين أولًا</option>
           </select>
         </div>
+
         <button class="clear-btn" onclick="clearFilters()">
           <i class="fa-solid fa-rotate-right"></i>
           مسح البحث
@@ -680,288 +565,124 @@
       </div>
 
       <div class="quick-trades" id="quickTrades">
-        <div class="quick-trades-label"><i class="fa-solid fa-bolt"></i> بحث سريع:</div>
-        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('سباك', this)"><i class="fa-solid fa-faucet-drip"></i>سباك</button>
-        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('كهربائي', this)"><i class="fa-solid fa-bolt"></i>كهربائي</button>
-        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('نجار', this)"><i class="fa-solid fa-hammer"></i>نجار</button>
-        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('نقاش', this)"><i class="fa-solid fa-paint-roller"></i>نقاش</button>
-        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('فني تكييف', this)"><i class="fa-solid fa-wind"></i>فني تكييف</button>
-        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('', this)"><i class="fa-solid fa-rotate-right"></i>الكل</button>
+        <div class="quick-trades-label">
+          <i class="fa-solid fa-bolt"></i>
+          بحث سريع:
+        </div>
+
+        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('سباك', this)">
+          <i class="fa-solid fa-faucet-drip"></i>
+          سباك
+        </button>
+
+        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('كهربائي', this)">
+          <i class="fa-solid fa-bolt"></i>
+          كهربائي
+        </button>
+
+        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('نجار', this)">
+          <i class="fa-solid fa-hammer"></i>
+          نجار
+        </button>
+
+        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('نقاش', this)">
+          <i class="fa-solid fa-paint-roller"></i>
+          نقاش
+        </button>
+
+        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('فني تكييف', this)">
+          <i class="fa-solid fa-wind"></i>
+          فني تكييف
+        </button>
+
+        <button type="button" class="quick-trade-btn" onclick="setQuickTrade('', this)">
+          <i class="fa-solid fa-rotate-right"></i>
+          الكل
+        </button>
       </div>
 
       <div class="loading-box" id="loadingBox">
         <div class="spinner"></div>
         <p>جاري تحميل الصنايعية...</p>
       </div>
+
       <div class="empty-box" id="emptyBox" style="display: none;">
-        <div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div>
+        <div class="empty-icon">
+          <i class="fa-solid fa-user-slash"></i>
+        </div>
         <h3>لا يوجد صنايعية مطابقين للبحث</h3>
         <p>جرّب تغير كلمة البحث أو اختار حرفة مختلفة.</p>
       </div>
+
       <div class="workers-grid" id="workersGrid"></div>
+
     </div>
   </section>
 
-  <!-- ===== FEATURES SECTION ===== -->
   <section class="features-section" id="features">
     <div class="container">
+
       <div class="section-center">
         <span class="section-label">ليه صنايعي مطروح؟</span>
         <h2>طريقة أسهل للوصول للصنايعي</h2>
         <p>الدليل معمول مخصوص لخدمة أهالي مرسى مطروح بشكل بسيط وسريع.</p>
       </div>
+
       <div class="features-grid">
+
         <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-phone-volume"></i></div>
+          <div class="feature-icon">
+            <i class="fa-solid fa-phone-volume"></i>
+          </div>
           <h3>تواصل مباشر</h3>
           <p>اتصل أو ابعت واتساب للصنايعي مباشرة بدون خطوات معقدة.</p>
         </div>
+
         <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-location-crosshairs"></i></div>
+          <div class="feature-icon">
+            <i class="fa-solid fa-location-crosshairs"></i>
+          </div>
           <h3>مناطق داخل مطروح</h3>
           <p>اختار صنايعي قريب منك حسب المنطقة والحرفة المطلوبة.</p>
         </div>
+
         <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-id-card-clip"></i></div>
+          <div class="feature-icon">
+            <i class="fa-solid fa-id-card-clip"></i>
+          </div>
           <h3>بيانات واضحة</h3>
           <p>كل صنايعي له كارت فيه الاسم والحرفة والمنطقة ووسائل التواصل.</p>
         </div>
+
       </div>
+
     </div>
   </section>
 
-  <!-- ===== FOOTER ===== -->
   <footer class="footer">
     <div class="container footer-content">
+
       <div>
         <h3>صنايعي مطروح</h3>
         <p>دليل محلي بسيط لربط أهالي مرسى مطروح بالصنايعية والحرفيين.</p>
       </div>
+
       <div class="footer-links">
         <a href="#home">الرئيسية</a>
-        <a href="#trades">الحرفات</a>
         <a href="#workers">الصنايعية</a>
         <a href="/register">سجل كصنايعي</a>
       </div>
+
     </div>
   </footer>
 
-  <!-- ===== TOAST ===== -->
+
   <div class="copy-toast" id="copyToast">
     <i class="fa-solid fa-circle-check"></i>
     تم نسخ رابط الصنايعي
   </div>
 
-  <!-- ===== JAVASCRIPT ===== -->
   <script>
-    // ============================================
-    // TRADES CONFIG - 22 known trades with icons
-    // ============================================
-    const TRADE_CONFIG = {
-      'نجار':           { icon: 'fa-hammer' },
-      'سباك':           { icon: 'fa-faucet-drip' },
-      'كهربائي':        { icon: 'fa-bolt' },
-      'نقاش':           { icon: 'fa-paint-roller' },
-      'حداد':           { icon: 'fa-fire' },
-      'سيراميك':        { icon: 'fa-border-all' },
-      'تكييف':          { icon: 'fa-wind' },
-      'ألوميتال':       { icon: 'fa-border-none' },
-      'ستالايت':        { icon: 'fa-satellite-dish' },
-      'زجاج':           { icon: 'fa-square' },
-      'ميكانيكي':       { icon: 'fa-car' },
-      'أثاث':           { icon: 'fa-couch' },
-      'زراعة':          { icon: 'fa-seedling' },
-      'بناء':           { icon: 'fa-building' },
-      'أمن':            { icon: 'fa-shield-halved' },
-      'نظافة':          { icon: 'fa-broom' },
-      'تصليح تليفزيون': { icon: 'fa-tv' },
-      'تصليح تلاجات':   { icon: 'fa-snowflake' },
-      'تصليح غسالات':   { icon: 'fa-soap' },
-      'حلاق':           { icon: 'fa-scissors' },
-      'خياط':           { icon: 'fa-shirt' },
-      'سائق':           { icon: 'fa-taxi' }
-    };
-
-    const FALLBACK_ICONS = [
-      'fa-screwdriver-wrench', 'fa-wrench', 'fa-gear', 'fa-toolbox',
-      'fa-ruler', 'fa-pencil', 'fa-brush', 'fa-compass', 'fa-drafting-compass',
-      'fa-hard-hat', 'fa-truck', 'fa-motorcycle', 'fa-bus', 'fa-train',
-      'fa-plane', 'fa-ship', 'fa-bicycle', 'fa-walking'
-    ];
-
-    const COLOR_PALETTE = [
-      '0', '1', '2', '3', '4', '5', '6', '7',
-      '8', '9', '10', '11', '12', '13', '14', '15'
-    ];
-
-    function getTradeConfig(tradeName) {
-      if (TRADE_CONFIG[tradeName]) {
-        return {
-          icon: TRADE_CONFIG[tradeName].icon,
-          colorIndex: getTradeColorIndex(tradeName)
-        };
-      }
-      for (const [key, config] of Object.entries(TRADE_CONFIG)) {
-        if (tradeName.includes(key) || key.includes(tradeName)) {
-          return {
-            icon: config.icon,
-            colorIndex: getTradeColorIndex(key)
-          };
-        }
-      }
-      const hash = stringHash(tradeName);
-      return {
-        icon: FALLBACK_ICONS[hash % FALLBACK_ICONS.length],
-        colorIndex: hash % COLOR_PALETTE.length
-      };
-    }
-
-    function stringHash(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return Math.abs(hash);
-    }
-
-    function getTradeColorIndex(tradeName) {
-      const knownTrades = Object.keys(TRADE_CONFIG);
-      const index = knownTrades.indexOf(tradeName);
-      if (index !== -1) return index % COLOR_PALETTE.length;
-      return stringHash(tradeName) % COLOR_PALETTE.length;
-    }
-
-    function getTradeCount(tradeName) {
-      if (!window.allWorkers || !window.allWorkers.length) return 0;
-      return window.allWorkers.filter(w => {
-        const trade = getWorkerTrade(w);
-        return trade === tradeName || trade.includes(tradeName);
-      }).length;
-    }
-
-    // ============================================
-    // RENDER TRADES CARDS
-    // ============================================
-    async function renderTradesCards() {
-      const grid = document.getElementById('tradesGrid');
-      if (!grid) return;
-
-      grid.innerHTML = `
-        <div class="trades-loading" style="grid-column: 1 / -1;">
-          <div class="spinner"></div>
-          <p>جاري تحميل الحرفات...</p>
-        </div>
-      `;
-
-      try {
-        const response = await fetch('/api/trades');
-        let trades = [];
-
-        if (response.ok) {
-          const data = await response.json();
-          trades = Array.isArray(data) ? data : (data.data || data.trades || []);
-        }
-
-        if (!trades.length) {
-          trades = Object.keys(TRADE_CONFIG).map(name => ({ name }));
-        }
-
-        const tradeNames = trades.map(t => {
-          if (typeof t === 'string') return t;
-          return t.name || t.trade || t.craft || t.title || '';
-        }).filter(Boolean);
-
-        if (!tradeNames.length) {
-          grid.innerHTML = `
-            <div class="empty-box" style="grid-column: 1 / -1;">
-              <div class="empty-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-              <h3>لا توجد حرفات متاحة</h3>
-              <p>سيتم إضافة الحرفات قريبًا.</p>
-            </div>
-          `;
-          return;
-        }
-
-        grid.innerHTML = tradeNames.map((tradeName, index) => {
-          const config = getTradeConfig(tradeName);
-          const count = getTradeCount(tradeName);
-
-          return `
-            <div class="trade-card"
-                 data-trade="${tradeName}"
-                 data-trade-color="${config.colorIndex}"
-                 onclick="selectTrade('${tradeName}')"
-                 style="animation-delay: ${index * 0.05}s">
-              <div class="trade-icon-wrap">
-                <i class="fa-solid ${config.icon}"></i>
-              </div>
-              <h3>${tradeName}</h3>
-              <span class="trade-count">
-                <i class="fa-solid fa-users" style="font-size:11px"></i>
-                ${count} صنايعي
-              </span>
-              <div class="trade-arrow">
-                <i class="fa-solid fa-arrow-left"></i>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-      } catch (error) {
-        console.error('Error loading trades:', error);
-        grid.innerHTML = `
-          <div class="empty-box" style="grid-column: 1 / -1;">
-            <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <h3>خطأ في تحميل الحرفات</h3>
-            <p>يرجى تحديث الصفحة.</p>
-          </div>
-        `;
-      }
-    }
-
-    function selectTrade(tradeName) {
-      document.querySelectorAll('.trade-card').forEach(card => {
-        card.classList.remove('active');
-      });
-      document.querySelectorAll(`[data-trade="${tradeName}"]`).forEach(card => {
-        card.classList.add('active');
-      });
-
-      const select = document.getElementById('tradeFilter');
-      if (select) {
-        select.value = tradeName;
-        if (select.value !== tradeName) {
-          const option = document.createElement('option');
-          option.value = tradeName;
-          option.textContent = tradeName;
-          select.appendChild(option);
-          select.value = tradeName;
-        }
-      }
-
-      document.querySelectorAll('.quick-trade-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-
-      if (typeof filterWorkers === 'function') {
-        filterWorkers();
-      }
-
-      const workersSection = document.getElementById('workers');
-      if (workersSection) {
-        workersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-
-    function updateTradesCards() {
-      renderTradesCards();
-    }
-
-    // ============================================
-    // EXISTING FUNCTIONS (from original)
-    // ============================================
     let allWorkers = [];
     let allTrades = [];
     let allAreas = [];
@@ -976,11 +697,15 @@
       for (const url of urls) {
         try {
           const response = await fetch(url);
-          if (response.ok) return await response.json();
+
+          if (response.ok) {
+            return await response.json();
+          }
         } catch (error) {
           console.log("Failed:", url);
         }
       }
+
       return [];
     }
 
@@ -994,15 +719,297 @@
       return [];
     }
 
+
+    function getTradeLabel(item) {
+      if (!item) return "";
+      return item.name || item.trade || item.craft || item.title || item;
+    }
+
+    function normalizeText(value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[أإآ]/g, "ا")
+        .replace(/ة/g, "ه")
+        .replace(/ى/g, "ي");
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, function (char) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "'": "&#039;"
+        }[char];
+      });
+    }
+
+    function getTradeFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const queryTrade = params.get("trade") || params.get("craft") || "";
+
+      if (queryTrade) {
+        return decodeURIComponent(queryTrade).trim();
+      }
+
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      if (parts[0] === "trade" && parts[1]) {
+        return decodeURIComponent(parts.slice(1).join("/")).trim();
+      }
+
+      return "";
+    }
+
+    function ensureTradeOption(tradeName) {
+      const select = document.getElementById("tradeFilter");
+      if (!select || !tradeName) return;
+
+      const exists = Array.from(select.options).some(option => normalizeText(option.value) === normalizeText(tradeName));
+      if (!exists) {
+        const option = document.createElement("option");
+        option.value = tradeName;
+        option.textContent = tradeName;
+        select.appendChild(option);
+      }
+    }
+
+    function setTradeFilterValue(tradeName) {
+      const select = document.getElementById("tradeFilter");
+      if (!select) return;
+
+      if (tradeName) {
+        ensureTradeOption(tradeName);
+      }
+
+      const normalized = normalizeText(tradeName);
+      const matchingOption = Array.from(select.options).find(option => normalizeText(option.value) === normalized);
+      select.value = matchingOption ? matchingOption.value : "";
+    }
+
+    function updateTradeUrl(tradeName, replaceState) {
+      const nextUrl = tradeName ? "/trade/" + encodeURIComponent(tradeName) : "/";
+
+      if (window.location.pathname + window.location.search === nextUrl) {
+        return;
+      }
+
+      const method = replaceState ? "replaceState" : "pushState";
+      window.history[method]({ trade: tradeName || "" }, "", nextUrl);
+    }
+
+    function updateWorkersHeading(selectedTrade, count) {
+      const title = document.getElementById("workersSectionTitle");
+      const subtitle = document.getElementById("workersSectionSubtitle");
+      if (!title || !subtitle) return;
+
+      if (selectedTrade) {
+        title.textContent = "صنايعية " + selectedTrade;
+        subtitle.textContent = count + " صنايعي متاح داخل هذه الحرفة. اختار المناسب واتواصل مباشرة.";
+      } else {
+        title.textContent = "اختار الصنايعي المناسب";
+        subtitle.textContent = "ابحث بالاسم أو الحرفة أو المنطقة، واتواصل مباشرة مع الصنايعي.";
+      }
+    }
+
+    function applyTradeFromUrl() {
+      const tradeName = getTradeFromUrl();
+      if (!tradeName) return false;
+
+      const searchInput = document.getElementById("searchInput");
+      const areaFilter = document.getElementById("areaFilter");
+      const sortFilter = document.getElementById("sortFilter");
+
+      if (searchInput) searchInput.value = "";
+      if (areaFilter) areaFilter.value = "";
+      if (sortFilter) sortFilter.value = "default";
+
+      setTradeFilterValue(tradeName);
+      filterWorkers();
+      updateTradeUrl(tradeName, true);
+
+      const workersSection = document.getElementById("workers");
+      if (workersSection && window.location.pathname.startsWith("/trade/")) {
+        setTimeout(function () {
+          workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150);
+      }
+
+      return true;
+    }
+
+    function onTradeFilterChanged() {
+      const selectedTrade = document.getElementById("tradeFilter").value.trim();
+      updateTradeUrl(selectedTrade, false);
+      filterWorkers();
+      const workersSection = document.getElementById("workers");
+      if (workersSection) {
+        workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    window.addEventListener("popstate", function () {
+      const tradeName = getTradeFromUrl();
+      setTradeFilterValue(tradeName);
+      filterWorkers();
+    });
+
+    function tradeIconClass(tradeName) {
+      const text = normalizeText(tradeName);
+
+      const rules = [
+        { keys: ["سباك", "سباكه", "صرف", "مواسير"], icon: "fa-faucet-drip" },
+        { keys: ["كهرب", "كهربائي", "كهرباء"], icon: "fa-bolt" },
+        { keys: ["نجار", "نجاره", "خشب", "موبيليا"], icon: "fa-hammer" },
+        { keys: ["نقاش", "دهان", "دهانات", "بويا"], icon: "fa-paint-roller" },
+        { keys: ["تكييف", "تبريد", "فريون"], icon: "fa-wind" },
+        { keys: ["حداد", "حديد", "كريتال"], icon: "fa-industry" },
+        { keys: ["محاره", "مبيض", "لياسه"], icon: "fa-trowel-bricks" },
+        { keys: ["بناء", "مقاول", "طوب"], icon: "fa-person-digging" },
+        { keys: ["سيراميك", "بلاط", "ارضيات", "رخام", "جرانيت"], icon: "fa-border-all" },
+        { keys: ["الوميتال", "المنيوم", "شبابيك", "ابواب"], icon: "fa-window-restore" },
+        { keys: ["زجاج", "مرايات"], icon: "fa-vector-square" },
+        { keys: ["جبس", "ديكور", "جبسون"], icon: "fa-shapes" },
+        { keys: ["كاميرا", "كاميرات", "مراقبه", "انذار"], icon: "fa-video" },
+        { keys: ["دش", "ستالايت", "رسيفر"], icon: "fa-satellite-dish" },
+        { keys: ["انترنت", "شبكات", "واي فاي"], icon: "fa-wifi" },
+        { keys: ["موبايل", "هواتف"], icon: "fa-mobile-screen-button" },
+        { keys: ["كمبيوتر", "لاب", "لابتوب"], icon: "fa-laptop" },
+        { keys: ["غساله", "غسالات"], icon: "fa-soap" },
+        { keys: ["ثلاجه", "ثلاجات", "ديب فريزر"], icon: "fa-snowflake" },
+        { keys: ["بوتاجاز", "بوتاجازات", "غاز"], icon: "fa-fire-burner" },
+        { keys: ["اجهزه", "صيانة اجهزه", "صيانة أجهزة"], icon: "fa-plug-circle-bolt" },
+        { keys: ["تنظيف", "نظافه"], icon: "fa-broom" },
+        { keys: ["مكافحه", "حشرات"], icon: "fa-bug" },
+        { keys: ["نقل", "عفش", "ونش"], icon: "fa-truck-moving" },
+        { keys: ["ميكانيكي", "سيارات", "عربيات"], icon: "fa-gears" },
+        { keys: ["مفتاح", "كالون", "اقفال"], icon: "fa-key" }
+      ];
+
+      for (const rule of rules) {
+        if (rule.keys.some(key => text.includes(normalizeText(key)))) {
+          return rule.icon;
+        }
+      }
+
+      return "fa-screwdriver-wrench";
+    }
+
+    function getUniqueTradeNames() {
+      const seen = new Set();
+      const names = [];
+
+      allTrades.forEach(item => {
+        const name = String(getTradeLabel(item) || "").trim();
+        const key = normalizeText(name);
+
+        if (name && !seen.has(key)) {
+          seen.add(key);
+          names.push(name);
+        }
+      });
+
+      return names;
+    }
+
+    function countWorkersForTrade(tradeName) {
+      const target = normalizeText(tradeName);
+      if (!target) return allWorkers.length;
+      return allWorkers.filter(worker => normalizeText(getWorkerTrade(worker)) === target).length;
+    }
+
+    function createTradeIconCard(tradeName, count, isAll) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "trade-icon-card";
+      button.dataset.trade = tradeName || "";
+      button.setAttribute("aria-label", isAll ? "عرض كل الحرف" : "عرض صنايعية " + tradeName);
+      button.title = isAll ? "عرض كل الحرف" : "فتح صفحة صنايعية " + tradeName;
+
+      const icon = isAll ? "fa-layer-group" : tradeIconClass(tradeName);
+      const label = isAll ? "كل الحرف" : tradeName;
+      const countText = count === 1 ? "صنايعي واحد" : count + " صنايعي";
+
+      button.innerHTML = `
+        <span class="trade-icon-bubble">
+          <i class="fa-solid ${icon}"></i>
+        </span>
+        <strong>${escapeHtml(label)}</strong>
+        <small>${countText}</small>
+      `;
+
+      button.addEventListener("click", function () {
+        openTradeWorkers(tradeName || "", button);
+      });
+
+      return button;
+    }
+
+    function renderTradeIcons() {
+      const grid = document.getElementById("tradeIconsGrid");
+      if (!grid) return;
+
+      const trades = getUniqueTradeNames();
+      grid.innerHTML = "";
+
+      if (!trades.length) {
+        grid.innerHTML = '<div class="trade-icons-empty">لا توجد حرف مضافة حاليًا من لوحة الإدارة.</div>';
+        return;
+      }
+
+      grid.appendChild(createTradeIconCard("", allWorkers.length, true));
+
+      trades.forEach(tradeName => {
+        grid.appendChild(createTradeIconCard(tradeName, countWorkersForTrade(tradeName), false));
+      });
+
+      updateTradeIconsActiveState();
+    }
+
+    function updateTradeIconsActiveState() {
+      const select = document.getElementById("tradeFilter");
+      const selectedTrade = select ? normalizeText(select.value) : "";
+
+      document.querySelectorAll(".trade-icon-card").forEach(card => {
+        const cardTrade = normalizeText(card.dataset.trade || "");
+        const active = selectedTrade ? cardTrade === selectedTrade : cardTrade === "";
+        card.classList.toggle("active", active);
+      });
+    }
+
+    function openTradeWorkers(tradeName, clickedButton) {
+      const searchInput = document.getElementById("searchInput");
+      const areaFilter = document.getElementById("areaFilter");
+      const sortFilter = document.getElementById("sortFilter");
+
+      if (searchInput) searchInput.value = "";
+      if (areaFilter) areaFilter.value = "";
+      if (sortFilter) sortFilter.value = "default";
+
+      setQuickTrade(tradeName, null);
+
+      document.querySelectorAll(".trade-icon-card").forEach(card => card.classList.remove("active"));
+      if (clickedButton) clickedButton.classList.add("active");
+    }
+
     async function loadTrades() {
       const data = await fetchJsonWithFallback([
-        "/api/trades", "/api/crafts", "/api/jobs", "/trades", "/crafts"
+        "/api/trades",
+        "/api/crafts",
+        "/api/jobs",
+        "/trades",
+        "/crafts"
       ]);
+
       allTrades = normalizeArray(data);
+
       const select = document.getElementById("tradeFilter");
       select.innerHTML = '<option value="">كل الحرف</option>';
+
       allTrades.forEach(item => {
-        const tradeName = item.name || item.trade || item.craft || item.title || item;
+        const tradeName = getTradeLabel(item);
+
         if (tradeName) {
           const option = document.createElement("option");
           option.value = tradeName;
@@ -1010,18 +1017,27 @@
           select.appendChild(option);
         }
       });
+
       document.getElementById("tradesCount").textContent = allTrades.length;
+      renderTradeIcons();
     }
 
     async function loadAreas() {
       const data = await fetchJsonWithFallback([
-        "/api/areas", "/api/locations", "/areas", "/locations"
+        "/api/areas",
+        "/api/locations",
+        "/areas",
+        "/locations"
       ]);
+
       allAreas = normalizeArray(data);
+
       const select = document.getElementById("areaFilter");
       select.innerHTML = '<option value="">كل المناطق</option>';
+
       allAreas.forEach(item => {
         const areaName = item.name || item.area || item.location || item.title || item;
+
         if (areaName) {
           const option = document.createElement("option");
           option.value = areaName;
@@ -1035,90 +1051,163 @@
       const loadingBox = document.getElementById("loadingBox");
       const emptyBox = document.getElementById("emptyBox");
       const workersGrid = document.getElementById("workersGrid");
+
       loadingBox.style.display = "flex";
       emptyBox.style.display = "none";
       workersGrid.innerHTML = "";
+
       const data = await fetchJsonWithFallback([
-        "/api/workers", "/api/sanaieya", "/api/sanai3ya", "/api/craftsmen", "/workers", "/sanaieya"
+        "/api/workers",
+        "/api/sanaieya",
+        "/api/sanai3ya",
+        "/api/craftsmen",
+        "/workers",
+        "/sanaieya"
       ]);
+
       const workers = normalizeArray(data);
+
       allWorkers = workers.filter(worker => {
         const approved = worker.approved ?? worker.is_approved ?? worker.visible ?? worker.isVisible ?? 1;
         const active = worker.active ?? worker.is_active ?? worker.status ?? 1;
-        const isApproved = approved === 1 || approved === true || approved === "1" || approved === "true" || approved === "approved";
-        const isActive = active === 1 || active === true || active === "1" || active === "true" || active === "active";
+
+        const isApproved =
+          approved === 1 ||
+          approved === true ||
+          approved === "1" ||
+          approved === "true" ||
+          approved === "approved";
+
+        const isActive =
+          active === 1 ||
+          active === true ||
+          active === "1" ||
+          active === "true" ||
+          active === "active";
+
         const subscriptionOk = isSubscriptionOk(worker);
+
         return isApproved && isActive && subscriptionOk;
       });
+
       await loadRatingsForWorkers();
+
       loadingBox.style.display = "none";
       filterWorkers();
       updateStats();
-      updateTradesCards(); // Refresh trades with counts
+      renderTradeIcons();
     }
 
     async function loadRatingsForWorkers() {
       ratingsByWorker = {};
+
       const requests = allWorkers.map(async worker => {
         const id = getWorkerId(worker);
+
         if (!id) return;
+
         try {
           const response = await fetch("/api/workers/" + id + "/reviews/summary");
+
           if (!response.ok) {
-            ratingsByWorker[id] = { average: 0, count: 0 };
+            ratingsByWorker[id] = {
+              average: 0,
+              count: 0
+            };
             return;
           }
+
           const summary = await response.json();
-          ratingsByWorker[id] = { average: Number(summary.average) || 0, count: Number(summary.count) || 0 };
+
+          ratingsByWorker[id] = {
+            average: Number(summary.average) || 0,
+            count: Number(summary.count) || 0
+          };
         } catch (error) {
-          ratingsByWorker[id] = { average: 0, count: 0 };
+          ratingsByWorker[id] = {
+            average: 0,
+            count: 0
+          };
         }
       });
+
       await Promise.all(requests);
     }
 
     function getRatingSummary(workerId) {
-      return ratingsByWorker[workerId] || { average: 0, count: 0 };
+      return ratingsByWorker[workerId] || {
+        average: 0,
+        count: 0
+      };
     }
 
     function renderRatingBadge(workerId) {
       const summary = getRatingSummary(workerId);
+
       if (!summary.count) {
-        return `<div class="card-rating no-rating"><i class="fa-regular fa-star"></i>لا توجد تقييمات</div>`;
+        return `
+          <div class="card-rating no-rating">
+            <i class="fa-regular fa-star"></i>
+            لا توجد تقييمات
+          </div>
+        `;
       }
-      return `<div class="card-rating"><i class="fa-solid fa-star"></i>${summary.average} من 5<span>(${summary.count})</span></div>`;
+
+      return `
+        <div class="card-rating">
+          <i class="fa-solid fa-star"></i>
+          ${summary.average} من 5
+          <span>(${summary.count})</span>
+        </div>
+      `;
     }
 
     function sortWorkers(workers) {
       const sortValue = document.getElementById("sortFilter").value;
+
       const sorted = [...workers];
+
       if (sortValue === "rating") {
         sorted.sort((a, b) => {
           const aId = getWorkerId(a);
           const bId = getWorkerId(b);
+
           const aRating = getRatingSummary(aId);
           const bRating = getRatingSummary(bId);
-          if (bRating.average !== aRating.average) return bRating.average - aRating.average;
+
+          if (bRating.average !== aRating.average) {
+            return bRating.average - aRating.average;
+          }
+
           return bRating.count - aRating.count;
         });
       }
+
       if (sortValue === "newest") {
         sorted.sort((a, b) => {
           const aId = Number(getWorkerId(a)) || 0;
           const bId = Number(getWorkerId(b)) || 0;
+
           return bId - aId;
         });
       }
+
       if (sortValue === "featured") {
         sorted.sort((a, b) => {
           const aFeatured = isFeatured(a) ? 1 : 0;
           const bFeatured = isFeatured(b) ? 1 : 0;
-          if (bFeatured !== aFeatured) return bFeatured - aFeatured;
+
+          if (bFeatured !== aFeatured) {
+            return bFeatured - aFeatured;
+          }
+
           const aId = Number(getWorkerId(a)) || 0;
           const bId = Number(getWorkerId(b)) || 0;
+
           return bId - aId;
         });
       }
+
       return sorted;
     }
 
@@ -1127,22 +1216,43 @@
     }
 
     function isSubscriptionOk(worker) {
-      const end = worker.subscription_end || worker.subscriptionEnd || worker.end_date || "";
+      const end =
+        worker.subscription_end ||
+        worker.subscriptionEnd ||
+        worker.end_date ||
+        "";
+
       if (!end) return true;
+
       const today = new Date();
       const endDate = new Date(end);
+
       today.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
+
       if (isNaN(endDate.getTime())) return true;
+
       return endDate >= today;
     }
 
     function getWorkerImage(worker) {
-      const image = worker.image || worker.photo || worker.image_url || worker.photo_url || worker.profile_image || worker.avatar || "";
-      if (!image) return "https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=300";
+      const image =
+        worker.image ||
+        worker.photo ||
+        worker.image_url ||
+        worker.photo_url ||
+        worker.profile_image ||
+        worker.avatar ||
+        "";
+
+      if (!image) {
+        return "/icons/default-worker-avatar.png";
+      }
+
       if (image.startsWith("http")) return image;
       if (image.startsWith("/uploads")) return image;
       if (image.startsWith("uploads")) return "/" + image;
+
       return "/uploads/" + image;
     }
 
@@ -1180,50 +1290,133 @@
     }
 
     function convertArabicNumbers(value) {
-      const arabicNumbers = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9", "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4", "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9" };
-      return value.toString().replace(/[٠-٩۰-۹]/g, function (number) { return arabicNumbers[number]; });
+      const arabicNumbers = {
+        "٠": "0",
+        "١": "1",
+        "٢": "2",
+        "٣": "3",
+        "٤": "4",
+        "٥": "5",
+        "٦": "6",
+        "٧": "7",
+        "٨": "8",
+        "٩": "9",
+        "۰": "0",
+        "۱": "1",
+        "۲": "2",
+        "۳": "3",
+        "۴": "4",
+        "۵": "5",
+        "۶": "6",
+        "۷": "7",
+        "۸": "8",
+        "۹": "9"
+      };
+
+      return value.toString().replace(/[٠-٩۰-۹]/g, function (number) {
+        return arabicNumbers[number];
+      });
     }
 
     function normalizeWhatsAppNumber(phone) {
       if (!phone) return "";
+
       let digits = convertArabicNumbers(phone);
       digits = digits.replace(/[^\d]/g, "");
-      if (digits.startsWith("00")) digits = digits.slice(2);
-      if (digits.startsWith("0") && digits.length === 11) digits = "20" + digits.slice(1);
-      if (!digits.startsWith("20") && digits.length === 10 && (digits.startsWith("10") || digits.startsWith("11") || digits.startsWith("12") || digits.startsWith("15"))) digits = "20" + digits;
+
+      if (digits.startsWith("00")) {
+        digits = digits.slice(2);
+      }
+
+      if (digits.startsWith("0") && digits.length === 11) {
+        digits = "20" + digits.slice(1);
+      }
+
+      if (
+        !digits.startsWith("20") &&
+        digits.length === 10 &&
+        (
+          digits.startsWith("10") ||
+          digits.startsWith("11") ||
+          digits.startsWith("12") ||
+          digits.startsWith("15")
+        )
+      ) {
+        digits = "20" + digits;
+      }
+
       return digits;
     }
 
     function normalizeCallNumber(phone) {
       if (!phone) return "";
+
       let digits = convertArabicNumbers(phone);
       digits = digits.replace(/[^\d]/g, "");
-      if (digits.startsWith("20") && digits.length === 12) return "0" + digits.slice(2);
-      if (digits.startsWith("0020")) return "0" + digits.slice(4);
-      if (digits.startsWith("0")) return digits;
-      if (digits.length === 10 && (digits.startsWith("10") || digits.startsWith("11") || digits.startsWith("12") || digits.startsWith("15"))) return "0" + digits;
+
+      if (digits.startsWith("20") && digits.length === 12) {
+        return "0" + digits.slice(2);
+      }
+
+      if (digits.startsWith("0020")) {
+        return "0" + digits.slice(4);
+      }
+
+      if (digits.startsWith("0")) {
+        return digits;
+      }
+
+      if (
+        digits.length === 10 &&
+        (
+          digits.startsWith("10") ||
+          digits.startsWith("11") ||
+          digits.startsWith("12") ||
+          digits.startsWith("15")
+        )
+      ) {
+        return "0" + digits;
+      }
+
       return digits;
     }
+
 
     function showCopyToast(message) {
       const toast = document.getElementById("copyToast");
       if (!toast) return;
-      toast.innerHTML = `<i class="fa-solid fa-circle-check"></i>${message}`;
+
+      toast.innerHTML = `
+        <i class="fa-solid fa-circle-check"></i>
+        ${message}
+      `;
+
       toast.classList.add("show");
-      setTimeout(() => { toast.classList.remove("show"); }, 2200);
+
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2200);
     }
 
     async function shareWorker(event, workerId, workerName) {
       event.stopPropagation();
+
       if (!workerId) return;
+
       const workerUrl = window.location.origin + "/worker/" + workerId;
       const shareText = "شوف بيانات " + workerName + " على تطبيق صنايعي مطروح";
+
       if (navigator.share) {
         try {
-          await navigator.share({ title: workerName + " | صنايعي مطروح", text: shareText, url: workerUrl });
+          await navigator.share({
+            title: workerName + " | صنايعي مطروح",
+            text: shareText,
+            url: workerUrl
+          });
           return;
         } catch (error) {}
       }
+
       try {
         await navigator.clipboard.writeText(workerUrl);
         showCopyToast("تم نسخ رابط الصنايعي");
@@ -1241,12 +1434,16 @@
     function renderWorkers(workers) {
       const workersGrid = document.getElementById("workersGrid");
       const emptyBox = document.getElementById("emptyBox");
+
       workersGrid.innerHTML = "";
+
       if (!workers.length) {
         emptyBox.style.display = "block";
         return;
       }
+
       emptyBox.style.display = "none";
+
       workers.forEach(worker => {
         const name = getWorkerName(worker);
         const trade = getWorkerTrade(worker);
@@ -1257,92 +1454,155 @@
         const image = getWorkerImage(worker);
         const featured = isFeatured(worker);
         const workerId = getWorkerId(worker);
+
         const whatsappNumber = normalizeWhatsAppNumber(whatsappPhone);
         const callNumber = normalizeCallNumber(phone);
+
         const whatsappText = encodeURIComponent("السلام عليكم، شوفت بياناتك على تطبيق صنايعي مطروح وعايز أستفسر عن شغلك.");
         const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${whatsappText}` : "#";
         const phoneLink = callNumber ? `tel:${callNumber}` : "#";
+
         const card = document.createElement("article");
         card.className = featured ? "worker-card featured-card" : "worker-card";
         card.style.cursor = "pointer";
+
         card.addEventListener("click", function () {
-          if (workerId) window.location.href = "/worker/" + workerId;
+          if (workerId) {
+            window.location.href = "/worker/" + workerId;
+          }
         });
+
         card.innerHTML = `
           <div class="worker-image-wrap">
-            <img src="${image}" alt="${name}" class="worker-image" onerror="this.src='https://ui-avatars.com/api/?name=صنايعي&background=1D4ED8&color=fff&size=300'">
-            ${featured ? `<div class="featured-badge"><i class="fa-solid fa-star"></i>مميز</div>` : ""}
+            <img src="${image}" alt="${name}" class="worker-image" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+
+            ${featured ? `
+              <div class="featured-badge">
+                <i class="fa-solid fa-star"></i>
+                مميز
+              </div>
+            ` : ""}
           </div>
+
           <div class="worker-content">
             <h3>${name}</h3>
+
             ${renderRatingBadge(workerId)}
+
             <div class="worker-meta">
-              <span><i class="fa-solid fa-screwdriver-wrench"></i>${trade}</span>
-              <span><i class="fa-solid fa-location-dot"></i>${area}</span>
+              <span>
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                ${trade}
+              </span>
+
+              <span>
+                <i class="fa-solid fa-location-dot"></i>
+                ${area}
+              </span>
             </div>
+
             <p class="worker-desc">${description}</p>
+
             <div class="worker-actions">
-              <a href="${phoneLink}" onclick="event.stopPropagation()" class="call-btn ${!callNumber ? "disabled" : ""}"><i class="fa-solid fa-phone"></i>اتصال</a>
-              <a href="${whatsappLink}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!whatsappNumber ? "disabled" : ""}"><i class="fa-brands fa-whatsapp"></i>واتساب</a>
-              <button type="button" onclick="shareWorker(event, '${workerId}', '${name.replace(/'/g, "\'")}')" class="share-btn"><i class="fa-solid fa-share-nodes"></i>مشاركة</button>
+              <a href="${phoneLink}" onclick="event.stopPropagation()" class="call-btn ${!callNumber ? "disabled" : ""}">
+                <i class="fa-solid fa-phone"></i>
+                اتصال
+              </a>
+
+              <a href="${whatsappLink}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!whatsappNumber ? "disabled" : ""}">
+                <i class="fa-brands fa-whatsapp"></i>
+                واتساب
+              </a>
             </div>
           </div>
         `;
+
         workersGrid.appendChild(card);
       });
     }
 
-    function setQuickTrade(tradeName, clickedButton) {
+
+    function setQuickTrade(tradeName, clickedButton, options) {
+      const opts = options || {};
       const select = document.getElementById("tradeFilter");
-      select.value = tradeName;
-      if (tradeName && select.value !== tradeName) {
-        const option = document.createElement("option");
-        option.value = tradeName;
-        option.textContent = tradeName;
-        select.appendChild(option);
-        select.value = tradeName;
+
+      setTradeFilterValue(tradeName);
+
+      document.querySelectorAll(".quick-trade-btn").forEach(btn => {
+        btn.classList.remove("active");
+      });
+
+      if (clickedButton) {
+        clickedButton.classList.add("active");
       }
-      document.querySelectorAll(".quick-trade-btn").forEach(btn => btn.classList.remove("active"));
-      if (clickedButton) clickedButton.classList.add("active");
-      document.querySelectorAll('.trade-card').forEach(card => card.classList.remove('active'));
-      updateQuickTradeActiveState();
+
+      if (!opts.skipUrlUpdate) {
+        updateTradeUrl(select.value.trim(), false);
+      }
+
       filterWorkers();
+
       const workersSection = document.getElementById("workers");
-      if (workersSection) workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (workersSection) {
+        workersSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
     }
 
     function updateQuickTradeActiveState() {
       const selectedTrade = document.getElementById("tradeFilter").value.trim();
+
       document.querySelectorAll(".quick-trade-btn").forEach(btn => {
         btn.classList.remove("active");
+
         const text = btn.textContent.trim();
-        if (selectedTrade && text.includes(selectedTrade)) btn.classList.add("active");
-        if (!selectedTrade && text === "الكل") btn.classList.add("active");
-      });
-      document.querySelectorAll('.trade-card').forEach(card => {
-        card.classList.remove('active');
-        if (selectedTrade && card.dataset.trade === selectedTrade) {
-          card.classList.add('active');
+
+        if (selectedTrade && text.includes(selectedTrade)) {
+          btn.classList.add("active");
+        }
+
+        if (!selectedTrade && text === "الكل") {
+          btn.classList.add("active");
         }
       });
+
+      updateTradeIconsActiveState();
     }
 
     function filterWorkers() {
       const searchValue = document.getElementById("searchInput").value.trim().toLowerCase();
-      const selectedTrade = document.getElementById("tradeFilter").value.trim().toLowerCase();
+      const selectedTradeRaw = document.getElementById("tradeFilter").value.trim();
+      const selectedTrade = normalizeText(selectedTradeRaw);
       const selectedArea = document.getElementById("areaFilter").value.trim().toLowerCase();
+
       const filtered = allWorkers.filter(worker => {
         const name = getWorkerName(worker).toLowerCase();
         const trade = getWorkerTrade(worker).toLowerCase();
+        const tradeNormalized = normalizeText(getWorkerTrade(worker));
         const area = getWorkerArea(worker).toLowerCase();
         const description = getWorkerDescription(worker).toLowerCase();
-        const matchesSearch = name.includes(searchValue) || trade.includes(searchValue) || area.includes(searchValue) || description.includes(searchValue);
-        const matchesTrade = selectedTrade === "" || trade === selectedTrade;
-        const matchesArea = selectedArea === "" || area === selectedArea;
+
+        const matchesSearch =
+          name.includes(searchValue) ||
+          trade.includes(searchValue) ||
+          area.includes(searchValue) ||
+          description.includes(searchValue);
+
+        const matchesTrade =
+          selectedTrade === "" || tradeNormalized === selectedTrade;
+
+        const matchesArea =
+          selectedArea === "" || area === selectedArea;
+
         return matchesSearch && matchesTrade && matchesArea;
       });
+
       const sorted = sortWorkers(filtered);
+
       updateQuickTradeActiveState();
+      updateWorkersHeading(selectedTradeRaw, sorted.length);
       renderWorkers(sorted);
     }
 
@@ -1351,8 +1611,10 @@
       document.getElementById("tradeFilter").value = "";
       document.getElementById("areaFilter").value = "";
       document.getElementById("sortFilter").value = "default";
-      document.querySelectorAll('.trade-card').forEach(card => card.classList.remove('active'));
+      updateTradeUrl("", false);
       updateQuickTradeActiveState();
+      updateTradeIconsActiveState();
+      updateWorkersHeading("", allWorkers.length);
       renderWorkers(allWorkers);
     }
 
@@ -1360,12 +1622,14 @@
       await loadTrades();
       await loadAreas();
       await loadWorkers();
-      renderTradesCards(); // Render trades cards on init
+      applyTradeFromUrl();
     }
 
     initPage();
   </script>
 
+
+  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
