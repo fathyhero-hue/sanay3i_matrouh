@@ -10,6 +10,10 @@
       "destination": "/register.html"
     },
     {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },
@@ -18,7 +22,15 @@
       "destination": "/worker.html"
     },
     {
+      "source": "/trade/(.*)/area/(.*)",
+      "destination": "/index.html"
+    },
+    {
       "source": "/trade/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/area/(.*)",
       "destination": "/index.html"
     },
     {

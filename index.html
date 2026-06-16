@@ -80,6 +80,107 @@
       cursor: pointer;
     }
 
+
+
+    .verified-filter-wrap {
+      height: 54px;
+      min-width: 190px;
+      border: 1px solid rgba(34, 197, 94, 0.22);
+      background: rgba(240, 253, 244, 0.92);
+      border-radius: 18px;
+      padding: 0 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: #166534;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+    }
+
+    .verified-filter-wrap input {
+      width: 18px;
+      height: 18px;
+      accent-color: #16a34a;
+      cursor: pointer;
+    }
+
+    .featured-filter-wrap {
+      border-color: rgba(245, 158, 11, 0.26);
+      background: rgba(255, 251, 235, 0.94);
+      color: #92400e;
+    }
+
+    .featured-filter-wrap input {
+      accent-color: #f59e0b;
+    }
+
+    .priority-filter-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      color: #475569;
+      background: rgba(248,250,252,0.92);
+      border: 1px solid rgba(226,232,240,0.9);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .priority-filter-note i {
+      color: var(--blue);
+    }
+
+    .verified-card {
+      border-color: rgba(34, 197, 94, 0.28) !important;
+      box-shadow: 0 18px 35px rgba(22, 163, 74, 0.10) !important;
+    }
+
+    .verified-badge {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 12px 24px rgba(22, 163, 74, 0.25);
+    }
+
+    .worker-trust-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      width: fit-content;
+      margin: 0 0 10px;
+      color: #166534;
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 800px) {
+      .verified-filter-wrap {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
     @media (max-width: 800px) {
       .sort-wrap {
         width: 100%;
@@ -301,6 +402,120 @@
       }
     }
 
+
+    .area-icons-section {
+      padding: 14px 0 18px;
+    }
+
+    .area-icons-head {
+      margin-bottom: 18px;
+    }
+
+    .area-icons-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+    }
+
+    .area-icon-card {
+      min-height: 128px;
+      border: 1px solid rgba(226,232,240,0.95);
+      background: rgba(255,255,255,0.94);
+      color: var(--primary);
+      border-radius: 26px;
+      padding: 16px 12px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      gap: 9px;
+      box-shadow: var(--shadow-sm);
+      transition: 0.25s ease;
+      text-align: center;
+      font-family: inherit;
+    }
+
+    .area-icon-card:hover,
+    .area-icon-card.active {
+      transform: translateY(-4px);
+      border-color: rgba(22,163,74,0.30);
+      box-shadow: 0 16px 32px rgba(22,163,74,0.12);
+    }
+
+    .area-icon-card.active {
+      background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(22,163,74,0.94));
+      color: #fff;
+    }
+
+    .area-icon-bubble {
+      width: 58px;
+      height: 58px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(22,163,74,0.10);
+      color: var(--green);
+      font-size: 24px;
+      transition: 0.25s ease;
+    }
+
+    .area-icon-card.active .area-icon-bubble,
+    .area-icon-card:hover .area-icon-bubble {
+      background: #fff;
+      color: var(--green);
+    }
+
+    .area-icon-card strong {
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .area-icon-card small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .area-icon-card.active small {
+      color: rgba(255,255,255,0.82);
+    }
+
+    .area-icons-empty {
+      grid-column: 1 / -1;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      color: var(--muted);
+      font-weight: 900;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    @media (max-width: 1100px) {
+      .area-icons-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .area-icons-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .area-icons-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .area-icon-card {
+        min-height: 122px;
+        border-radius: 22px;
+      }
+    }
+
   </style>
 
   <!-- PWA -->
@@ -333,6 +548,7 @@
       <nav class="main-nav">
         <a href="#home">الرئيسية</a>
         <a href="#workers">الصنايعية</a>
+        <a href="/status">حالة الطلب</a>
         <a href="#features">المميزات</a>
       </nav>
 
@@ -349,6 +565,7 @@
     <div class="mobile-nav" id="mobileNav">
       <a href="#home" onclick="toggleMobileMenu()">الرئيسية</a>
       <a href="#workers" onclick="toggleMobileMenu()">الصنايعية</a>
+      <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
       <a href="#features" onclick="toggleMobileMenu()">المميزات</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
@@ -383,6 +600,11 @@
           <a href="/register" class="btn btn-secondary">
             <i class="fa-solid fa-hammer"></i>
             انضم للدليل
+          </a>
+
+          <a href="/status" class="btn btn-secondary">
+            <i class="fa-solid fa-clipboard-check"></i>
+            متابعة طلبك
           </a>
         </div>
 
@@ -507,6 +729,27 @@
     </div>
   </section>
 
+  <section class="area-icons-section" id="areasQuick">
+    <div class="container">
+      <div class="section-head area-icons-head">
+        <div>
+          <span class="section-label">اختيار سريع حسب المنطقة</span>
+          <h2>اختار المنطقة وشوف الصنايعية القريبين</h2>
+          <p>كل أيقونة بتفتح لك الصنايعية المتاحين داخل نفس المنطقة برابط مباشر قابل للمشاركة.</p>
+        </div>
+
+        <a href="/register" class="join-link">
+          <i class="fa-solid fa-user-plus"></i>
+          سجّل كصنايعي
+        </a>
+      </div>
+
+      <div class="area-icons-grid" id="areaIconsGrid">
+        <div class="area-icons-empty">جاري تحميل المناطق...</div>
+      </div>
+    </div>
+  </section>
+
   <section class="workers-section" id="workers">
     <div class="container">
 
@@ -543,7 +786,7 @@
 
         <div class="select-wrap">
           <i class="fa-solid fa-location-dot"></i>
-          <select id="areaFilter" onchange="filterWorkers()">
+          <select id="areaFilter" onchange="onAreaFilterChanged()">
             <option value="">كل المناطق</option>
           </select>
         </div>
@@ -551,12 +794,25 @@
         <div class="sort-wrap">
           <i class="fa-solid fa-arrow-down-wide-short"></i>
           <select id="sortFilter" onchange="filterWorkers()">
-            <option value="default">الترتيب الافتراضي</option>
+            <option value="default">الأفضل أولًا</option>
+            <option value="featured">المميزين أولًا</option>
+            <option value="verified">الموثّقين أولًا</option>
             <option value="rating">الأعلى تقييمًا</option>
             <option value="newest">الأحدث</option>
-            <option value="featured">المميزين أولًا</option>
           </select>
         </div>
+
+        <label class="verified-filter-wrap featured-filter-wrap" for="featuredOnlyFilter">
+          <input type="checkbox" id="featuredOnlyFilter" onchange="filterWorkers()">
+          <i class="fa-solid fa-star"></i>
+          المميزين فقط
+        </label>
+
+        <label class="verified-filter-wrap" for="verifiedOnlyFilter">
+          <input type="checkbox" id="verifiedOnlyFilter" onchange="filterWorkers()">
+          <i class="fa-solid fa-shield-halved"></i>
+          موثّقين فقط
+        </label>
 
         <button class="clear-btn" onclick="clearFilters()">
           <i class="fa-solid fa-rotate-right"></i>
@@ -671,6 +927,7 @@
         <a href="#home">الرئيسية</a>
         <a href="#workers">الصنايعية</a>
         <a href="/register">سجل كصنايعي</a>
+        <a href="/status">حالة الطلب</a>
       </div>
 
     </div>
@@ -762,6 +1019,22 @@
       return "";
     }
 
+    function getAreaFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const queryArea = params.get("area") || params.get("location") || "";
+
+      if (queryArea) {
+        return decodeURIComponent(queryArea).trim();
+      }
+
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      if (parts[0] === "area" && parts[1]) {
+        return decodeURIComponent(parts.slice(1).join("/")).trim();
+      }
+
+      return "";
+    }
+
     function ensureTradeOption(tradeName) {
       const select = document.getElementById("tradeFilter");
       if (!select || !tradeName) return;
@@ -788,18 +1061,59 @@
       select.value = matchingOption ? matchingOption.value : "";
     }
 
-    function updateTradeUrl(tradeName, replaceState) {
-      const nextUrl = tradeName ? "/trade/" + encodeURIComponent(tradeName) : "/";
+
+    function ensureAreaOption(areaName) {
+      const select = document.getElementById("areaFilter");
+      if (!select || !areaName) return;
+
+      const exists = Array.from(select.options).some(option => normalizeText(option.value) === normalizeText(areaName));
+      if (!exists) {
+        const option = document.createElement("option");
+        option.value = areaName;
+        option.textContent = areaName;
+        select.appendChild(option);
+      }
+    }
+
+    function setAreaFilterValue(areaName) {
+      const select = document.getElementById("areaFilter");
+      if (!select) return;
+
+      if (areaName) {
+        ensureAreaOption(areaName);
+      }
+
+      const normalized = normalizeText(areaName);
+      const matchingOption = Array.from(select.options).find(option => normalizeText(option.value) === normalized);
+      select.value = matchingOption ? matchingOption.value : "";
+    }
+
+    function updateListingUrl(tradeName, areaName, replaceState) {
+      let nextUrl = "/";
+
+      if (tradeName) {
+        nextUrl = "/trade/" + encodeURIComponent(tradeName);
+      } else if (areaName) {
+        nextUrl = "/area/" + encodeURIComponent(areaName);
+      }
 
       if (window.location.pathname + window.location.search === nextUrl) {
         return;
       }
 
       const method = replaceState ? "replaceState" : "pushState";
-      window.history[method]({ trade: tradeName || "" }, "", nextUrl);
+      window.history[method]({ trade: tradeName || "", area: areaName || "" }, "", nextUrl);
     }
 
-    function updateWorkersHeading(selectedTrade, count) {
+    function updateTradeUrl(tradeName, replaceState) {
+      updateListingUrl(tradeName, "", replaceState);
+    }
+
+    function updateAreaUrl(areaName, replaceState) {
+      updateListingUrl("", areaName, replaceState);
+    }
+
+    function updateWorkersHeading(selectedTrade, selectedArea, count) {
       const title = document.getElementById("workersSectionTitle");
       const subtitle = document.getElementById("workersSectionSubtitle");
       if (!title || !subtitle) return;
@@ -807,30 +1121,38 @@
       if (selectedTrade) {
         title.textContent = "صنايعية " + selectedTrade;
         subtitle.textContent = count + " صنايعي متاح داخل هذه الحرفة. اختار المناسب واتواصل مباشرة.";
+      } else if (selectedArea) {
+        title.textContent = "صنايعية " + selectedArea;
+        subtitle.textContent = count + " صنايعي متاح داخل هذه المنطقة. اختار المناسب واتواصل مباشرة.";
       } else {
         title.textContent = "اختار الصنايعي المناسب";
         subtitle.textContent = "ابحث بالاسم أو الحرفة أو المنطقة، واتواصل مباشرة مع الصنايعي.";
       }
     }
 
-    function applyTradeFromUrl() {
+    function applyFilterFromUrl() {
       const tradeName = getTradeFromUrl();
-      if (!tradeName) return false;
+      const areaName = tradeName ? "" : getAreaFromUrl();
+
+      if (!tradeName && !areaName) return false;
 
       const searchInput = document.getElementById("searchInput");
-      const areaFilter = document.getElementById("areaFilter");
       const sortFilter = document.getElementById("sortFilter");
 
       if (searchInput) searchInput.value = "";
-      if (areaFilter) areaFilter.value = "";
       if (sortFilter) sortFilter.value = "default";
+      const featuredOnlyFilter = document.getElementById("featuredOnlyFilter");
+      const verifiedOnlyFilter = document.getElementById("verifiedOnlyFilter");
+      if (featuredOnlyFilter) featuredOnlyFilter.checked = false;
+      if (verifiedOnlyFilter) verifiedOnlyFilter.checked = false;
 
       setTradeFilterValue(tradeName);
+      setAreaFilterValue(areaName);
       filterWorkers();
-      updateTradeUrl(tradeName, true);
+      updateListingUrl(tradeName, areaName, true);
 
       const workersSection = document.getElementById("workers");
-      if (workersSection && window.location.pathname.startsWith("/trade/")) {
+      if (workersSection && (window.location.pathname.startsWith("/trade/") || window.location.pathname.startsWith("/area/"))) {
         setTimeout(function () {
           workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 150);
@@ -839,9 +1161,29 @@
       return true;
     }
 
+    function applyTradeFromUrl() {
+      return applyFilterFromUrl();
+    }
+
     function onTradeFilterChanged() {
       const selectedTrade = document.getElementById("tradeFilter").value.trim();
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) searchInput.value = "";
+      setAreaFilterValue("");
       updateTradeUrl(selectedTrade, false);
+      filterWorkers();
+      const workersSection = document.getElementById("workers");
+      if (workersSection) {
+        workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function onAreaFilterChanged() {
+      const selectedArea = document.getElementById("areaFilter").value.trim();
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) searchInput.value = "";
+      setTradeFilterValue("");
+      updateAreaUrl(selectedArea, false);
       filterWorkers();
       const workersSection = document.getElementById("workers");
       if (workersSection) {
@@ -851,7 +1193,9 @@
 
     window.addEventListener("popstate", function () {
       const tradeName = getTradeFromUrl();
+      const areaName = tradeName ? "" : getAreaFromUrl();
       setTradeFilterValue(tradeName);
+      setAreaFilterValue(areaName);
       filterWorkers();
     });
 
@@ -986,11 +1330,146 @@
       if (searchInput) searchInput.value = "";
       if (areaFilter) areaFilter.value = "";
       if (sortFilter) sortFilter.value = "default";
+      const featuredOnlyFilter = document.getElementById("featuredOnlyFilter");
+      const verifiedOnlyFilter = document.getElementById("verifiedOnlyFilter");
+      if (featuredOnlyFilter) featuredOnlyFilter.checked = false;
+      if (verifiedOnlyFilter) verifiedOnlyFilter.checked = false;
 
       setQuickTrade(tradeName, null);
 
       document.querySelectorAll(".trade-icon-card").forEach(card => card.classList.remove("active"));
       if (clickedButton) clickedButton.classList.add("active");
+    }
+
+
+    function areaIconClass(areaName) {
+      const text = normalizeText(areaName);
+
+      const rules = [
+        { keys: ["وسط", "البلد", "السنتر", "المركز"], icon: "fa-city" },
+        { keys: ["علم الروم", "علم", "الروم"], icon: "fa-location-dot" },
+        { keys: ["عجيبه", "عجيبة", "شاطئ", "بحر"], icon: "fa-umbrella-beach" },
+        { keys: ["روميل"], icon: "fa-water" },
+        { keys: ["الكيلو", "طريق", "اسكندريه", "إسكندرية"], icon: "fa-road" },
+        { keys: ["السلوم"], icon: "fa-mountain-sun" },
+        { keys: ["الضبعه", "الضبعة"], icon: "fa-solar-panel" },
+        { keys: ["سيدي", "براني", "عبدالرحمن"], icon: "fa-map-location-dot" },
+        { keys: ["مطروح", "مرسى"], icon: "fa-map-pin" }
+      ];
+
+      for (const rule of rules) {
+        if (rule.keys.some(key => text.includes(normalizeText(key)))) {
+          return rule.icon;
+        }
+      }
+
+      return "fa-location-dot";
+    }
+
+    function getUniqueAreaNames() {
+      const seen = new Set();
+      const names = [];
+
+      allAreas.forEach(item => {
+        const name = String(item.name || item.area || item.location || item.title || item || "").trim();
+        const key = normalizeText(name);
+
+        if (name && !seen.has(key)) {
+          seen.add(key);
+          names.push(name);
+        }
+      });
+
+      return names;
+    }
+
+    function countWorkersForArea(areaName) {
+      const target = normalizeText(areaName);
+      if (!target) return allWorkers.length;
+      return allWorkers.filter(worker => normalizeText(getWorkerArea(worker)) === target).length;
+    }
+
+    function createAreaIconCard(areaName, count, isAll) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "area-icon-card";
+      button.dataset.area = areaName || "";
+      button.setAttribute("aria-label", isAll ? "عرض كل المناطق" : "عرض صنايعية " + areaName);
+      button.title = isAll ? "عرض كل المناطق" : "فتح صفحة صنايعية " + areaName;
+
+      const icon = isAll ? "fa-map" : areaIconClass(areaName);
+      const label = isAll ? "كل المناطق" : areaName;
+      const countText = count === 1 ? "صنايعي واحد" : count + " صنايعي";
+
+      button.innerHTML = `
+        <span class="area-icon-bubble">
+          <i class="fa-solid ${icon}"></i>
+        </span>
+        <strong>${escapeHtml(label)}</strong>
+        <small>${countText}</small>
+      `;
+
+      button.addEventListener("click", function () {
+        openAreaWorkers(areaName || "", button);
+      });
+
+      return button;
+    }
+
+    function renderAreaIcons() {
+      const grid = document.getElementById("areaIconsGrid");
+      if (!grid) return;
+
+      const areas = getUniqueAreaNames();
+      grid.innerHTML = "";
+
+      if (!areas.length) {
+        grid.innerHTML = '<div class="area-icons-empty">لا توجد مناطق مضافة حاليًا من لوحة الإدارة.</div>';
+        return;
+      }
+
+      grid.appendChild(createAreaIconCard("", allWorkers.length, true));
+
+      areas.forEach(areaName => {
+        grid.appendChild(createAreaIconCard(areaName, countWorkersForArea(areaName), false));
+      });
+
+      updateAreaIconsActiveState();
+    }
+
+    function updateAreaIconsActiveState() {
+      const select = document.getElementById("areaFilter");
+      const selectedArea = select ? normalizeText(select.value) : "";
+
+      document.querySelectorAll(".area-icon-card").forEach(card => {
+        const cardArea = normalizeText(card.dataset.area || "");
+        const active = selectedArea ? cardArea === selectedArea : cardArea === "";
+        card.classList.toggle("active", active);
+      });
+    }
+
+    function openAreaWorkers(areaName, clickedButton) {
+      const searchInput = document.getElementById("searchInput");
+      const sortFilter = document.getElementById("sortFilter");
+
+      if (searchInput) searchInput.value = "";
+      if (sortFilter) sortFilter.value = "default";
+      const featuredOnlyFilter = document.getElementById("featuredOnlyFilter");
+      const verifiedOnlyFilter = document.getElementById("verifiedOnlyFilter");
+      if (featuredOnlyFilter) featuredOnlyFilter.checked = false;
+      if (verifiedOnlyFilter) verifiedOnlyFilter.checked = false;
+      setTradeFilterValue("");
+      setAreaFilterValue(areaName);
+      updateAreaUrl(areaName, false);
+      filterWorkers();
+
+      document.querySelectorAll(".area-icon-card").forEach(card => card.classList.remove("active"));
+      if (clickedButton) clickedButton.classList.add("active");
+
+      const workersSection = document.getElementById("workers");
+      if (workersSection) {
+        workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
 
     async function loadTrades() {
@@ -1045,6 +1524,8 @@
           select.appendChild(option);
         }
       });
+
+      renderAreaIcons();
     }
 
     async function loadWorkers() {
@@ -1096,6 +1577,7 @@
       filterWorkers();
       updateStats();
       renderTradeIcons();
+      renderAreaIcons();
     }
 
     async function loadRatingsForWorkers() {
@@ -1162,52 +1644,135 @@
       `;
     }
 
+    function getCreatedTime(worker) {
+      const rawDate =
+        worker.created_at ||
+        worker.createdAt ||
+        worker.created ||
+        worker.date ||
+        worker.registered_at ||
+        "";
+
+      if (rawDate) {
+        const time = new Date(rawDate).getTime();
+        if (!isNaN(time)) return time;
+      }
+
+      return Number(getWorkerId(worker)) || 0;
+    }
+
+    function getSubscriptionPriority(worker) {
+      return isSubscriptionOk(worker) ? 1 : 0;
+    }
+
+    function compareBooleanPriority(aValue, bValue) {
+      return (bValue ? 1 : 0) - (aValue ? 1 : 0);
+    }
+
+    function compareRatingPriority(a, b) {
+      const aRating = getRatingSummary(getWorkerId(a));
+      const bRating = getRatingSummary(getWorkerId(b));
+
+      if (bRating.average !== aRating.average) {
+        return bRating.average - aRating.average;
+      }
+
+      if (bRating.count !== aRating.count) {
+        return bRating.count - aRating.count;
+      }
+
+      return 0;
+    }
+
+    function compareNewestPriority(a, b) {
+      return getCreatedTime(b) - getCreatedTime(a);
+    }
+
+    function compareDefaultPriority(a, b) {
+      const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+      if (featuredCompare) return featuredCompare;
+
+      const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+      if (verifiedCompare) return verifiedCompare;
+
+      const subscriptionCompare = getSubscriptionPriority(b) - getSubscriptionPriority(a);
+      if (subscriptionCompare) return subscriptionCompare;
+
+      const ratingCompare = compareRatingPriority(a, b);
+      if (ratingCompare) return ratingCompare;
+
+      return compareNewestPriority(a, b);
+    }
+
     function sortWorkers(workers) {
       const sortValue = document.getElementById("sortFilter").value;
-
       const sorted = [...workers];
+
+      if (sortValue === "featured") {
+        sorted.sort((a, b) => {
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
+
+          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+          if (verifiedCompare) return verifiedCompare;
+
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
+
+          return compareNewestPriority(a, b);
+        });
+        return sorted;
+      }
+
+      if (sortValue === "verified") {
+        sorted.sort((a, b) => {
+          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+          if (verifiedCompare) return verifiedCompare;
+
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
+
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
+
+          return compareNewestPriority(a, b);
+        });
+        return sorted;
+      }
 
       if (sortValue === "rating") {
         sorted.sort((a, b) => {
-          const aId = getWorkerId(a);
-          const bId = getWorkerId(b);
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
 
-          const aRating = getRatingSummary(aId);
-          const bRating = getRatingSummary(bId);
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
 
-          if (bRating.average !== aRating.average) {
-            return bRating.average - aRating.average;
-          }
+          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+          if (verifiedCompare) return verifiedCompare;
 
-          return bRating.count - aRating.count;
+          return compareNewestPriority(a, b);
         });
+        return sorted;
       }
 
       if (sortValue === "newest") {
         sorted.sort((a, b) => {
-          const aId = Number(getWorkerId(a)) || 0;
-          const bId = Number(getWorkerId(b)) || 0;
+          const newestCompare = compareNewestPriority(a, b);
+          if (newestCompare) return newestCompare;
 
-          return bId - aId;
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
+
+          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+          if (verifiedCompare) return verifiedCompare;
+
+          return compareRatingPriority(a, b);
         });
+        return sorted;
       }
 
-      if (sortValue === "featured") {
-        sorted.sort((a, b) => {
-          const aFeatured = isFeatured(a) ? 1 : 0;
-          const bFeatured = isFeatured(b) ? 1 : 0;
-
-          if (bFeatured !== aFeatured) {
-            return bFeatured - aFeatured;
-          }
-
-          const aId = Number(getWorkerId(a)) || 0;
-          const bId = Number(getWorkerId(b)) || 0;
-
-          return bId - aId;
-        });
-      }
-
+      sorted.sort(compareDefaultPriority);
       return sorted;
     }
 
@@ -1287,6 +1852,21 @@
     function isFeatured(worker) {
       const featured = worker.featured ?? worker.is_featured ?? worker.special ?? 0;
       return featured === 1 || featured === true || featured === "1" || featured === "true";
+    }
+
+    function isVerified(worker) {
+      const verified = worker.identity_verified ?? worker.identityVerified ?? worker.is_verified ?? worker.verified ?? false;
+      return verified === 1 || verified === true || verified === "1" || verified === "true";
+    }
+
+    function renderVerifiedTrustLine(worker) {
+      if (!isVerified(worker)) return "";
+      return `
+        <div class="worker-trust-line">
+          <i class="fa-solid fa-shield-halved"></i>
+          موثّق من الإدارة
+        </div>
+      `;
     }
 
     function convertArabicNumbers(value) {
@@ -1453,6 +2033,7 @@
         const whatsappPhone = getWorkerWhatsapp(worker);
         const image = getWorkerImage(worker);
         const featured = isFeatured(worker);
+        const verified = isVerified(worker);
         const workerId = getWorkerId(worker);
 
         const whatsappNumber = normalizeWhatsAppNumber(whatsappPhone);
@@ -1463,7 +2044,7 @@
         const phoneLink = callNumber ? `tel:${callNumber}` : "#";
 
         const card = document.createElement("article");
-        card.className = featured ? "worker-card featured-card" : "worker-card";
+        card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
         card.style.cursor = "pointer";
 
         card.addEventListener("click", function () {
@@ -1482,10 +2063,19 @@
                 مميز
               </div>
             ` : ""}
+
+            ${verified ? `
+              <div class="verified-badge">
+                <i class="fa-solid fa-shield-halved"></i>
+                موثّق
+              </div>
+            ` : ""}
           </div>
 
           <div class="worker-content">
             <h3>${name}</h3>
+
+            ${renderVerifiedTrustLine(worker)}
 
             ${renderRatingBadge(workerId)}
 
@@ -1527,6 +2117,7 @@
       const select = document.getElementById("tradeFilter");
 
       setTradeFilterValue(tradeName);
+      setAreaFilterValue("");
 
       document.querySelectorAll(".quick-trade-btn").forEach(btn => {
         btn.classList.remove("active");
@@ -1575,13 +2166,17 @@
       const searchValue = document.getElementById("searchInput").value.trim().toLowerCase();
       const selectedTradeRaw = document.getElementById("tradeFilter").value.trim();
       const selectedTrade = normalizeText(selectedTradeRaw);
-      const selectedArea = document.getElementById("areaFilter").value.trim().toLowerCase();
+      const selectedAreaRaw = document.getElementById("areaFilter").value.trim();
+      const selectedArea = normalizeText(selectedAreaRaw);
+      const featuredOnly = document.getElementById("featuredOnlyFilter")?.checked || false;
+      const verifiedOnly = document.getElementById("verifiedOnlyFilter")?.checked || false;
 
       const filtered = allWorkers.filter(worker => {
         const name = getWorkerName(worker).toLowerCase();
         const trade = getWorkerTrade(worker).toLowerCase();
         const tradeNormalized = normalizeText(getWorkerTrade(worker));
         const area = getWorkerArea(worker).toLowerCase();
+        const areaNormalized = normalizeText(getWorkerArea(worker));
         const description = getWorkerDescription(worker).toLowerCase();
 
         const matchesSearch =
@@ -1594,15 +2189,23 @@
           selectedTrade === "" || tradeNormalized === selectedTrade;
 
         const matchesArea =
-          selectedArea === "" || area === selectedArea;
+          selectedArea === "" || areaNormalized === selectedArea;
 
-        return matchesSearch && matchesTrade && matchesArea;
+        const matchesFeatured =
+          !featuredOnly || isFeatured(worker);
+
+        const matchesVerified =
+          !verifiedOnly || isVerified(worker);
+
+        return matchesSearch && matchesTrade && matchesArea && matchesFeatured && matchesVerified;
       });
 
       const sorted = sortWorkers(filtered);
 
       updateQuickTradeActiveState();
-      updateWorkersHeading(selectedTradeRaw, sorted.length);
+      updateTradeIconsActiveState();
+      updateAreaIconsActiveState();
+      updateWorkersHeading(selectedTradeRaw, selectedAreaRaw, sorted.length);
       renderWorkers(sorted);
     }
 
@@ -1611,10 +2214,15 @@
       document.getElementById("tradeFilter").value = "";
       document.getElementById("areaFilter").value = "";
       document.getElementById("sortFilter").value = "default";
-      updateTradeUrl("", false);
+      const featuredOnlyFilter = document.getElementById("featuredOnlyFilter");
+      if (featuredOnlyFilter) featuredOnlyFilter.checked = false;
+      const verifiedOnlyFilter = document.getElementById("verifiedOnlyFilter");
+      if (verifiedOnlyFilter) verifiedOnlyFilter.checked = false;
+      updateListingUrl("", "", false);
       updateQuickTradeActiveState();
       updateTradeIconsActiveState();
-      updateWorkersHeading("", allWorkers.length);
+      updateAreaIconsActiveState();
+      updateWorkersHeading("", "", allWorkers.length);
       renderWorkers(allWorkers);
     }
 
@@ -1622,7 +2230,7 @@
       await loadTrades();
       await loadAreas();
       await loadWorkers();
-      applyTradeFromUrl();
+      applyFilterFromUrl();
     }
 
     initPage();

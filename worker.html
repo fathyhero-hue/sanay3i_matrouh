@@ -192,6 +192,25 @@
       display: inline-flex;
     }
 
+    .verified-badge-details {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      width: fit-content;
+      margin-top: 14px;
+      box-shadow: 0 12px 24px rgba(22, 163, 74, 0.22);
+    }
+
+    .verified-badge-details.show {
+      display: inline-flex;
+    }
+
     .rating-summary {
       display: inline-flex;
       align-items: center;
@@ -385,83 +404,24 @@
 
     .work-gallery {
       display: grid;
-      gap: 14px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
     }
 
-    .pro-gallery {
-      display: grid;
-      gap: 14px;
-    }
-
-    .gallery-main-preview {
-      position: relative;
-      aspect-ratio: 16 / 10;
-      overflow: hidden;
-      border-radius: 26px;
+    .work-gallery img {
+      width: 100%;
+      height: 165px;
+      object-fit: cover;
+      border-radius: 20px;
       border: 1px solid var(--border);
       background: #dbeafe;
-      box-shadow: var(--shadow-md);
       cursor: pointer;
-    }
-
-    .gallery-main-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: 0.28s ease;
-    }
-
-    .gallery-main-preview:hover img {
-      transform: scale(1.025);
-    }
-
-    .gallery-count-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(15, 23, 42, 0.78);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 900;
-      backdrop-filter: blur(12px);
-    }
-
-    .gallery-thumbs {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-    }
-
-    .gallery-thumb {
-      height: 88px;
-      border: 2px solid transparent;
-      border-radius: 18px;
-      padding: 0;
-      overflow: hidden;
-      background: #fff;
-      cursor: pointer;
-      box-shadow: var(--shadow-sm);
       transition: 0.25s ease;
+      box-shadow: var(--shadow-sm);
     }
 
-    .gallery-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .gallery-thumb:hover,
-    .gallery-thumb.active {
-      border-color: var(--blue);
-      transform: translateY(-2px);
+    .work-gallery img:hover {
+      transform: translateY(-3px) scale(1.01);
       box-shadow: var(--shadow-md);
     }
 
@@ -469,28 +429,10 @@
     .review-empty {
       color: var(--muted);
       font-weight: 800;
-      background: linear-gradient(135deg, #f8fafc, #eef6ff);
-      border: 1px dashed rgba(29,78,216,0.22);
-      border-radius: 22px;
-      padding: 22px;
-      line-height: 1.9;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .gallery-empty i,
-    .review-empty i {
-      width: 44px;
-      height: 44px;
-      border-radius: 15px;
-      background: rgba(29,78,216,0.10);
-      color: var(--blue);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      font-size: 18px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
     }
 
     .reviews-list {
@@ -502,21 +444,9 @@
     .review-card {
       background: #fff;
       border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 16px;
+      border-radius: 20px;
+      padding: 15px;
       box-shadow: var(--shadow-sm);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .review-card::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 5px;
-      height: 100%;
-      background: linear-gradient(180deg, var(--gold), #fbbf24);
     }
 
     .review-card-head {
@@ -524,29 +454,19 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      margin-bottom: 9px;
+      margin-bottom: 8px;
       flex-wrap: wrap;
     }
 
     .review-card strong {
       color: var(--primary);
       font-weight: 900;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .review-card strong::before {
-      content: "007";
-      font-family: "Font Awesome 6 Free";
-      font-weight: 900;
-      color: var(--blue);
     }
 
     .review-card p {
       color: var(--muted);
       font-weight: 700;
-      line-height: 1.9;
+      line-height: 1.8;
       margin: 0;
     }
 
@@ -554,7 +474,6 @@
       color: #f59e0b;
       font-weight: 900;
       font-size: 16px;
-      letter-spacing: 1px;
     }
 
     .review-form {
@@ -717,14 +636,13 @@
 
     .mobile-sticky-contact a {
       flex: 1;
-      min-height: 52px;
-      border-radius: 17px;
+      min-height: 50px;
+      border-radius: 16px;
       font-weight: 900;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: var(--shadow-sm);
     }
 
     @media(max-width: 980px) {
@@ -740,7 +658,8 @@
       .details-breadcrumb,
       .details-tags,
       .rating-summary,
-      .featured-badge-details {
+      .featured-badge-details,
+      .verified-badge-details {
         justify-content: center;
         margin-left: auto;
         margin-right: auto;
@@ -781,18 +700,13 @@
         padding: 18px;
       }
 
-      .gallery-main-preview {
-        aspect-ratio: 4 / 3;
-        border-radius: 22px;
+      .work-gallery {
+        grid-template-columns: 1fr 1fr;
       }
 
-      .gallery-thumbs {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .gallery-thumb {
-        height: 76px;
-        border-radius: 15px;
+      .work-gallery img {
+        height: 135px;
+        border-radius: 16px;
       }
 
       .contact-actions {
@@ -945,6 +859,11 @@
               <div class="featured-badge-details" id="featuredBadge">
                 <i class="fa-solid fa-star"></i>
                 صنايعي مميز
+              </div>
+
+              <div class="verified-badge-details" id="verifiedBadge">
+                <i class="fa-solid fa-shield-halved"></i>
+                موثّق من الإدارة
               </div>
 
               <div class="rating-summary">
@@ -1181,6 +1100,11 @@
       return f === 1 || f === true || f === "1" || f === "true";
     }
 
+    function verified(w) {
+      const v = w.identity_verified ?? w.identityVerified ?? w.is_verified ?? w.verified ?? false;
+      return v === 1 || v === true || v === "1" || v === "true";
+    }
+
     function imgPath(image) {
       if (!image) {
         return "/icons/default-worker-avatar.png";
@@ -1339,20 +1263,6 @@
       }
     }
 
-    function setActiveGalleryImage(src, button) {
-      const mainImage = document.getElementById("galleryMainImage");
-      const mainWrap = document.getElementById("galleryMainPreview");
-      if (!mainImage || !mainWrap) return;
-
-      mainImage.src = src;
-      mainWrap.onclick = function () {
-        openLightbox(src);
-      };
-
-      document.querySelectorAll(".gallery-thumb").forEach(btn => btn.classList.remove("active"));
-      if (button) button.classList.add("active");
-    }
-
     async function loadPhotos(id) {
       const gallery = document.getElementById("workGallery");
 
@@ -1363,45 +1273,19 @@
         gallery.innerHTML = "";
 
         if (!photos.length) {
-          gallery.innerHTML = '<div class="gallery-empty"><i class="fa-solid fa-images"></i><span>لا توجد صور أعمال مضافة حاليًا. الصور الواضحة لأعمال الصنايعي تساعد العميل على اتخاذ قرار أسرع.</span></div>';
+          gallery.innerHTML = '<div class="gallery-empty">لا توجد صور أعمال مضافة حاليًا.</div>';
           return;
         }
 
-        const srcs = photos.map(p => imgPath(p.image)).filter(Boolean);
-        const firstSrc = srcs[0];
-
-        gallery.classList.add("pro-gallery");
-        gallery.innerHTML = `
-          <div class="gallery-main-preview" id="galleryMainPreview">
-            <img id="galleryMainImage" src="${firstSrc}" alt="صورة عمل" onerror="this.src='/icons/default-worker-avatar.png'">
-            <div class="gallery-count-badge">
-              <i class="fa-solid fa-images"></i>
-              ${srcs.length} صورة أعمال
-            </div>
-          </div>
-          <div class="gallery-thumbs" id="galleryThumbs"></div>
-        `;
-
-        const mainWrap = document.getElementById("galleryMainPreview");
-        if (mainWrap) {
-          mainWrap.onclick = function () {
-            openLightbox(firstSrc);
-          };
-        }
-
-        const thumbs = document.getElementById("galleryThumbs");
-        srcs.forEach((src, index) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = index === 0 ? "gallery-thumb active" : "gallery-thumb";
-          btn.innerHTML = `<img src="${src}" alt="صورة عمل ${index + 1}" onerror="this.src='/icons/default-worker-avatar.png'">`;
-          btn.onclick = function () {
-            setActiveGalleryImage(src, btn);
-          };
-          thumbs.appendChild(btn);
+        photos.forEach(p => {
+          const src = imgPath(p.image);
+          const im = document.createElement("img");
+          im.src = src;
+          im.onclick = () => openLightbox(src);
+          gallery.appendChild(im);
         });
       } catch(e) {
-        gallery.innerHTML = '<div class="gallery-empty"><i class="fa-solid fa-triangle-exclamation"></i><span>تعذر تحميل صور الأعمال حاليًا. حاول تحديث الصفحة بعد قليل.</span></div>';
+        gallery.innerHTML = '<div class="gallery-empty">لا توجد صور أعمال مضافة حاليًا.</div>';
       }
     }
 
@@ -1427,7 +1311,7 @@
         list.innerHTML = "";
 
         if (!reviews.length) {
-          list.innerHTML = '<div class="review-empty"><i class="fa-solid fa-star"></i><span>لا توجد ريفيوهات معتمدة حتى الآن. كن أول من يقيّم هذا الصنايعي.</span></div>';
+          list.innerHTML = '<div class="review-empty">لا توجد ريفيوهات معتمدة حتى الآن. كن أول من يقيّم هذا الصنايعي.</div>';
           return;
         }
 
@@ -1446,7 +1330,7 @@
           list.appendChild(card);
         });
       } catch(e) {
-        list.innerHTML = '<div class="review-empty"><i class="fa-solid fa-triangle-exclamation"></i><span>تعذر تحميل التقييمات حاليًا.</span></div>';
+        list.innerHTML = '<div class="review-empty">تعذر تحميل التقييمات حاليًا.</div>';
       }
     }
 
@@ -1561,6 +1445,10 @@
 
         if (featured(w)) {
           document.getElementById("featuredBadge").classList.add("show");
+        }
+
+        if (verified(w)) {
+          document.getElementById("verifiedBadge").classList.add("show");
         }
 
         const callUrl = call ? "tel:" + call : "#";

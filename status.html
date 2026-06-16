@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>متابعة حالة الطلب | صنايعي مطروح</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,106 +44,8 @@
     .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}.meta div{background:#f8fafc;border:1px solid var(--border);border-radius:16px;padding:12px}.meta small{display:block;color:#64748b;font-weight:900}.meta strong{display:block;margin-top:3px;font-weight:900;color:#0f172a}
     .alert{border-radius:20px;padding:15px 16px;font-weight:900;line-height:1.8}.alert.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.alert.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}.loading{display:none;margin-top:14px;color:#1d4ed8;font-weight:900}.loading.show{display:block}
     .privacy-note{margin-top:18px;background:rgba(255,255,255,.65);border:1px solid rgba(226,232,240,.95);border-radius:22px;padding:16px;color:#475569;font-weight:800;line-height:1.9}.privacy-note i{color:#1d4ed8;margin-left:6px}
-
-    .progress-timeline{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative}
-    .progress-step{background:#f8fafc;border:1px solid var(--border);border-radius:20px;padding:14px;position:relative;overflow:hidden;min-height:118px}
-    .progress-step::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:#cbd5e1}
-    .progress-step .num{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-weight:900;margin-bottom:8px;background:#e2e8f0;color:#475569}
-    .progress-step strong{display:block;font-weight:900;margin-bottom:4px}.progress-step span{display:block;color:#64748b;font-weight:800;font-size:13px;line-height:1.7}
-    .progress-step.done{border-color:#bbf7d0;background:#f0fdf4}.progress-step.done::before{background:#16a34a}.progress-step.done .num{background:#16a34a;color:#fff}
-    .progress-step.current{border-color:#bfdbfe;background:#eff6ff;box-shadow:0 14px 34px rgba(37,99,235,.10)}.progress-step.current::before{background:#1d4ed8}.progress-step.current .num{background:#1d4ed8;color:#fff}
-    .progress-step.danger-current{border-color:#fecaca;background:#fef2f2;box-shadow:0 14px 34px rgba(220,38,38,.10)}.progress-step.danger-current::before{background:#dc2626}.progress-step.danger-current .num{background:#dc2626;color:#fff}
-    .copy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:18px;padding:12px 14px;margin-top:14px}
-    .copy-row .code-big{direction:ltr;font-size:20px;font-weight:900;letter-spacing:.5px}.mini-btn{border:0;border-radius:999px;padding:10px 14px;font-family:inherit;font-weight:900;cursor:pointer;background:#0f172a;color:#fff;display:inline-flex;align-items:center;gap:7px}
-    .next-action{margin-top:15px;border-radius:20px;padding:15px 16px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;font-weight:900;line-height:1.9}.next-action.warning{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.next-action.danger{background:#fef2f2;border-color:#fecaca;color:#991b1b}.next-action.success{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
-    .action-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}.action-buttons .btn{box-shadow:none}.whatsapp-admin{background:#16a34a;color:#fff}.hidden{display:none!important}
-    .toast{position:fixed;left:18px;bottom:18px;background:#0f172a;color:#fff;border-radius:16px;padding:12px 15px;font-weight:900;box-shadow:var(--shadow);z-index:90;opacity:0;transform:translateY(12px);transition:.2s}.toast.show{opacity:1;transform:translateY(0)}
-    @media(max-width:820px){.hero{grid-template-columns:1fr}.intro h2{font-size:30px}.brand h1{font-size:24px}.header-content{justify-content:center}.nav{justify-content:center}.meta{grid-template-columns:1fr}.progress-timeline{grid-template-columns:1fr}.status-head{flex-direction:column}.btn{width:100%}.copy-row{align-items:stretch}.mini-btn{justify-content:center}}
-  
-
-
-    /* ===============================
-       Patch 24 - Status page mobile polish
-    ================================ */
-    body { overflow-x: hidden; }
-    html { scroll-padding-top: 88px; }
-
-    @media (max-width: 760px) {
-      .container { width: min(100% - 24px, 1180px); }
-      .header-content { min-height: 70px; gap: 10px; }
-      .brand { min-width: 0; }
-      .brand-icon { width: 46px; height: 46px; border-radius: 16px; font-size: 19px; }
-      .brand h1 { font-size: 18px; white-space: nowrap; }
-      .brand span { max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
-      .nav { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
-      .nav a { justify-content: center; min-height: 42px; }
-      .hero { grid-template-columns: 1fr !important; gap: 14px; padding: 24px 0 90px; }
-      .intro, .card { border-radius: 22px; padding: 18px; }
-      .intro h2 { font-size: clamp(26px, 8vw, 34px); line-height: 1.35; }
-      .intro p { font-size: 14px; line-height: 1.9; }
-      .steps, .progress-timeline, .meta { grid-template-columns: 1fr !important; gap: 10px; }
-      .step { border-radius: 18px; padding: 13px; }
-      .lookup { display: grid; grid-template-columns: 1fr; gap: 10px; }
-      .field input { min-height: 50px; border-radius: 16px; }
-      .btn { width: 100%; min-height: 50px; border-radius: 16px; justify-content: center; }
-      .actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
-      .status-head { align-items: stretch !important; }
-      .copy-row { display: grid; grid-template-columns: 1fr; gap: 8px; }
-    }
-
-    @media (max-width: 430px) {
-      .container { width: min(100% - 18px, 1180px); }
-      .brand span { display: none; }
-      .nav { grid-template-columns: 1fr; }
-    }
-
-
-
-    /* ===============================
-       Patch 25 - Status compact portrait mobile
-    ================================ */
-    @media (max-width: 640px) and (orientation: portrait) {
-      .container { width: calc(100% - 16px) !important; }
-      main { padding: 14px 0 24px !important; }
-      .header-content { min-height: 56px !important; padding: 7px 0 !important; }
-      .brand-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; font-size: 15px !important; }
-      .brand h1 { font-size: 15px !important; }
-      .brand p { display: none !important; }
-      .nav { grid-template-columns: 1fr 1fr !important; gap: 5px !important; }
-      .nav .btn { min-height: 34px !important; font-size: 10px !important; padding: 6px 4px !important; border-radius: 10px !important; }
-      .hero { display: block !important; padding: 0 !important; }
-      .card, .intro, .lookup, .status-card { border-radius: 16px !important; padding: 12px !important; margin-bottom: 10px !important; }
-      .intro-badge { font-size: 10px !important; padding: 5px 8px !important; margin-bottom: 7px !important; }
-      .intro h2 { font-size: 20px !important; line-height: 1.3 !important; margin-bottom: 7px !important; }
-      .intro p, .lookup .hint, .privacy-note, .status-message { font-size: 11px !important; line-height: 1.6 !important; }
-      .steps { gap: 6px !important; margin-top: 10px !important; }
-      .step { padding: 8px !important; border-radius: 12px !important; gap: 7px !important; }
-      .step i { width: 28px !important; height: 28px !important; border-radius: 9px !important; font-size: 12px !important; }
-      .step strong { font-size: 11px !important; }
-      .step span { font-size: 9.5px !important; line-height: 1.4 !important; }
-      .lookup h3 { font-size: 17px !important; margin-bottom: 4px !important; }
-      label { font-size: 10.5px !important; margin-bottom: 5px !important; }
-      .field input { min-height: 40px !important; border-radius: 12px !important; font-size: 12px !important; padding: 9px 36px 9px 10px !important; }
-      .field i { right: 12px !important; font-size: 11px !important; }
-      .btn { min-height: 38px !important; border-radius: 12px !important; font-size: 11px !important; padding: 7px 8px !important; }
-      .progress-timeline { grid-template-columns: 1fr !important; gap: 6px !important; margin-top: 10px !important; }
-      .progress-step { min-height: auto !important; padding: 9px 10px !important; border-radius: 13px !important; }
-      .progress-step .num { width: 26px !important; height: 26px !important; border-radius: 8px !important; font-size: 11px !important; margin-bottom: 5px !important; }
-      .progress-step strong { font-size: 11px !important; }
-      .progress-step span { font-size: 9.5px !important; line-height: 1.45 !important; }
-      .status-head { gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; }
-      .status-head h4 { font-size: 16px !important; }
-      .status-pill { font-size: 10px !important; padding: 6px 8px !important; }
-      .copy-row { padding: 8px !important; border-radius: 12px !important; margin-top: 10px !important; }
-      .copy-row .code-big { font-size: 15px !important; }
-      .mini-btn { min-height: 32px !important; font-size: 10px !important; border-radius: 10px !important; padding: 6px 8px !important; }
-      .meta { grid-template-columns: 1fr !important; gap: 6px !important; }
-      .meta div { padding: 8px !important; border-radius: 12px !important; }
-      .meta small { font-size: 9px !important; }
-      .meta strong { font-size: 11px !important; }
-      .next-action, .reason, .alert, .privacy-note { border-radius: 13px !important; padding: 10px !important; font-size: 10.5px !important; }
-    }
-</style>
+    @media(max-width:820px){.hero{grid-template-columns:1fr}.intro h2{font-size:30px}.brand h1{font-size:24px}.header-content{justify-content:center}.nav{justify-content:center}.meta{grid-template-columns:1fr}.status-head{flex-direction:column}.btn{width:100%}}
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -201,9 +103,6 @@
     const result = document.getElementById("result");
     const loading = document.getElementById("loading");
 
-    // ضع رقم واتساب الإدارة بصيغة دولية بدون + لتفعيل زر واتساب مباشر، مثال: 201000000000
-    const ADMIN_WHATSAPP_NUMBER = "";
-
     function escapeHtml(value){
       return String(value || "").replace(/[&<>'"]/g, function(ch){
         return ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"})[ch];
@@ -217,135 +116,6 @@
       return d.toLocaleDateString("ar-EG", { year:"numeric", month:"long", day:"numeric" });
     }
 
-    function showToast(message){
-      let toast = document.getElementById("toastMessage");
-      if(!toast){
-        toast = document.createElement("div");
-        toast.id = "toastMessage";
-        toast.className = "toast";
-        document.body.appendChild(toast);
-      }
-      toast.textContent = message;
-      toast.className = "toast show";
-      setTimeout(function(){ toast.className = "toast"; }, 2200);
-    }
-
-    function copyText(text){
-      if(navigator.clipboard && window.isSecureContext){
-        return navigator.clipboard.writeText(text).then(function(){ showToast("تم النسخ"); });
-      }
-      const area = document.createElement("textarea");
-      area.value = text;
-      area.style.position = "fixed";
-      area.style.opacity = "0";
-      document.body.appendChild(area);
-      area.select();
-      try{ document.execCommand("copy"); showToast("تم النسخ"); }
-      finally{ document.body.removeChild(area); }
-      return Promise.resolve();
-    }
-
-    function buildAdminMessage(req, st){
-      const parts = [
-        "السلام عليكم، أنا عايز أتابع طلب تسجيلي في صنايعي مطروح.",
-        "رقم الطلب: " + (req.registration_code || "-"),
-        "الاسم: " + (req.name || "-"),
-        "الحالة الحالية: " + (st.label || "-")
-      ];
-      if(st.reason){ parts.push("ملاحظة الحالة: " + st.reason); }
-      return parts.join("\n");
-    }
-
-    function progressClass(index, finalType){
-      if(finalType === "pending"){
-        return index === 0 ? "done" : (index === 1 ? "current" : "");
-      }
-      if(finalType === "success"){
-        return index < 2 ? "done" : "current";
-      }
-      if(finalType === "danger"){
-        return index < 2 ? "done" : "danger-current";
-      }
-      return index < 2 ? "done" : "current";
-    }
-
-    function getFinalType(key){
-      if(key === "accepted" || key === "accepted_inactive") return key === "accepted" ? "success" : "warning";
-      if(key === "rejected") return "danger";
-      if(key === "needs_data" || key === "needs_id_reupload") return "warning";
-      return "pending";
-    }
-
-    function buildTimeline(st){
-      const key = st.key || "pending";
-      const finalType = getFinalType(key);
-      const finalText = finalType === "pending" ? "لم يصدر القرار بعد" : (st.label || "تم القرار");
-      const steps = [
-        {title:"تم إرسال الطلب", text:"تم استلام بيانات التسجيل ورقم الطلب."},
-        {title:"قيد المراجعة", text:"الإدارة تراجع البيانات والمستندات."},
-        {title:"تم القرار", text:finalText}
-      ];
-      return '<div class="progress-timeline">' + steps.map(function(step, i){
-        return '<div class="progress-step ' + progressClass(i, finalType) + '">'
-          + '<div class="num">' + (i + 1) + '</div>'
-          + '<strong>' + escapeHtml(step.title) + '</strong>'
-          + '<span>' + escapeHtml(step.text) + '</span>'
-          + '</div>';
-      }).join("") + '</div>';
-    }
-
-    function buildNextAction(req, st){
-      const key = st.key || "pending";
-      const adminMessage = buildAdminMessage(req, st);
-      const encoded = encodeURIComponent(adminMessage);
-      const adminWhatsAppButton = ADMIN_WHATSAPP_NUMBER
-        ? '<a class="btn whatsapp-admin" target="_blank" href="https://wa.me/' + encodeURIComponent(ADMIN_WHATSAPP_NUMBER) + '?text=' + encoded + '"><i class="fa-brands fa-whatsapp"></i> واتساب الإدارة</a>'
-        : '';
-      let tone = "";
-      let title = "";
-      let text = "";
-      let showContact = false;
-
-      if(key === "accepted"){
-        tone = "success";
-        title = "طلبك مقبول";
-        text = "حسابك تم قبوله، ويمكن أن يظهر للعملاء حسب حالة التفعيل والاشتراك.";
-      }else if(key === "accepted_inactive"){
-        tone = "warning";
-        title = "تم القبول لكن الحساب غير نشط";
-        text = "تواصل مع الإدارة لمعرفة سبب الإيقاف أو حالة الاشتراك.";
-        showContact = true;
-      }else if(key === "needs_data"){
-        tone = "warning";
-        title = "مطلوب تعديل بيانات";
-        text = "راجع ملاحظة الحالة، ثم تواصل مع الإدارة لاستكمال أو تعديل البيانات المطلوبة.";
-        showContact = true;
-      }else if(key === "needs_id_reupload"){
-        tone = "warning";
-        title = "مطلوب إعادة رفع البطاقة";
-        text = "الإدارة تحتاج صورة بطاقة أوضح. تواصل مع الإدارة لإرسال المطلوب.";
-        showContact = true;
-      }else if(key === "rejected"){
-        tone = "danger";
-        title = "تم رفض الطلب";
-        text = "راجع ملاحظة الحالة، ويمكنك التواصل مع الإدارة لو محتاج توضيح.";
-        showContact = true;
-      }else{
-        tone = "";
-        title = "الطلب قيد المراجعة";
-        text = "لا تحتاج لأي إجراء الآن. تابع الحالة لاحقًا باستخدام رقم الطلب.";
-      }
-
-      const buttons = showContact
-        ? '<div class="action-buttons">'
-          + adminWhatsAppButton
-          + '<button type="button" class="btn btn-dark" onclick="copyText(' + JSON.stringify(adminMessage).replace(/</g, "\\u003c") + ')"><i class="fa-solid fa-copy"></i> نسخ رسالة للإدارة</button>'
-          + '</div>'
-        : '';
-
-      return '<div class="next-action ' + tone + '"><strong><i class="fa-solid fa-clipboard-check"></i> ' + escapeHtml(title) + '</strong><br>' + escapeHtml(text) + buttons + '</div>';
-    }
-
     function showError(message){
       result.className = "result show";
       result.innerHTML = '<div class="alert error"><i class="fa-solid fa-circle-exclamation"></i> ' + escapeHtml(message) + '</div>';
@@ -356,15 +126,12 @@
       const st = data.status || {};
       const toneClass = "tone-" + (st.tone || "pending");
       const reason = st.reason ? '<div class="reason"><i class="fa-solid fa-message"></i> ملاحظة الحالة: ' + escapeHtml(st.reason) + '</div>' : '';
-      const registrationCode = req.registration_code || "";
       result.className = "result show";
       result.innerHTML = '<div class="status-card">'
-        + '<div class="status-head"><div><h4>' + escapeHtml(req.name || "طلب تسجيل") + '</h4><div class="status-message">' + escapeHtml(req.trade || "-") + ' - ' + escapeHtml(req.area || "-") + '</div></div><span class="status-pill ' + toneClass + '"><i class="fa-solid fa-circle-info"></i>' + escapeHtml(st.label || "بانتظار المراجعة") + '</span></div>'
-        + '<div class="copy-row"><div><small>رقم الطلب</small><div class="code-big">' + escapeHtml(registrationCode) + '</div></div><button type="button" class="mini-btn" onclick="copyText(' + JSON.stringify(registrationCode).replace(/</g, "\\u003c") + ')"><i class="fa-solid fa-copy"></i> نسخ الرقم</button></div>'
-        + buildTimeline(st)
+        + '<div class="status-head"><div><h4>' + escapeHtml(req.name || "طلب تسجيل") + '</h4><div class="status-message">' + escapeHtml(req.trade || "-") + ' - ' + escapeHtml(req.area || "-") + '</div></div><div class="code">' + escapeHtml(req.registration_code || "") + '</div></div>'
+        + '<span class="status-pill ' + toneClass + '"><i class="fa-solid fa-circle-info"></i>' + escapeHtml(st.label || "بانتظار المراجعة") + '</span>'
         + '<p class="status-message">' + escapeHtml(st.message || "") + '</p>'
         + reason
-        + buildNextAction(req, st)
         + '<div class="meta"><div><small>تاريخ التسجيل</small><strong>' + escapeHtml(formatDate(req.created_at)) + '</strong></div><div><small>الحرفة</small><strong>' + escapeHtml(req.trade || "-") + '</strong></div><div><small>المنطقة</small><strong>' + escapeHtml(req.area || "-") + '</strong></div></div>'
         + '</div>';
     }

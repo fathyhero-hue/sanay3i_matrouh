@@ -1,8 +1,10 @@
-const CACHE_NAME = "sanay3i-matrouh-v10";
+const CACHE_NAME = "sanay3i-matrouh-v22";
 const OFFLINE_URL = "/offline.html";
 
 const STATIC_ASSETS = [
   "/",
+  "/status",
+  "/status.html",
   "/offline.html",
   "/style.css",
   "/manifest.json",

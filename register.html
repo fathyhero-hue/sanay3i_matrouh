@@ -1,30 +1,16 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>تسجيل صنايعي | صنايعي مطروح</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  >
-
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-  />
-
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
-  />
-
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>تسجيل صنايعي | صنايعي مطروح</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet">
+<style>
     * {
       box-sizing: border-box;
     }
@@ -679,6 +665,13 @@
       color: #991b1b;
       border: 1px solid #fecaca;
     }
+    .success-card{display:grid;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:22px;padding:18px;color:#14532d}
+    .success-card-title{font-size:20px;font-weight:900;display:flex;align-items:center;gap:9px}
+    .success-code-box{background:#fff;border:1px dashed #22c55e;border-radius:18px;padding:14px;text-align:center}
+    .success-code-box small{display:block;color:#166534;font-weight:900;margin-bottom:6px}
+    .success-code-box strong{display:block;color:#0f172a;font-size:26px;letter-spacing:1px;font-weight:900;direction:ltr}
+    .success-card p{margin:0;font-weight:900;line-height:1.9}
+
 
     .side-stack {
       display: grid;
@@ -879,6 +872,147 @@
       font-size: 13px;
     }
 
+
+
+    .wizard-progress {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .wizard-step-pill {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      padding: 12px 10px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: var(--shadow-sm);
+      transition: 0.25s ease;
+      cursor: default;
+    }
+
+    .wizard-step-pill.done {
+      cursor: pointer;
+    }
+
+    .wizard-step-pill span {
+      width: 28px;
+      height: 28px;
+      border-radius: 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .wizard-step-pill.active {
+      color: var(--blue);
+      border-color: rgba(29,78,216,0.28);
+      background: rgba(29,78,216,0.04);
+    }
+
+    .wizard-step-pill.active span {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .wizard-step-pill.done {
+      color: #166534;
+      border-color: rgba(22,163,74,0.22);
+      background: rgba(22,163,74,0.05);
+    }
+
+    .wizard-step-pill.done span {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .form-step {
+      display: none;
+      animation: stepFade 0.22s ease;
+    }
+
+    .form-step.active {
+      display: block;
+    }
+
+    @keyframes stepFade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-title-box {
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border-radius: 22px;
+      background: rgba(29,78,216,0.045);
+      border: 1px solid rgba(29,78,216,0.12);
+    }
+
+    .step-title-box h4 {
+      margin: 0 0 5px;
+      color: var(--primary);
+      font-size: 19px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .step-title-box h4 i {
+      color: var(--blue);
+    }
+
+    .step-title-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.8;
+    }
+
+    .wizard-actions {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .wizard-actions-left,
+    .wizard-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .step-counter {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 13px;
+    }
+
     @media (max-width: 1000px) {
       .register-grid,
       .crop-layout {
@@ -933,434 +1067,449 @@
         justify-content: center;
       }
     }
-  </style>
+  
 
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#1d4ed8">
-  <meta name="background-color" content="#f8fafc">
-  <meta name="application-name" content="صنايعي مطروح">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    @media (max-width: 720px) {
+      .wizard-progress {
+        grid-template-columns: 1fr 1fr;
+      }
 
-</head>
+      .wizard-step-pill {
+        border-radius: 16px;
+        padding: 10px 9px;
+      }
 
+      .wizard-actions {
+        align-items: stretch;
+      }
+
+      .wizard-actions-left,
+      .wizard-actions-right,
+      .wizard-actions .submit-btn,
+      .wizard-actions .mini-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+</style>
+<!-- PWA -->
+<link href="/manifest.json" rel="manifest"/>
+<meta content="#1d4ed8" name="theme-color"/>
+<meta content="#f8fafc" name="background-color"/>
+<meta content="صنايعي مطروح" name="application-name"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="default" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="صنايعي مطروح" name="apple-mobile-web-app-title"/>
+<link href="/icons/icon-192.png" rel="apple-touch-icon"/>
+</link></link></head>
 <body>
-
-  <header class="site-header">
-    <div class="container header-content">
-      <a href="/" class="brand">
-        <div class="brand-icon">
-          <i class="fa-solid fa-screwdriver-wrench"></i>
-        </div>
-        <div class="brand-text">
-          <h1>صنايعي مطروح</h1>
-          <span>سجّل بياناتك وانضم للدليل</span>
-        </div>
-      </a>
-
-      <div class="header-links">
-        <a href="/" class="header-link">
-          <i class="fa-solid fa-house"></i>
+<header class="site-header">
+<div class="container header-content">
+<a class="brand" href="/">
+<div class="brand-icon">
+<i class="fa-solid fa-screwdriver-wrench"></i>
+</div>
+<div class="brand-text">
+<h1>صنايعي مطروح</h1>
+<span>سجّل بياناتك وانضم للدليل</span>
+</div>
+</a>
+<div class="header-links">
+<a class="header-link" href="/">
+<i class="fa-solid fa-house"></i>
           الرئيسية
         </a>
-
-        <a href="/admin" class="header-link">
-          <i class="fa-solid fa-user-shield"></i>
+<a class="header-link" href="/status">
+<i class="fa-solid fa-clipboard-check"></i>
+          حالة الطلب
+        </a>
+<a class="header-link" href="/admin">
+<i class="fa-solid fa-user-shield"></i>
           الإدارة
         </a>
-      </div>
-    </div>
-  </header>
-
-  <main class="register-page">
-    <div class="container">
-
-      <section class="intro-card">
-        <div class="intro-content">
-          <div class="intro-badge">
-            <i class="fa-solid fa-gift"></i>
+</div>
+</div>
+</header>
+<main class="register-page">
+<div class="container">
+<section class="intro-card">
+<div class="intro-content">
+<div class="intro-badge">
+<i class="fa-solid fa-gift"></i>
             أول شهر مجاني لكل صنايعي جديد
           </div>
-
-          <h2>سجّل بياناتك واظهر لعملاء مرسى مطروح</h2>
-
-          <p>
+<h2>سجّل بياناتك واظهر لعملاء مرسى مطروح</h2>
+<p>
             املأ بياناتك، وارفع صورة أساسية وصور أعمالك. تقدر تقص وتظبط الصور قبل الإرسال عشان تظهر بشكل احترافي داخل التطبيق.
           </p>
-        </div>
-      </section>
-
-      <section class="register-grid">
-
-        <div class="panel">
-          <div class="panel-head">
-            <span class="section-label">
-              <i class="fa-solid fa-user-plus"></i>
+</div>
+</section>
+<section class="register-grid">
+<div class="panel">
+<div class="panel-head">
+<span class="section-label">
+<i class="fa-solid fa-user-plus"></i>
               نموذج التسجيل
             </span>
-
-            <h3>بيانات الصنايعي</h3>
-
-            <p>
+<h3>بيانات الصنايعي</h3>
+<p>
               بياناتك لن تظهر في الصفحة الرئيسية إلا بعد موافقة الإدارة.
             </p>
-          </div>
+<div aria-label="خطوات التسجيل" class="wizard-progress" id="wizardProgress">
+<div class="wizard-step-pill active" data-step-pill="0"><span>1</span> البيانات الأساسية</div>
+<div class="wizard-step-pill" data-step-pill="1"><span>2</span> الحرفة والمنطقة</div>
+<div class="wizard-step-pill" data-step-pill="2"><span>3</span> البطاقة الشخصية</div>
+<div class="wizard-step-pill" data-step-pill="3"><span>4</span> الصور والإرسال</div>
+</div>
 
-          <div class="panel-body">
-            <form id="registerForm">
+</div>
+<div class="panel-body">
+<form id="registerForm">
 
-              <div class="form-grid">
-
-                <div class="form-group">
-                  <label for="name">
-                    <i class="fa-solid fa-user"></i>
+<div class="form-step active" data-step="0">
+<div class="step-title-box">
+<h4><i class="fa-solid fa-user"></i>الخطوة الأولى: البيانات الأساسية</h4>
+<p>اكتب الاسم ورقم الاتصال ورقم الواتساب بدقة، لأن العميل سيتواصل معك مباشرة.</p>
+</div>
+<div class="form-grid"><div class="form-group">
+<label for="name">
+<i class="fa-solid fa-user"></i>
                     الاسم
                   </label>
-                  <input type="text" id="name" name="name" placeholder="مثال: محمد أحمد" required>
-                </div>
-
-                <div class="form-group">
-                  <label for="phone">
-                    <i class="fa-solid fa-phone"></i>
+<input id="name" name="name" placeholder="مثال: محمد أحمد" required="" type="text"/>
+</div><div class="form-group">
+<label for="phone">
+<i class="fa-solid fa-phone"></i>
                     رقم الاتصال
                   </label>
-                  <input type="tel" id="phone" name="phone" placeholder="مثال: 01012345678" required>
-                </div>
-
-                <div class="form-group">
-                  <label for="whatsapp">
-                    <i class="fa-brands fa-whatsapp"></i>
+<input id="phone" name="phone" placeholder="مثال: 01012345678" required="" type="tel"/>
+</div><div class="form-group">
+<label for="whatsapp">
+<i class="fa-brands fa-whatsapp"></i>
                     رقم الواتساب
                   </label>
-                  <input type="tel" id="whatsapp" name="whatsapp" placeholder="مثال: 01012345678">
-                  <div class="helper">لو سيبته فاضي، التطبيق هيستخدم رقم الاتصال للواتساب.</div>
-                </div>
-
-                <div class="form-group">
-                  <label for="trade">
-                    <i class="fa-solid fa-screwdriver-wrench"></i>
+<input id="whatsapp" name="whatsapp" placeholder="مثال: 01012345678" type="tel"/>
+<div class="helper">لو سيبته فاضي، التطبيق هيستخدم رقم الاتصال للواتساب.</div>
+</div></div></div><div class="form-step" data-step="1">
+<div class="step-title-box">
+<h4><i class="fa-solid fa-screwdriver-wrench"></i>الخطوة الثانية: الحرفة والمنطقة</h4>
+<p>اختار الحرفة الرئيسية والمنطقة التي تعمل بها، واكتب وصفًا مختصرًا للخدمات والخبرة.</p>
+</div>
+<div class="form-grid"><div class="form-group">
+<label for="trade">
+<i class="fa-solid fa-screwdriver-wrench"></i>
                     الحرفة
                   </label>
-                  <select id="trade" name="trade" required>
-                    <option value="">جاري تحميل الحرف...</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label for="area">
-                    <i class="fa-solid fa-location-dot"></i>
+<select id="trade" name="trade" required="">
+<option value="">جاري تحميل الحرف...</option>
+</select>
+</div><div class="form-group">
+<label for="area">
+<i class="fa-solid fa-location-dot"></i>
                     المنطقة
                   </label>
-                  <select id="area" name="area" required>
-                    <option value="">جاري تحميل المناطق...</option>
-                  </select>
-                </div>
-
-                <div class="form-group full">
-                  <label for="description">
-                    <i class="fa-solid fa-align-right"></i>
+<select id="area" name="area" required="">
+<option value="">جاري تحميل المناطق...</option>
+</select>
+</div><div class="form-group full">
+<label for="description">
+<i class="fa-solid fa-align-right"></i>
                     وصف مختصر
                   </label>
-                  <textarea id="description" name="description" placeholder="اكتب خبرتك ونوع الشغل والخدمات التي تقدمها..."></textarea>
-                </div>
-
-                <div class="form-group full">
-                  <label>
-                    <i class="fa-solid fa-id-card"></i>
+<textarea id="description" name="description" placeholder="اكتب خبرتك ونوع الشغل والخدمات التي تقدمها..."></textarea>
+</div></div></div><div class="form-step" data-step="2">
+<div class="step-title-box">
+<h4><i class="fa-solid fa-id-card"></i>الخطوة الثالثة: البطاقة الشخصية</h4>
+<p>ارفع صورة واضحة لوجه وظهر البطاقة. الصور تظهر للإدارة فقط ولا تظهر للعملاء.</p>
+</div>
+<div class="form-grid"><div class="form-group full">
+<label>
+<i class="fa-solid fa-id-card"></i>
                     صورة البطاقة الشخصية <span style="color:#dc2626">*</span>
-                  </label>
-
-                  <div class="upload-area">
-                    <div class="upload-row">
-                      <div class="upload-info">
-                        <div class="upload-info-icon">
-                          <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <div>
-                          <strong>مطلوب رفع وجه وظهر البطاقة لإكمال التسجيل</strong>
-                          <small>هذه الصور تظهر للإدارة فقط لمراجعة بيانات التسجيل، ولا تظهر للعملاء داخل التطبيق.</small>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="id-card-grid">
-                      <div class="id-upload-box">
-                        <strong><i class="fa-solid fa-address-card"></i> وجه البطاقة</strong>
-                        <label class="file-btn">
-                          <i class="fa-solid fa-upload"></i>
+</label>
+<div class="upload-area">
+<div class="upload-row">
+<div class="upload-info">
+<div class="upload-info-icon">
+<i class="fa-solid fa-shield-halved"></i>
+</div>
+<div>
+<strong>مطلوب رفع وجه وظهر البطاقة لإكمال التسجيل</strong>
+<small>هذه الصور تظهر للإدارة فقط لمراجعة بيانات التسجيل، ولا تظهر للعملاء داخل التطبيق.</small>
+</div>
+</div>
+</div>
+<div class="id-card-grid">
+<div class="id-upload-box">
+<strong><i class="fa-solid fa-address-card"></i> وجه البطاقة</strong>
+<label class="file-btn">
+<i class="fa-solid fa-upload"></i>
                           اختيار صورة وجه البطاقة
-                          <input type="file" id="idFrontInput" accept="image/*">
-                        </label>
-                        <div class="id-preview-frame" id="idFrontPreviewFrame">
-                          <img id="idFrontPreview" alt="معاينة وجه البطاقة">
-                        </div>
-                      </div>
-
-                      <div class="id-upload-box">
-                        <strong><i class="fa-solid fa-id-card-clip"></i> ظهر البطاقة</strong>
-                        <label class="file-btn">
-                          <i class="fa-solid fa-upload"></i>
+                          <input accept="image/*" id="idFrontInput" type="file"/>
+</label>
+<div class="id-preview-frame" id="idFrontPreviewFrame">
+<img alt="معاينة وجه البطاقة" id="idFrontPreview"/>
+</div>
+</div>
+<div class="id-upload-box">
+<strong><i class="fa-solid fa-id-card-clip"></i> ظهر البطاقة</strong>
+<label class="file-btn">
+<i class="fa-solid fa-upload"></i>
                           اختيار صورة ظهر البطاقة
-                          <input type="file" id="idBackInput" accept="image/*">
-                        </label>
-                        <div class="id-preview-frame" id="idBackPreviewFrame">
-                          <img id="idBackPreview" alt="معاينة ظهر البطاقة">
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="privacy-note">
-                      <i class="fa-solid fa-lock"></i>
+                          <input accept="image/*" id="idBackInput" type="file"/>
+</label>
+<div class="id-preview-frame" id="idBackPreviewFrame">
+<img alt="معاينة ظهر البطاقة" id="idBackPreview"/>
+</div>
+</div>
+</div>
+<div class="privacy-note">
+<i class="fa-solid fa-lock"></i>
                       لن يكتمل طلب التسجيل بدون صورة وجه وظهر البطاقة. الصور محفوظة لمراجعة الإدارة فقط.
                     </div>
-                  </div>
-                </div>
-
-                <div class="form-group full">
-                  <label>
-                    <i class="fa-solid fa-image"></i>
+</div>
+</div></div></div><div class="form-step" data-step="3">
+<div class="step-title-box">
+<h4><i class="fa-solid fa-images"></i>الخطوة الرابعة: الصور والإرسال</h4>
+<p>ارفع الصورة الأساسية وصور الأعمال، ثم راجع الطلب واضغط إرسال.</p>
+</div>
+<div class="form-grid"><div class="form-group full">
+<label>
+<i class="fa-solid fa-image"></i>
                     الصورة الأساسية
                   </label>
-
-                  <div class="upload-area">
-                    <div class="upload-row">
-                      <div class="upload-info">
-                        <div class="upload-info-icon">
-                          <i class="fa-solid fa-crop-simple"></i>
-                        </div>
-                        <div>
-                          <strong>صورة الكارت الأساسية</strong>
-                          <small>هتتقص بنسبة 4:3 المناسبة لكارت الصنايعي.</small>
-                        </div>
-                      </div>
-
-                      <label class="file-btn">
-                        <i class="fa-solid fa-image"></i>
+<div class="upload-area">
+<div class="upload-row">
+<div class="upload-info">
+<div class="upload-info-icon">
+<i class="fa-solid fa-crop-simple"></i>
+</div>
+<div>
+<strong>صورة الكارت الأساسية</strong>
+<small>هتتقص بنسبة 4:3 المناسبة لكارت الصنايعي.</small>
+</div>
+</div>
+<label class="file-btn">
+<i class="fa-solid fa-image"></i>
                         اختيار الصورة
-                        <input type="file" id="imageInput" accept="image/*">
-                      </label>
-                    </div>
-
-                    <div class="image-card-preview" id="mainPreviewCard">
-                      <div class="image-preview-head">
-                        <strong>معاينة الصورة الأساسية</strong>
-                        <span>4:3</span>
-                      </div>
-
-                      <div class="main-preview-frame">
-                        <img id="mainPreviewImage" alt="الصورة الأساسية">
-                      </div>
-
-                      <div class="preview-actions">
-                        <button type="button" class="mini-btn blue" id="editMainImageBtn">
-                          <i class="fa-solid fa-crop-simple"></i>
+                        <input accept="image/*" id="imageInput" type="file"/>
+</label>
+</div>
+<div class="image-card-preview" id="mainPreviewCard">
+<div class="image-preview-head">
+<strong>معاينة الصورة الأساسية</strong>
+<span>4:3</span>
+</div>
+<div class="main-preview-frame">
+<img alt="الصورة الأساسية" id="mainPreviewImage"/>
+</div>
+<div class="preview-actions">
+<button class="mini-btn blue" id="editMainImageBtn" type="button">
+<i class="fa-solid fa-crop-simple"></i>
                           تعديل الصورة
                         </button>
-
-                        <button type="button" class="mini-btn red" id="removeMainImageBtn">
-                          <i class="fa-solid fa-trash"></i>
+<button class="mini-btn red" id="removeMainImageBtn" type="button">
+<i class="fa-solid fa-trash"></i>
                           حذف الصورة
                         </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-group full">
-                  <label>
-                    <i class="fa-solid fa-images"></i>
+</div>
+</div>
+</div>
+</div><div class="form-group full">
+<label>
+<i class="fa-solid fa-images"></i>
                     صور الأعمال
                   </label>
-
-                  <div class="upload-area">
-                    <div class="upload-row">
-                      <div class="upload-info">
-                        <div class="upload-info-icon">
-                          <i class="fa-solid fa-briefcase"></i>
-                        </div>
-                        <div>
-                          <strong>صور من شغلك</strong>
-                          <small>اختار حتى 5 صور، وسيتم قص كل صورة قبل الإرسال.</small>
-                        </div>
-                      </div>
-
-                      <label class="file-btn">
-                        <i class="fa-solid fa-images"></i>
+<div class="upload-area">
+<div class="upload-row">
+<div class="upload-info">
+<div class="upload-info-icon">
+<i class="fa-solid fa-briefcase"></i>
+</div>
+<div>
+<strong>صور من شغلك</strong>
+<small>اختار حتى 5 صور، وسيتم قص كل صورة قبل الإرسال.</small>
+</div>
+</div>
+<label class="file-btn">
+<i class="fa-solid fa-images"></i>
                         اختيار صور الأعمال
-                        <input type="file" id="workImagesInput" accept="image/*" multiple>
-                      </label>
-                    </div>
+                        <input accept="image/*" id="workImagesInput" multiple="" type="file"/>
+</label>
+</div>
+<div class="work-preview-grid" id="workPreviewGrid"></div>
+</div>
+</div></div></div><div class="wizard-actions">
+<div class="wizard-actions-left">
+<span class="step-counter" id="stepCounter">الخطوة 1 من 4</span>
+</div>
+<div class="wizard-actions-right">
+<button class="mini-btn dark" id="prevStepBtn" type="button">
+<i class="fa-solid fa-arrow-right"></i>
+السابق
+</button>
+<button class="submit-btn" id="nextStepBtn" type="button">
+التالي
+<i class="fa-solid fa-arrow-left"></i>
+</button>
+<button class="submit-btn" id="submitBtn" style="display:none;" type="submit">
+<i class="fa-solid fa-paper-plane"></i>
+إرسال طلب التسجيل
+</button>
+</div>
+</div>
+<div class="result-box" id="resultBox"></div>
+</form>
+</div>
+</div>
+<aside class="side-stack">
+<div class="side-card">
+<h4>
+<i class="fa-solid fa-list-check"></i>
+التسجيل على 4 خطوات
+</h4>
+<ul>
+<li><i class="fa-solid fa-check"></i> بياناتك الأساسية.</li>
+<li><i class="fa-solid fa-check"></i> الحرفة والمنطقة والوصف.</li>
+<li><i class="fa-solid fa-check"></i> بطاقة التحقق للإدارة فقط.</li>
+<li><i class="fa-solid fa-check"></i> الصور ثم إرسال الطلب.</li>
+</ul>
+</div>
 
-                    <div class="work-preview-grid" id="workPreviewGrid"></div>
-                  </div>
-                </div>
-
-              </div>
-
-              <div class="submit-row">
-                <button class="submit-btn" type="submit" id="submitBtn">
-                  <i class="fa-solid fa-paper-plane"></i>
-                  إرسال طلب التسجيل
-                </button>
-              </div>
-
-              <div class="result-box" id="resultBox"></div>
-
-            </form>
-          </div>
-        </div>
-
-        <aside class="side-stack">
-          <div class="side-card">
-            <h4>
-              <i class="fa-solid fa-circle-info"></i>
+<div class="side-card">
+<h4>
+<i class="fa-solid fa-circle-info"></i>
               قبل الإرسال
             </h4>
-
-            <ul>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<ul>
+<li>
+<i class="fa-solid fa-check"></i>
                 تأكد من كتابة رقم الاتصال بشكل صحيح.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 لو رقم الواتساب مختلف عن رقم الاتصال اكتبه في الخانة الخاصة به.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 رفع صورة وجه وظهر البطاقة شرط أساسي لقبول طلب التسجيل.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 الصورة الأساسية هي التي تظهر في كارت الصنايعي.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 صور الأعمال تظهر في صفحة التفاصيل بعد موافقة الإدارة.
               </li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <h4>
-              <i class="fa-solid fa-wand-magic-sparkles"></i>
+</ul>
+</div>
+<div class="side-card">
+<h4>
+<i class="fa-solid fa-wand-magic-sparkles"></i>
               نصائح للصور
             </h4>
-
-            <ul>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<ul>
+<li>
+<i class="fa-solid fa-check"></i>
                 استخدم صورة واضحة بإضاءة جيدة.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 خلي الجزء المهم في منتصف الصورة أثناء القص.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 استخدم التكبير والتحريك لضبط الصورة.
               </li>
-              <li>
-                <i class="fa-solid fa-check"></i>
+<li>
+<i class="fa-solid fa-check"></i>
                 صور الأعمال يفضل تكون واضحة وقريبة من الشغل نفسه.
               </li>
-            </ul>
-          </div>
-        </aside>
-
-      </section>
-    </div>
-  </main>
-
-  <div class="crop-modal" id="cropModal">
-    <div class="crop-box">
-
-      <div class="crop-head">
-        <div>
-          <h3 id="cropTitle">تعديل الصورة</h3>
-          <p id="cropSubtitle">حرّك الصورة وكبّرها أو صغّرها ثم اضغط اعتماد الصورة.</p>
-        </div>
-
-        <button type="button" class="mini-btn red" id="closeCropBtn">
-          <i class="fa-solid fa-xmark"></i>
+</ul>
+</div>
+</aside>
+</section>
+</div>
+</main>
+<div class="crop-modal" id="cropModal">
+<div class="crop-box">
+<div class="crop-head">
+<div>
+<h3 id="cropTitle">تعديل الصورة</h3>
+<p id="cropSubtitle">حرّك الصورة وكبّرها أو صغّرها ثم اضغط اعتماد الصورة.</p>
+</div>
+<button class="mini-btn red" id="closeCropBtn" type="button">
+<i class="fa-solid fa-xmark"></i>
           إغلاق
         </button>
-      </div>
-
-      <div class="crop-layout">
-        <div class="crop-image-wrap">
-          <img id="cropImage" alt="الصورة المراد قصها">
-        </div>
-
-        <div class="crop-side">
-          <div class="crop-preview-card">
-            <strong id="cropPreviewTitle">معاينة الصورة</strong>
-            <div class="crop-preview-body">
-              <div class="crop-preview" id="cropPreview"></div>
-            </div>
-          </div>
-
-          <div class="crop-help">
-            <h5>طريقة الاستخدام</h5>
-            <ul>
-              <li>اسحب الصورة لتحريكها داخل الإطار.</li>
-              <li>استخدم عجلة الماوس للتكبير أو التصغير.</li>
-              <li>استخدم أزرار التكبير والتصغير والتدوير.</li>
-              <li>اضغط اعتماد الصورة لحفظ القص.</li>
-            </ul>
-
-            <div class="work-crop-counter" id="workCropCounter" style="display:none;">
-              <i class="fa-solid fa-images"></i>
-              <span id="workCropCounterText">صورة 1 من 5</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="crop-actions">
-        <button type="button" class="mini-btn blue" id="zoomInBtn">
-          <i class="fa-solid fa-magnifying-glass-plus"></i>
+</div>
+<div class="crop-layout">
+<div class="crop-image-wrap">
+<img alt="الصورة المراد قصها" id="cropImage"/>
+</div>
+<div class="crop-side">
+<div class="crop-preview-card">
+<strong id="cropPreviewTitle">معاينة الصورة</strong>
+<div class="crop-preview-body">
+<div class="crop-preview" id="cropPreview"></div>
+</div>
+</div>
+<div class="crop-help">
+<h5>طريقة الاستخدام</h5>
+<ul>
+<li>اسحب الصورة لتحريكها داخل الإطار.</li>
+<li>استخدم عجلة الماوس للتكبير أو التصغير.</li>
+<li>استخدم أزرار التكبير والتصغير والتدوير.</li>
+<li>اضغط اعتماد الصورة لحفظ القص.</li>
+</ul>
+<div class="work-crop-counter" id="workCropCounter" style="display:none;">
+<i class="fa-solid fa-images"></i>
+<span id="workCropCounterText">صورة 1 من 5</span>
+</div>
+</div>
+</div>
+</div>
+<div class="crop-actions">
+<button class="mini-btn blue" id="zoomInBtn" type="button">
+<i class="fa-solid fa-magnifying-glass-plus"></i>
           تكبير
         </button>
-
-        <button type="button" class="mini-btn blue" id="zoomOutBtn">
-          <i class="fa-solid fa-magnifying-glass-minus"></i>
+<button class="mini-btn blue" id="zoomOutBtn" type="button">
+<i class="fa-solid fa-magnifying-glass-minus"></i>
           تصغير
         </button>
-
-        <button type="button" class="mini-btn blue" id="rotateBtn">
-          <i class="fa-solid fa-rotate-right"></i>
+<button class="mini-btn blue" id="rotateBtn" type="button">
+<i class="fa-solid fa-rotate-right"></i>
           تدوير
         </button>
-
-        <button type="button" class="mini-btn gold" id="resetCropBtn">
-          <i class="fa-solid fa-arrows-rotate"></i>
+<button class="mini-btn gold" id="resetCropBtn" type="button">
+<i class="fa-solid fa-arrows-rotate"></i>
           إعادة الضبط
         </button>
-
-        <button type="button" class="mini-btn green" id="applyCropBtn">
-          <i class="fa-solid fa-check"></i>
+<button class="mini-btn green" id="applyCropBtn" type="button">
+<i class="fa-solid fa-check"></i>
           اعتماد الصورة
         </button>
-
-        <button type="button" class="mini-btn dark" id="skipWorkCropBtn" style="display:none;">
-          <i class="fa-solid fa-forward"></i>
+<button class="mini-btn dark" id="skipWorkCropBtn" style="display:none;" type="button">
+<i class="fa-solid fa-forward"></i>
           تخطي هذه الصورة
         </button>
-      </div>
-
-    </div>
-  </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-
-  <script>
+</div>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
     const registerForm = document.getElementById("registerForm");
     const resultBox = document.getElementById("resultBox");
     const submitBtn = document.getElementById("submitBtn");
+    const formSteps = Array.from(document.querySelectorAll(".form-step"));
+    const stepPills = Array.from(document.querySelectorAll("[data-step-pill]"));
+    const prevStepBtn = document.getElementById("prevStepBtn");
+    const nextStepBtn = document.getElementById("nextStepBtn");
+    const stepCounter = document.getElementById("stepCounter");
+    let currentStep = 0;
+
 
     const imageInput = document.getElementById("imageInput");
     const workImagesInput = document.getElementById("workImagesInput");
@@ -1419,6 +1568,84 @@
     function hideResult() {
       resultBox.className = "result-box";
       resultBox.innerHTML = "";
+    }
+
+    function scrollToRegisterPanel() {
+      const panel = document.querySelector(".panel");
+      if (panel) {
+        panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function updateWizard() {
+      formSteps.forEach((step, index) => {
+        step.classList.toggle("active", index === currentStep);
+      });
+
+      stepPills.forEach((pill, index) => {
+        pill.classList.toggle("active", index === currentStep);
+        pill.classList.toggle("done", index < currentStep);
+      });
+
+      if (stepCounter) {
+        stepCounter.textContent = "الخطوة " + (currentStep + 1) + " من " + formSteps.length;
+      }
+
+      if (prevStepBtn) {
+        prevStepBtn.style.display = currentStep === 0 ? "none" : "inline-flex";
+      }
+
+      const isLast = currentStep === formSteps.length - 1;
+
+      if (nextStepBtn) {
+        nextStepBtn.style.display = isLast ? "none" : "inline-flex";
+      }
+
+      if (submitBtn) {
+        submitBtn.style.display = isLast ? "inline-flex" : "none";
+      }
+    }
+
+    function validateWizardStep(index) {
+      hideResult();
+
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const trade = document.getElementById("trade").value.trim();
+      const area = document.getElementById("area").value.trim();
+
+      if (index === 0 && (!name || !phone)) {
+        showResult("error", "من فضلك املأ الاسم ورقم الاتصال قبل الانتقال للخطوة التالية.");
+        return false;
+      }
+
+      if (index === 1 && (!trade || !area)) {
+        showResult("error", "من فضلك اختر الحرفة والمنطقة قبل الانتقال للخطوة التالية.");
+        return false;
+      }
+
+      if (index === 2 && (!idFrontFile || !idBackFile)) {
+        showResult("error", "لازم ترفع صورة البطاقة الشخصية وجه وظهر قبل الانتقال للخطوة التالية.");
+        return false;
+      }
+
+      return true;
+    }
+
+    function goToStep(index, shouldScroll) {
+      currentStep = Math.max(0, Math.min(index, formSteps.length - 1));
+      updateWizard();
+      if (shouldScroll) scrollToRegisterPanel();
+    }
+
+    function validateAllWizardSteps() {
+      for (let i = 0; i < formSteps.length - 1; i++) {
+        if (!validateWizardStep(i)) {
+          goToStep(i, true);
+          return false;
+        }
+      }
+      return true;
     }
 
     function fetchJsonWithFallback(urls) {
@@ -1814,9 +2041,56 @@
       }
     });
 
+
+    nextStepBtn.addEventListener("click", function () {
+      if (!validateWizardStep(currentStep)) return;
+      goToStep(currentStep + 1, true);
+    });
+
+    prevStepBtn.addEventListener("click", function () {
+      goToStep(currentStep - 1, true);
+    });
+
+    stepPills.forEach((pill, index) => {
+      pill.addEventListener("click", function () {
+        if (index <= currentStep) {
+          goToStep(index, true);
+        }
+      });
+    });
+
+
+    function normalizeRegisterPhone(phone) {
+      let d = String(phone || "")
+        .replace(/[٠-٩]/g, c => "٠١٢٣٤٥٦٧٨٩".indexOf(c))
+        .replace(/[۰-۹]/g, c => "۰۱۲۳۴۵۶۷۸۹".indexOf(c))
+        .replace(/\D/g, "");
+      if (!d) return "";
+      if (d.startsWith("0020")) d = d.slice(2);
+      if (d.startsWith("20") && d.length === 12) d = "0" + d.slice(2);
+      if (d.length === 10 && /^(10|11|12|15)/.test(d)) d = "0" + d;
+      return d;
+    }
+
+    async function checkDuplicateRegistration(phone, whatsapp) {
+      const params = new URLSearchParams();
+      params.set("phone", phone || "");
+      params.set("whatsapp", whatsapp || "");
+      const response = await fetch("/api/workers/check-duplicate?" + params.toString());
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "تعذر فحص تكرار الرقم");
+      }
+      return data;
+    }
+
     registerForm.addEventListener("submit", async function (event) {
       event.preventDefault();
       hideResult();
+
+      if (!validateAllWizardSteps()) {
+        return;
+      }
 
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
@@ -1827,6 +2101,18 @@
 
       if (!name || !phone || !trade || !area) {
         showResult("error", "من فضلك املأ الاسم ورقم الاتصال والحرفة والمنطقة.");
+        return;
+      }
+
+      try {
+        const duplicateCheck = await checkDuplicateRegistration(phone, whatsapp);
+        if (duplicateCheck.duplicate) {
+          const duplicateName = duplicateCheck.worker && duplicateCheck.worker.name ? duplicateCheck.worker.name : "صنايعي آخر";
+          showResult("error", "هذا الرقم مسجل بالفعل باسم " + duplicateName + ". لا يمكن تسجيل نفس رقم الهاتف أو الواتساب أكثر من مرة.");
+          return;
+        }
+      } catch (error) {
+        showResult("error", error.message || "تعذر فحص تكرار الرقم.");
         return;
       }
 
@@ -1869,9 +2155,10 @@
           throw new Error(data.error || "تعذر إرسال الطلب");
         }
 
+        const registrationCode = data.registration_code || data.registrationCode || (data.id ? ("SN-" + new Date().getFullYear() + "-" + String(data.id).padStart(5, "0")) : "");
         showResult(
           "success",
-          "تم إرسال طلب التسجيل بنجاح ✅<br>سيتم مراجعة البيانات من الإدارة قبل الظهور في الدليل."
+          '<div class="success-card"><div class="success-card-title"><i class="fa-solid fa-circle-check"></i>تم إرسال طلبك بنجاح</div><div class="success-code-box"><small>رقم الطلب</small><strong>' + registrationCode + '</strong></div><p>سيتم مراجعة بياناتك من الإدارة قبل الظهور في الدليل.</p><p>احتفظ برقم الطلب، ولو تواصلت مع الإدارة ابعته لتسهيل المراجعة.</p><div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-primary" href="/status?code=' + encodeURIComponent(registrationCode) + '"><i class="fa-solid fa-clipboard-check"></i> متابعة حالة الطلب</a><a class="btn btn-secondary" href="/"><i class="fa-solid fa-house"></i> الرئيسية</a></div></div>'
         );
 
         registerForm.reset();
@@ -1882,6 +2169,7 @@
         workImageUrls.forEach(url => URL.revokeObjectURL(url));
         workImageUrls = [];
         renderWorkPreview();
+        goToStep(0, false);
 
       } catch (error) {
         showResult("error", error.message || "حدث خطأ أثناء إرسال الطلب.");
@@ -1893,11 +2181,10 @@
 
     loadTrades();
     loadAreas();
+    updateWizard();
   </script>
-
-
-  <!-- Service Worker -->
-  <script>
+<!-- Service Worker -->
+<script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
         navigator.serviceWorker.register("/service-worker.js").catch(function (error) {
@@ -1906,6 +2193,5 @@
       });
     }
   </script>
-
 </body>
 </html>
