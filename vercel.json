@@ -2,23 +2,59 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/:path*",
       "destination": "/api/server.js"
-    },
-    {
-      "source": "/register",
-      "destination": "/register.html"
     },
     {
       "source": "/admin",
       "destination": "/admin.html"
     },
     {
-      "source": "/worker/(.*)",
+      "source": "/admin/",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin/add-worker",
+      "destination": "/admin-add-worker.html"
+    },
+    {
+      "source": "/admin/add-worker/",
+      "destination": "/admin-add-worker.html"
+    },
+    {
+      "source": "/admin-add-worker",
+      "destination": "/admin-add-worker.html"
+    },
+    {
+      "source": "/admin-add-worker/",
+      "destination": "/admin-add-worker.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/register.html"
+    },
+    {
+      "source": "/register/",
+      "destination": "/register.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/status/",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/worker/:id",
       "destination": "/worker.html"
     },
     {
-      "source": "/",
+      "source": "/trade/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/area/:path*",
       "destination": "/index.html"
     }
   ]
