@@ -8,43 +8,44 @@
   ],
   "routes": [
     {
-      "handle": "filesystem"
+      "src": "^/api/(.*)$",
+      "dest": "/api/server.js"
     },
     {
-      "src": "/admin/?",
+      "src": "^/admin/?$",
       "dest": "/admin.html"
     },
     {
-      "src": "/admin-add-worker/?",
+      "src": "^/admin/add-worker/?$",
       "dest": "/admin-add-worker.html"
     },
     {
-      "src": "/admin/add-worker/?",
+      "src": "^/admin-add-worker/?$",
       "dest": "/admin-add-worker.html"
     },
     {
-      "src": "/register/?",
+      "src": "^/register/?$",
       "dest": "/register.html"
     },
     {
-      "src": "/status/?",
+      "src": "^/status/?$",
       "dest": "/status.html"
     },
     {
-      "src": "/worker/(.*)",
+      "src": "^/worker/(.*)$",
       "dest": "/worker.html"
     },
     {
-      "src": "/trade/(.*)",
+      "src": "^/trade/(.*)$",
       "dest": "/index.html"
     },
     {
-      "src": "/area/(.*)",
+      "src": "^/area/(.*)$",
       "dest": "/index.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "api/server.js"
+      "src": "^/(.*)$",
+      "dest": "/$1"
     }
   ]
 }
