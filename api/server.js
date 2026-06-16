@@ -184,6 +184,77 @@ const workerUpload = upload.fields([{ name: "image", maxCount: 1 }, { name: "wor
 
 function ready(res){ if(!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY){ res.status(500).json({success:false,error:"Supabase environment variables are missing"}); return false;} return true; }
 function today(){ return new Date().toISOString().split("T")[0]; }
+
+function siteBaseUrl(req){
+  const protoHeader = String(req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim();
+  const hostHeader = String(req.headers["x-forwarded-host"] || req.get("host") || "localhost:3000").split(",")[0].trim();
+  return `${protoHeader}://${hostHeader}`.replace(/\/+$/, "");
+}
+function xmlEscape(value){
+  return String(value || "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&apos;"}[ch]));
+}
+function sitemapUrl(base, pathName, changefreq, priority, lastmod){
+  return `  <url>\n    <loc>${xmlEscape(base + pathName)}</loc>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>${lastmod ? `\n    <lastmod>${xmlEscape(lastmod)}</lastmod>` : ""}\n  </url>`;
+}
+
+app.get("/robots.txt", (req,res)=>{
+  const base = siteBaseUrl(req);
+  res.type("text/plain");
+  res.send([
+    "User-agent: *",
+    "Allow: /",
+    "Disallow: /admin",
+    "Disallow: /api/",
+    `Sitemap: ${base}/sitemap.xml`,
+    ""
+  ].join("\n"));
+});
+
+app.get("/sitemap.xml", async (req,res)=>{
+  const base = siteBaseUrl(req);
+  const urls = new Map();
+  const add = (pathName, changefreq="weekly", priority="0.7", lastmod="") => {
+    if(!pathName.startsWith("/")) pathName = "/" + pathName;
+    urls.set(pathName, {changefreq, priority, lastmod});
+  };
+
+  add("/", "daily", "1.0");
+  add("/register", "monthly", "0.5");
+  add("/status", "monthly", "0.4");
+  add("/privacy-policy.html", "yearly", "0.2");
+
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const [{data: trades}, {data: areas}, {data: workers}] = await Promise.all([
+        supabase.from("trades").select("name"),
+        supabase.from("areas").select("name"),
+        supabase.from("workers").select("id,name,trade,area,created_at,updated_at,approved,active,subscription_end").eq("approved", true).eq("active", true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).limit(1000)
+      ]);
+
+      (trades || []).forEach(t => {
+        const name = String(t.name || "").trim();
+        if(name) add(`/trade/${encodeURIComponent(name)}`, "weekly", "0.8");
+      });
+
+      (areas || []).forEach(a => {
+        const name = String(a.name || "").trim();
+        if(name) add(`/area/${encodeURIComponent(name)}`, "weekly", "0.7");
+      });
+
+      (workers || []).forEach(w => {
+        if(w.id) add(`/worker/${encodeURIComponent(w.id)}`, "weekly", "0.75", String(w.updated_at || w.created_at || "").slice(0,10));
+        const trade = String(w.trade || "").trim();
+        const area = String(w.area || "").trim();
+        if(trade && area) add(`/trade/${encodeURIComponent(trade)}/area/${encodeURIComponent(area)}`, "weekly", "0.8");
+      });
+    } catch(e) {}
+  }
+
+  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${Array.from(urls.entries()).map(([pathName, meta]) => sitemapUrl(base, pathName, meta.changefreq, meta.priority, meta.lastmod)).join("\n")}\n</urlset>`;
+  res.type("application/xml");
+  res.send(body);
+});
+
 function addMonths(start, months){ const d=start?new Date(start):new Date(); if(isNaN(d.getTime())) d.setTime(Date.now()); d.setMonth(d.getMonth()+months); return d.toISOString().split("T")[0]; }
 function bool(v){ return v===true || v==="true" || v==="1" || v===1; }
 const IDENTITY_STATUSES = new Set(["pending","verified","rejected","needs_data","needs_id_reupload"]);
