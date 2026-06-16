@@ -364,6 +364,17 @@ app.get("/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html"
 
 // Workers
 app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).order("featured",{ascending:false}).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
+app.get("/api/workers-count", async (req,res)=>{
+  if(!ready(res))return;
+  const {count,error}=await supabase
+    .from("workers")
+    .select("id",{count:"exact",head:true})
+    .eq("approved",true)
+    .eq("active",true)
+    .or(`subscription_end.is.null,subscription_end.gte.${today()}`);
+  if(error)return res.status(500).json({success:false,error:error.message});
+  res.json({success:true,count:count||0});
+});
 app.get("/api/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 app.get("/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 
@@ -714,6 +725,36 @@ app.post("/api/workers/:id/photos", requireAdmin, upload.array("workPhotos",5), 
 app.delete("/api/workers/photos/:photoId", requireAdmin, async (req,res)=>{ if(!ready(res))return; const photoId=Number(req.params.photoId); const {data:photo}=await supabase.from("worker_photos").select("id,worker_id").eq("id",photoId).single(); const {error}=await supabase.from("worker_photos").delete().eq("id",photoId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity("work_photo_delete",{entity_type:"worker_photo",entity_id:photoId,entity_name:"صورة عمل",details:{worker_id:photo?.worker_id||null}}); res.json({success:true}); });
 
 // Reviews
+// Fast public ratings summary for home page cards
+app.get("/api/reviews/summaries", async (req,res)=>{
+  if(!ready(res))return;
+  const {data,error}=await supabase
+    .from("reviews")
+    .select("worker_id,rating")
+    .eq("approved",true)
+    .limit(20000);
+  if(error)return res.status(500).json({success:false,error:error.message});
+
+  const grouped={};
+  (data||[]).forEach(row=>{
+    const key=String(row.worker_id||"");
+    if(!key)return;
+    if(!grouped[key]) grouped[key]={sum:0,count:0};
+    grouped[key].sum += Number(row.rating||0);
+    grouped[key].count += 1;
+  });
+
+  const summaries={};
+  Object.entries(grouped).forEach(([workerId,item])=>{
+    summaries[workerId]={
+      count:item.count,
+      average:item.count ? Math.round((item.sum/item.count)*10)/10 : 0
+    };
+  });
+
+  res.json({success:true,summaries});
+});
+
 app.get("/api/workers/:id/reviews", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("reviews").select("*").eq("worker_id",id(req)).eq("approved",true).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
 app.get("/api/workers/:id/reviews/summary", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("reviews").select("rating").eq("worker_id",id(req)).eq("approved",true); if(error)return res.status(500).json({success:false,error:error.message}); const count=(data||[]).length, sum=(data||[]).reduce((a,r)=>a+Number(r.rating||0),0); res.json({count,average:count?Math.round((sum/count)*10)/10:0}); });
 app.post("/api/workers/:id/reviews", async (req,res)=>{ if(!ready(res))return; const rating=Number(req.body.rating), comment=String(req.body.comment||req.body.review||"").trim(), customer=String(req.body.customer_name||req.body.customerName||req.body.name||"عميل").trim(); if(!rating||rating<1||rating>5)return res.status(400).json({success:false,error:"التقييم يجب أن يكون من 1 إلى 5"}); if(!comment)return res.status(400).json({success:false,error:"من فضلك اكتب الريفيو"}); const {error}=await supabase.from("reviews").insert({worker_id:id(req),customer_name:customer||"عميل",rating,comment,approved:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json({success:true,message:"تم إرسال التقييم بنجاح، وسيظهر بعد مراجعة الإدارة"}); });

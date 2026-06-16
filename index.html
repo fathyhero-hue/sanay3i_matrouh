@@ -1838,6 +1838,31 @@
       renderAreaIcons();
     }
 
+    async function loadWorkersCount() {
+      const countElement = document.getElementById("workersCount");
+      if (!countElement) return;
+
+      try {
+        countElement.textContent = "...";
+
+        const response = await fetch("/api/workers-count", { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error("Workers count request failed");
+        }
+
+        const data = await response.json();
+        const count = Number(data.count ?? data.total ?? 0);
+
+        countElement.textContent = Number.isFinite(count) ? count : 0;
+      } catch (error) {
+        console.log("Workers count loading skipped:", error);
+        if (!allWorkers.length) {
+          countElement.textContent = "0";
+        }
+      }
+    }
+
     async function loadWorkers() {
       const loadingBox = document.getElementById("loadingBox");
       const emptyBox = document.getElementById("emptyBox");
@@ -1892,6 +1917,36 @@
 
     async function loadRatingsForWorkers() {
       ratingsByWorker = {};
+
+      try {
+        const response = await fetch("/api/reviews/summaries", { cache: "no-store" });
+
+        if (response.ok) {
+          const payload = await response.json();
+          const summaries = payload.summaries || payload || {};
+
+          if (summaries && typeof summaries === "object" && !Array.isArray(summaries)) {
+            allWorkers.forEach(worker => {
+              const id = getWorkerId(worker);
+              if (!id) return;
+
+              const summary = summaries[String(id)] || summaries[id] || {
+                average: 0,
+                count: 0
+              };
+
+              ratingsByWorker[id] = {
+                average: Number(summary.average) || 0,
+                count: Number(summary.count) || 0
+              };
+            });
+
+            return;
+          }
+        }
+      } catch (error) {
+        console.log("Bulk ratings summary unavailable, falling back to per-worker summaries.");
+      }
 
       const requests = allWorkers.map(async worker => {
         const id = getWorkerId(worker);
@@ -2365,7 +2420,7 @@
 
         card.innerHTML = `
           <div class="worker-image-wrap">
-            <img src="${image}" alt="${name}" class="worker-image" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+            <img src="${image}" alt="${name}" class="worker-image" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
 
             ${featured ? `
               <div class="featured-badge">
@@ -2537,8 +2592,13 @@
     }
 
     async function initPage() {
-      await loadTrades();
-      await loadAreas();
+      loadWorkersCount();
+
+      await Promise.all([
+        loadTrades(),
+        loadAreas()
+      ]);
+
       await loadWorkers();
       applyFilterFromUrl();
     }
