@@ -1,16 +1,13 @@
-const CACHE_NAME = "sanay3i-matrouh-v27";
+const CACHE_NAME = "sanay3i-matrouh-v3";
 const OFFLINE_URL = "/offline.html";
 
 const STATIC_ASSETS = [
   "/",
-  "/status",
-  "/status.html",
   "/offline.html",
   "/style.css",
   "/manifest.json",
   "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/default-worker-avatar.png"
+  "/icons/icon-512.png"
 ];
 
 self.addEventListener("install", function (event) {

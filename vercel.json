@@ -2,59 +2,23 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": "/api/server.js"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/admin/",
-      "destination": "/admin.html"
-    },
-    {
-      "source": "/admin/add-worker",
-      "destination": "/admin-add-worker.html"
-    },
-    {
-      "source": "/admin/add-worker/",
-      "destination": "/admin-add-worker.html"
-    },
-    {
-      "source": "/admin-add-worker",
-      "destination": "/admin-add-worker.html"
-    },
-    {
-      "source": "/admin-add-worker/",
-      "destination": "/admin-add-worker.html"
     },
     {
       "source": "/register",
       "destination": "/register.html"
     },
     {
-      "source": "/register/",
-      "destination": "/register.html"
+      "source": "/admin",
+      "destination": "/admin.html"
     },
     {
-      "source": "/status",
-      "destination": "/status.html"
-    },
-    {
-      "source": "/status/",
-      "destination": "/status.html"
-    },
-    {
-      "source": "/worker/:id",
+      "source": "/worker/(.*)",
       "destination": "/worker.html"
     },
     {
-      "source": "/trade/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/area/:path*",
+      "source": "/",
       "destination": "/index.html"
     }
   ]
