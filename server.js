@@ -152,11 +152,6 @@ function requireAdmin(req, res, next) {
   return res.status(401).json({ success: false, error: "غير مصرح بالدخول للوحة الإدارة" });
 }
 
-function requireAdminPage(req, res, next) {
-  if (isAdminRequest(req)) return next();
-  return res.redirect("/admin");
-}
-
 app.post("/api/admin/login", (req, res) => {
   if (!ADMIN_PASSWORD || !ADMIN_SESSION_SECRET) {
     return res.status(500).json({ success: false, error: "Admin environment variables are missing" });
@@ -318,7 +313,6 @@ function activityActionLabel(action){
   return {
     worker_update:"تعديل بيانات صنايعي",
     worker_register:"تسجيل صنايعي جديد",
-    worker_admin_create:"إضافة صنايعي من الإدارة",
     worker_approve:"اعتماد صنايعي",
     worker_unapprove:"إلغاء اعتماد صنايعي",
     worker_activate:"تفعيل صنايعي",
@@ -358,22 +352,15 @@ async function logAdminActivity(action, options={}){
   }
 }
 
-// Local + Vercel page fallback
-// Hotfix 22.2: serve both clean URLs and direct .html URLs.
-function sendHtmlPage(res, fileName) {
-  res.type("text/html");
-  return res.sendFile(path.join(STATIC_DIR, fileName));
-}
-
-app.get(["/", "/index.html"], (req, res) => sendHtmlPage(res, "index.html"));
-app.get(["/register", "/register/", "/register.html"], (req, res) => sendHtmlPage(res, "register.html"));
-app.get(["/status", "/status/", "/status.html"], (req, res) => sendHtmlPage(res, "status.html"));
-app.get(["/admin", "/admin/", "/admin.html"], (req, res) => sendHtmlPage(res, "admin.html"));
-app.get(["/admin/add-worker", "/admin/add-worker/", "/admin-add-worker", "/admin-add-worker/", "/admin-add-worker.html"], requireAdminPage, (req, res) => sendHtmlPage(res, "admin-add-worker.html"));
-app.get(["/worker.html", "/worker/:id"], (req, res) => sendHtmlPage(res, "worker.html"));
-app.get("/trade/:trade/area/:area", (req, res) => sendHtmlPage(res, "index.html"));
-app.get("/trade/:trade", (req, res) => sendHtmlPage(res, "index.html"));
-app.get("/area/:area", (req, res) => sendHtmlPage(res, "index.html"));
+// Local page fallback
+app.get("/", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
+app.get("/register", (req,res)=>res.sendFile(path.join(STATIC_DIR,"register.html")));
+app.get("/status", (req,res)=>res.sendFile(path.join(STATIC_DIR,"status.html")));
+app.get("/admin", (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin.html")));
+app.get("/worker/:id", (req,res)=>res.sendFile(path.join(STATIC_DIR,"worker.html")));
+app.get("/trade/:trade/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
+app.get("/trade/:trade", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
+app.get("/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
 
 // Workers
 app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).order("featured",{ascending:false}).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
@@ -606,120 +593,6 @@ app.post("/api/register", workerUpload, insertWorker);
 app.post("/api/sanaieya", workerUpload, insertWorker);
 app.post("/api/workers", workerUpload, insertWorker);
 
-
-async function insertWorkerFromAdmin(req,res){
-  if(!ready(res))return;
-  try{
-    const body=req.body||{};
-    const name=String(body.name||"").trim();
-    const phone=String(body.phone||"").trim();
-    const whatsapp=String(body.whatsapp||"").trim();
-    const trade=String(body.trade||"").trim();
-    const area=String(body.area||"").trim();
-    const description=String(body.description||"").trim();
-    const approveNow=body.approved===undefined ? true : bool(body.approved);
-    const activeNow=body.active===undefined ? true : bool(body.active);
-    const featuredNow=bool(body.featured);
-    const months=Math.max(1, Math.min(60, Number(body.subscription_months || body.months || 1) || 1));
-
-    if(!name||!phone||!trade||!area){
-      return res.status(400).json({success:false,error:"الاسم ورقم الهاتف والحرفة والمنطقة مطلوبة"});
-    }
-
-    const duplicate = await findDuplicateWorkerByPhone(phone, whatsapp);
-    if(duplicate){
-      return res.status(409).json({
-        success:false,
-        duplicate:true,
-        error:`هذا الرقم مسجل بالفعل باسم ${duplicate.name}. لا يمكن إضافة نفس رقم الهاتف أو الواتساب أكثر من مرة.`,
-        duplicate_worker_id:duplicate.id
-      });
-    }
-
-    const frontFile = idFrontFile(req);
-    const backFile = idBackFile(req);
-    const hasAnyId = !!frontFile || !!backFile;
-    const hasFullId = !!frontFile && !!backFile;
-
-    if(hasAnyId && !hasFullId){
-      return res.status(400).json({success:false,error:"لو هترفع البطاقة من لوحة الإدارة لازم ترفع الوجه والظهر معًا، أو اترك الاثنين فارغين"});
-    }
-
-    const image = mainFile(req) ? await uploadImage(mainFile(req),"profiles") : "";
-    const id_front_path = hasFullId ? await uploadPrivateImage(frontFile,"id-cards") : "";
-    const id_back_path = hasFullId ? await uploadPrivateImage(backFile,"id-cards") : "";
-
-    // لا يتم منح شارة موثّق إلا إذا كانت البطاقة مرفوعة بالكامل وتم اختيار التوثيق.
-    // الاعتماد بدون بطاقة مسموح من الإدارة، لكنه لا يجعل identity_verified = true.
-    const verifyNow = hasFullId && bool(body.identity_verified);
-    const start=today(), end=addMonths(start,months);
-
-    const insertRow={
-      name,
-      phone,
-      whatsapp,
-      trade,
-      area,
-      description,
-      image,
-      id_front_path,
-      id_back_path,
-      id_submitted_at:hasFullId ? new Date().toISOString() : null,
-      identity_status:verifyNow ? "verified" : "pending",
-      identity_verified:verifyNow,
-      identity_rejection_reason:"",
-      identity_review_note:hasFullId ? "تمت الإضافة من لوحة الإدارة مع رفع البطاقة" : "تمت الإضافة من لوحة الإدارة بدون رفع البطاقة",
-      identity_reviewed_at:verifyNow ? new Date().toISOString() : null,
-      approved:approveNow,
-      active:activeNow,
-      featured:featuredNow,
-      subscription_start:start,
-      subscription_end:end
-    };
-
-    const {data:worker,error}=await supabase.from("workers").insert(insertRow).select().single();
-    if(error) throw error;
-
-    const registrationCode = makeRegistrationCode(worker.id, worker.created_at || Date.now());
-    const {error:codeError}=await supabase.from("workers").update({registration_code:registrationCode}).eq("id",worker.id);
-    if(codeError) console.warn("Registration code was generated but not saved. Run Patch 19 SQL:", codeError.message);
-
-    const photos=[];
-    for(const f of workFiles(req)){
-      photos.push({worker_id:worker.id,image:await uploadImage(f,"work-photos")});
-    }
-    if(photos.length){
-      const {error:pe}=await supabase.from("worker_photos").insert(photos);
-      if(pe) throw pe;
-    }
-
-    await logAdminActivity("worker_admin_create",{
-      entity_type:"worker",
-      entity_id:worker.id,
-      entity_name:worker.name||name,
-      details:{registration_code:registrationCode,trade,area,approved:approveNow,active:activeNow,featured:featuredNow,identity_verified:verifyNow,has_id_card:hasFullId,subscription_months:months}
-    });
-
-    res.json({
-      success:true,
-      message:"تمت إضافة الصنايعي من لوحة الإدارة بنجاح",
-      id:worker.id,
-      registration_code:registrationCode,
-      registrationCode,
-      approved:approveNow,
-      active:activeNow,
-      featured:featuredNow,
-      identity_verified:verifyNow,
-      has_id_card:hasFullId,
-      subscription_start:start,
-      subscription_end:end
-    });
-  }catch(e){
-    res.status(500).json({success:false,error:e.message||"حدث خطأ أثناء إضافة الصنايعي من الإدارة"});
-  }
-}
-app.post("/api/admin/workers/create", requireAdmin, workerUpload, insertWorkerFromAdmin);
-
 async function updateWorker(req,res){
   if(!ready(res))return;
   const u={}, b=req.body||{};
@@ -926,18 +799,6 @@ function startOfCurrentMonthISO(){
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
-
-async function exactCount(table, buildQuery){
-  let query = supabase.from(table).select("id", { count: "exact", head: true });
-  if(buildQuery) query = buildQuery(query);
-  const { count, error } = await query;
-  if(error) throw error;
-  return count || 0;
-}
-
-function safePaymentStatus(row){
-  return String(row && row.payment_status ? row.payment_status : "paid");
-}
 app.get("/api/admin/dashboard-stats", requireAdmin, async (req,res)=>{
   if(!ready(res))return;
   const t=today();
@@ -945,125 +806,89 @@ app.get("/api/admin/dashboard-stats", requireAdmin, async (req,res)=>{
   soonDate.setDate(soonDate.getDate()+7);
   const st=soonDate.toISOString().split("T")[0];
 
-  // Hotfix 22.1:
-  // The old dashboard endpoint loaded full workers/reviews rows, then counted them in Node.js.
-  // This version uses Supabase HEAD count queries in parallel, so the admin dashboard receives
-  // the approved/pending/stat numbers without downloading full tables.
   try{
-    const [
-      totalWorkers,
-      approvedWorkers,
-      pendingWorkers,
-      featuredWorkers,
-      activeSubs,
-      soonSubs,
-      expiredSubs,
-      totalReviews,
-      pendingReviews,
-      approvedReviews,
-      identityPending,
-      identityVerified,
-      identityRejected,
-      identityNeedsData,
-      identityNeedsIdReupload,
-      topWorkersRes
-    ] = await Promise.all([
-      exactCount("workers"),
-      exactCount("workers", q => q.eq("approved", true)),
-      exactCount("workers", q => q.or("approved.is.false,approved.is.null")),
-      exactCount("workers", q => q.eq("featured", true)),
-      exactCount("workers", q => q.or(`subscription_end.is.null,subscription_end.gte.${t}`)),
-      exactCount("workers", q => q.gte("subscription_end", t).lte("subscription_end", st)),
-      exactCount("workers", q => q.lt("subscription_end", t)),
-      exactCount("reviews"),
-      exactCount("reviews", q => q.or("approved.is.false,approved.is.null")),
-      exactCount("reviews", q => q.eq("approved", true)),
-      exactCount("workers", q => q.or("identity_status.eq.pending,identity_status.is.null")),
-      exactCount("workers", q => q.or("identity_status.eq.verified,identity_verified.eq.true")),
-      exactCount("workers", q => q.eq("identity_status", "rejected")),
-      exactCount("workers", q => q.eq("identity_status", "needs_data")),
-      exactCount("workers", q => q.eq("identity_status", "needs_id_reupload")),
-      supabase.from("workers").select("trade,area").limit(10000)
+    const [workersRes,reviewsRes]=await Promise.all([
+      supabase.from("workers").select("id,name,trade,area,approved,active,featured,subscription_end,created_at,identity_status,identity_verified"),
+      supabase.from("reviews").select("id,approved,rating,worker_id")
     ]);
 
-    if(topWorkersRes.error) throw topWorkersRes.error;
-    const topRows = topWorkersRes.data || [];
+    if(workersRes.error) throw workersRes.error;
+    if(reviewsRes.error) throw reviewsRes.error;
+
+    const workers=workersRes.data||[];
+    const reviews=reviewsRes.data||[];
+
+    const approvedWorkers=workers.filter(w=>bool(w.approved));
+    const pendingWorkers=workers.filter(w=>!bool(w.approved));
+    const featuredWorkers=workers.filter(w=>bool(w.featured));
+    const activeSubs=workers.filter(w=>!w.subscription_end || w.subscription_end>=t);
+    const soonSubs=workers.filter(w=>w.subscription_end && w.subscription_end>=t && w.subscription_end<=st);
+    const expiredSubs=workers.filter(w=>w.subscription_end && w.subscription_end<t);
+    const pendingReviews=reviews.filter(r=>!bool(r.approved));
+    const identityStatusCounts=workers.reduce((acc,w)=>{ const s=normalizeIdentityStatus(w.identity_status || (bool(w.identity_verified)?"verified":"pending")); acc[s]=(acc[s]||0)+1; return acc; },{pending:0,verified:0,rejected:0,needs_data:0,needs_id_reupload:0});
 
     let payments={count:0,totalAmount:0,monthAmount:0,averageAmount:0,recent:[]};
     let paymentsWarning="";
 
-    try{
-      const [paymentsCountRes, paymentsRes] = await Promise.all([
-        supabase.from("subscription_payments").select("id", { count: "exact", head: true }),
-        supabase
-          .from("subscription_payments")
-          .select("*, workers(name)")
-          .order("id",{ascending:false})
-          .limit(250)
-      ]);
+    const paymentsRes=await supabase
+      .from("subscription_payments")
+      .select("*, workers(name)")
+      .order("id",{ascending:false})
+      .limit(250);
 
-      if(paymentsCountRes.error || paymentsRes.error){
-        paymentsWarning="جدول subscription_payments غير موجود أو غير قابل للقراءة. شغّل ملف SQL الخاص بالاشتراكات أولًا.";
-      }else{
-        const paymentRows=paymentsRes.data||[];
-        const paidRows=paymentRows.filter(p=>safePaymentStatus(p)!=="pending");
-        const currentMonthStart=startOfCurrentMonthISO();
-        const monthRows=paidRows.filter(p=>p.created_at && String(p.created_at)>=currentMonthStart);
-        payments.count=paymentsCountRes.count||paymentRows.length;
-        payments.totalAmount=sumAmounts(paidRows);
-        payments.monthAmount=sumAmounts(monthRows);
-        payments.averageAmount=paidRows.length?Math.round((payments.totalAmount/paidRows.length)*10)/10:0;
-        payments.recent=paymentRows.slice(0,10).map(p=>({
-          id:p.id,
-          worker_id:p.worker_id,
-          worker_name:p.workers&&p.workers.name?p.workers.name:"",
-          amount:p.amount,
-          plan:p.plan,
-          months:p.months,
-          payment_method:p.payment_method,
-          payment_status:p.payment_status,
-          created_at:p.created_at
-        }));
-      }
-    }catch(e){
+    if(paymentsRes.error){
       paymentsWarning="جدول subscription_payments غير موجود أو غير قابل للقراءة. شغّل ملف SQL الخاص بالاشتراكات أولًا.";
+    }else{
+      const paymentRows=paymentsRes.data||[];
+      const paidRows=paymentRows.filter(p=>String(p.payment_status||"paid")!=="pending");
+      const currentMonthStart=startOfCurrentMonthISO();
+      const monthRows=paidRows.filter(p=>p.created_at && String(p.created_at)>=currentMonthStart);
+      payments.count=paymentRows.length;
+      payments.totalAmount=sumAmounts(paidRows);
+      payments.monthAmount=sumAmounts(monthRows);
+      payments.averageAmount=paidRows.length?Math.round((payments.totalAmount/paidRows.length)*10)/10:0;
+      payments.recent=paymentRows.slice(0,10).map(p=>({
+        id:p.id,
+        worker_id:p.worker_id,
+        worker_name:p.workers&&p.workers.name?p.workers.name:"",
+        amount:p.amount,
+        plan:p.plan,
+        months:p.months,
+        payment_method:p.payment_method,
+        payment_status:p.payment_status,
+        created_at:p.created_at
+      }));
     }
 
-    res.setHeader("Cache-Control", "private, max-age=10, stale-while-revalidate=30");
     res.json({
       success:true,
       workers:{
-        total:totalWorkers,
-        approved:approvedWorkers,
-        pending:pendingWorkers,
-        featured:featuredWorkers
+        total:workers.length,
+        approved:approvedWorkers.length,
+        pending:pendingWorkers.length,
+        featured:featuredWorkers.length
       },
       subscriptions:{
-        active:activeSubs,
-        soon:soonSubs,
-        expired:expiredSubs
+        active:activeSubs.length,
+        soon:soonSubs.length,
+        expired:expiredSubs.length
       },
       reviews:{
-        total:totalReviews,
-        pending:pendingReviews,
-        approved:approvedReviews
+        total:reviews.length,
+        pending:pendingReviews.length,
+        approved:reviews.length-pendingReviews.length
       },
-      identity:{
-        pending:identityPending,
-        verified:identityVerified,
-        rejected:identityRejected,
-        needs_data:identityNeedsData,
-        needs_id_reupload:identityNeedsIdReupload
-      },
+      identity:identityStatusCounts,
       payments,
       paymentsWarning,
-      topTrades:topCounts(topRows,"trade"),
-      topAreas:topCounts(topRows,"area")
+      topTrades:topCounts(workers,"trade"),
+      topAreas:topCounts(workers,"area")
     });
   }catch(e){
     res.status(500).json({success:false,error:e.message||"تعذر تحميل الإحصائيات"});
   }
 });
+
 
 
 app.get("/api/admin/activity-log", requireAdmin, async (req,res)=>{
