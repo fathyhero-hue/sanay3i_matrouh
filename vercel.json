@@ -1,51 +1,57 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "^/api/(.*)$",
-      "dest": "/api/server.js"
+      "source": "/admin",
+      "destination": "/admin.html"
     },
     {
-      "src": "^/admin/?$",
-      "dest": "/admin.html"
+      "source": "/admin/",
+      "destination": "/admin.html"
     },
     {
-      "src": "^/admin/add-worker/?$",
-      "dest": "/admin-add-worker.html"
+      "source": "/admin/add-worker",
+      "destination": "/admin-add-worker.html"
     },
     {
-      "src": "^/admin-add-worker/?$",
-      "dest": "/admin-add-worker.html"
+      "source": "/admin/add-worker/",
+      "destination": "/admin-add-worker.html"
     },
     {
-      "src": "^/register/?$",
-      "dest": "/register.html"
+      "source": "/admin-add-worker",
+      "destination": "/admin-add-worker.html"
     },
     {
-      "src": "^/status/?$",
-      "dest": "/status.html"
+      "source": "/admin-add-worker/",
+      "destination": "/admin-add-worker.html"
     },
     {
-      "src": "^/worker/(.*)$",
-      "dest": "/worker.html"
+      "source": "/register",
+      "destination": "/register.html"
     },
     {
-      "src": "^/trade/(.*)$",
-      "dest": "/index.html"
+      "source": "/register/",
+      "destination": "/register.html"
     },
     {
-      "src": "^/area/(.*)$",
-      "dest": "/index.html"
+      "source": "/status",
+      "destination": "/status.html"
     },
     {
-      "src": "^/(.*)$",
-      "dest": "/$1"
+      "source": "/status/",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/worker/:id",
+      "destination": "/worker.html"
+    },
+    {
+      "source": "/trade/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/area/:path*",
+      "destination": "/index.html"
     }
   ]
 }
