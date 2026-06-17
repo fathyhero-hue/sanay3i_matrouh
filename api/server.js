@@ -1155,10 +1155,11 @@ app.get("/api/admin/dashboard-ultra", async (req,res)=>{
 // ⚡ REALTIME LAYER (WEBSOCKET)
 // ===============================
 const http = require("http");
-const WebSocket = require("ws");
+let WebSocket = null;
+try { WebSocket = require("ws"); } catch(e) { WebSocket = null; }
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = WebSocket ? new WebSocket.Server({ server }) : null;
 
 // store last stats in memory
 let LIVE_STATS = { total:0, pending:0, approved:0 };
@@ -1166,6 +1167,7 @@ let LIVE_STATS = { total:0, pending:0, approved:0 };
 function broadcast(type, data) {
   const msg = JSON.stringify({ type, data });
 
+  if (!wss) return;
   wss.clients.forEach(client => {
     if (client.readyState === 1) {
       client.send(msg);
@@ -1189,7 +1191,7 @@ async function refreshLiveStats() {
 }
 
 // websocket connection
-wss.on("connection", (ws) => {
+if (wss) wss.on("connection", (ws) => {
   ws.send(JSON.stringify({ type:"init", data: LIVE_STATS }));
 });
 
@@ -1199,3 +1201,31 @@ wss.on("connection", (ws) => {
 
 // NOTE: call refreshLiveStats() after any create/update/delete worker operation
 
+
+
+// ===============================
+// Stable Fast Stats Endpoint
+// ===============================
+app.get("/api/stats-stable", async (req,res)=>{
+  const cached = typeof getCache === "function" ? getCache("stats_stable") : null;
+  if(cached) return res.json(cached);
+
+  try{
+    const [totalRes, pendingRes, approvedRes] = await Promise.all([
+      supabase.from("workers").select("*",{count:"exact",head:true}),
+      supabase.from("workers").select("*",{count:"exact",head:true}).eq("approved",false),
+      supabase.from("workers").select("*",{count:"exact",head:true}).eq("approved",true),
+    ]);
+
+    const stats = {
+      total: totalRes.count || 0,
+      pending: pendingRes.count || 0,
+      approved: approvedRes.count || 0
+    };
+
+    if(typeof setCache === "function") setCache("stats_stable",stats,30000);
+    return res.json(stats);
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message,total:0,pending:0,approved:0});
+  }
+});
