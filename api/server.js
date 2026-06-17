@@ -874,3 +874,4 @@ app.get("/api/backup-db", requireAdmin, (req,res)=>res.status(400).json({success
 app.use((req,res,next)=>{ if(req.path.startsWith("/api")) return res.status(404).json({success:false,error:"API route not found"}); next(); });
 
 module.exports = app;
+// VERSION: NEW CLEAN DEPLOY - 2026-06-17
