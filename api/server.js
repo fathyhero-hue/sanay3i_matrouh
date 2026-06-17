@@ -3,12 +3,16 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const crypto = require("crypto");
+const { AsyncLocalStorage } = require("async_hooks");
 const { createClient } = require("@supabase/supabase-js");
 try { require("dotenv").config(); } catch(e) {}
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+const requestContext = new AsyncLocalStorage();
+app.use((req, res, next) => requestContext.run({ req }, next));
 
 // ===============================
 // Static / PWA files for Local + Vercel
@@ -65,12 +69,59 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_SERVICE_ROLE_KEY || "
 
 
 // ===============================
-// Admin Auth (server-side only)
+// Admin Auth + Roles (server-side only)
 // ===============================
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || "";
 const ADMIN_COOKIE_NAME = "sanay3i_admin_token";
 const ADMIN_SESSION_DAYS = Number(process.env.ADMIN_SESSION_DAYS || 7);
+const ADMIN_PASSWORD_ITERATIONS = 120000;
+
+const ADMIN_ROLES = {
+  super_admin: "مدير كامل",
+  reviewer: "موظف مراجعة",
+  subscription_manager: "موظف اشتراكات",
+  viewer: "مشاهد"
+};
+
+const ADMIN_ROLE_PERMISSIONS = {
+  super_admin: [
+    "workers:read", "workers:create", "workers:update", "workers:review", "workers:delete",
+    "subscriptions:manage", "reviews:review", "settings:manage", "backup:export",
+    "analytics:read", "activity_log:read", "admin_users:manage", "whatsapp:send"
+  ],
+  reviewer: ["workers:read", "workers:review", "reviews:review", "analytics:read", "activity_log:read", "whatsapp:send"],
+  subscription_manager: ["workers:read", "subscriptions:manage", "analytics:read", "activity_log:read", "whatsapp:send"],
+  viewer: ["workers:read", "analytics:read", "activity_log:read"]
+};
+
+function normalizeAdminRole(role) {
+  const r = String(role || "viewer").trim();
+  return ADMIN_ROLES[r] ? r : "viewer";
+}
+
+function adminPermissions(role) {
+  return ADMIN_ROLE_PERMISSIONS[normalizeAdminRole(role)] || ADMIN_ROLE_PERMISSIONS.viewer;
+}
+
+function adminHasPermission(admin, permission) {
+  if (!admin) return false;
+  if (normalizeAdminRole(admin.role) === "super_admin") return true;
+  return adminPermissions(admin.role).includes(permission);
+}
+
+function publicAdmin(admin) {
+  if (!admin) return null;
+  const role = normalizeAdminRole(admin.role);
+  return {
+    id: admin.id || admin.admin_id || null,
+    username: admin.username || "admin",
+    display_name: admin.display_name || admin.name || "الإدارة",
+    role,
+    role_label: ADMIN_ROLES[role],
+    permissions: adminPermissions(role)
+  };
+}
 
 function parseCookies(req) {
   const header = req.headers.cookie || "";
@@ -93,26 +144,42 @@ function sign(payload) {
   return crypto.createHmac("sha256", ADMIN_SESSION_SECRET).update(payload).digest("base64url");
 }
 
-function createAdminToken() {
+function createAdminToken(admin = {}) {
   const maxAgeMs = ADMIN_SESSION_DAYS * 24 * 60 * 60 * 1000;
-  const payload = base64url(JSON.stringify({ role: "admin", exp: Date.now() + maxAgeMs }));
+  const cleanAdmin = publicAdmin(admin) || publicAdmin({ role: "super_admin", username: "admin", display_name: "الإدارة" });
+  const payload = base64url(JSON.stringify({
+    admin_id: cleanAdmin.id,
+    username: cleanAdmin.username,
+    display_name: cleanAdmin.display_name,
+    role: cleanAdmin.role,
+    exp: Date.now() + maxAgeMs
+  }));
   return `${payload}.${sign(payload)}`;
 }
 
-function verifyAdminToken(token) {
-  if (!ADMIN_SESSION_SECRET || !token || !token.includes(".")) return false;
+function decodeAdminToken(token) {
+  if (!ADMIN_SESSION_SECRET || !token || !token.includes(".")) return null;
   const [payload, signature] = token.split(".");
   const expected = sign(payload);
 
   try {
     const a = Buffer.from(signature || "");
     const b = Buffer.from(expected || "");
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return data.role === "admin" && Number(data.exp) > Date.now();
+    if (Number(data.exp) <= Date.now()) return null;
+
+    // Backward compatibility with old cookies: role was "admin".
+    if (data.role === "admin") data.role = "super_admin";
+    data.role = normalizeAdminRole(data.role || "super_admin");
+    return publicAdmin(data);
   } catch (e) {
-    return false;
+    return null;
   }
+}
+
+function verifyAdminToken(token) {
+  return !!decodeAdminToken(token);
 }
 
 function cookieOptions(maxAgeSeconds) {
@@ -143,27 +210,98 @@ function safePasswordEqual(input, expected) {
   return crypto.timingSafeEqual(a, b);
 }
 
+function getAdminFromRequest(req) {
+  return decodeAdminToken(parseCookies(req)[ADMIN_COOKIE_NAME]);
+}
+
+function currentAdminFromContext() {
+  const store = requestContext.getStore();
+  return store && store.req ? (store.req.admin || getAdminFromRequest(store.req)) : null;
+}
+
 function isAdminRequest(req) {
-  return verifyAdminToken(parseCookies(req)[ADMIN_COOKIE_NAME]);
+  const admin = getAdminFromRequest(req);
+  if (admin) req.admin = admin;
+  return !!admin;
 }
 
 function requireAdmin(req, res, next) {
-  if (isAdminRequest(req)) return next();
+  const admin = getAdminFromRequest(req);
+  if (admin) {
+    req.admin = admin;
+    return next();
+  }
   return res.status(401).json({ success: false, error: "غير مصرح بالدخول للوحة الإدارة" });
 }
 
-app.post("/api/admin/login", (req, res) => {
-  if (!ADMIN_PASSWORD || !ADMIN_SESSION_SECRET) {
-    return res.status(500).json({ success: false, error: "Admin environment variables are missing" });
+function requirePermission(permission) {
+  return (req, res, next) => {
+    const admin = getAdminFromRequest(req);
+    if (!admin) return res.status(401).json({ success: false, error: "غير مصرح بالدخول للوحة الإدارة" });
+    req.admin = admin;
+    if (!adminHasPermission(admin, permission)) {
+      return res.status(403).json({ success: false, error: "ليس لديك صلاحية لتنفيذ هذه العملية" });
+    }
+    return next();
+  };
+}
+
+function hashAdminPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.pbkdf2Sync(String(password || ""), salt, ADMIN_PASSWORD_ITERATIONS, 64, "sha256").toString("hex");
+  return { salt, hash };
+}
+
+function verifyAdminUserPassword(row, password) {
+  if (!row || !row.password_salt || !row.password_hash) return false;
+  const { hash } = hashAdminPassword(password, row.password_salt);
+  const a = Buffer.from(hash);
+  const b = Buffer.from(String(row.password_hash || ""));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+app.post("/api/admin/login", async (req, res) => {
+  if (!ADMIN_SESSION_SECRET) {
+    return res.status(500).json({ success: false, error: "ADMIN_SESSION_SECRET غير مضبوط" });
   }
 
+  const username = String(req.body?.username || "").trim().toLowerCase();
   const password = req.body ? req.body.password : "";
+
+  // New multi-admin login: username + password from admin_users table.
+  if (username) {
+    if (!ready(res)) return;
+    const { data: user, error } = await supabase
+      .from("admin_users")
+      .select("id,username,display_name,role,password_salt,password_hash,active")
+      .eq("username", username)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ success: false, error: "جدول admin_users غير جاهز. شغّل ملف SQL الخاص بالصلاحيات أولًا." });
+    }
+    if (!user || !verifyAdminUserPassword(user, password)) {
+      return res.status(401).json({ success: false, error: "اسم المستخدم أو كلمة السر غير صحيحة" });
+    }
+
+    const admin = publicAdmin(user);
+    setAdminCookie(res, createAdminToken(admin));
+    await supabase.from("admin_users").update({ last_login_at: new Date().toISOString() }).eq("id", user.id);
+    return res.json({ success: true, admin });
+  }
+
+  // Backward-compatible emergency login using ADMIN_PASSWORD from environment.
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ success: false, error: "ADMIN_PASSWORD غير مضبوط" });
+  }
   if (!safePasswordEqual(password, ADMIN_PASSWORD)) {
     return res.status(401).json({ success: false, error: "كلمة السر غير صحيحة" });
   }
 
-  setAdminCookie(res, createAdminToken());
-  return res.json({ success: true });
+  const admin = publicAdmin({ id: null, username: "env_admin", display_name: "المدير الرئيسي", role: "super_admin" });
+  setAdminCookie(res, createAdminToken(admin));
+  return res.json({ success: true, admin });
 });
 
 app.post("/api/admin/logout", (req, res) => {
@@ -172,7 +310,82 @@ app.post("/api/admin/logout", (req, res) => {
 });
 
 app.get("/api/admin/me", (req, res) => {
-  return res.json({ authenticated: isAdminRequest(req) });
+  const admin = getAdminFromRequest(req);
+  return res.json({ authenticated: !!admin, admin: publicAdmin(admin), roles: ADMIN_ROLES });
+});
+
+// ===============================
+// Admin users management
+// ===============================
+app.get("/api/admin/users", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("id,username,display_name,role,active,created_at,last_login_at")
+    .order("id", { ascending: true });
+  if (error) return res.status(500).json({ success: false, error: "جدول admin_users غير موجود. شغّل SQL الصلاحيات أولًا." });
+  res.json({ success: true, items: data || [], roles: ADMIN_ROLES });
+});
+
+app.post("/api/admin/users", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  const username = String(req.body?.username || "").trim().toLowerCase();
+  const displayName = String(req.body?.display_name || req.body?.displayName || username).trim();
+  const role = normalizeAdminRole(req.body?.role || "viewer");
+  const password = String(req.body?.password || "");
+  if (!/^[a-z0-9_.-]{3,40}$/.test(username)) return res.status(400).json({ success: false, error: "اسم المستخدم يجب أن يكون إنجليزي/أرقام من 3 إلى 40 حرف" });
+  if (password.length < 8) return res.status(400).json({ success: false, error: "كلمة السر يجب ألا تقل عن 8 أحرف" });
+  const { salt, hash } = hashAdminPassword(password);
+  const { data, error } = await supabase.from("admin_users").insert({
+    username,
+    display_name: displayName,
+    role,
+    password_salt: salt,
+    password_hash: hash,
+    active: true
+  }).select("id,username,display_name,role,active,created_at,last_login_at").single();
+  if (error) return res.status(500).json({ success: false, error: "تعذر إنشاء مستخدم الإدارة. تأكد أن اسم المستخدم غير مكرر." });
+  await logAdminActivity("admin_user_create", { entity_type: "admin_user", entity_id: data.id, entity_name: data.display_name || data.username, after_data: { username, display_name: displayName, role, active: true } });
+  res.json({ success: true, user: data });
+});
+
+app.put("/api/admin/users/:id", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  const userId = Number(req.params.id);
+  const update = {};
+  if (req.body?.display_name !== undefined || req.body?.displayName !== undefined) update.display_name = String(req.body.display_name || req.body.displayName || "").trim();
+  if (req.body?.role !== undefined) update.role = normalizeAdminRole(req.body.role);
+  if (req.body?.active !== undefined) update.active = bool(req.body.active);
+  update.updated_at = new Date().toISOString();
+  const { data: before } = await supabase.from("admin_users").select("id,username,display_name,role,active").eq("id", userId).single();
+  const { data, error } = await supabase.from("admin_users").update(update).eq("id", userId).select("id,username,display_name,role,active,created_at,last_login_at").single();
+  if (error) return res.status(500).json({ success: false, error: "تعذر تعديل مستخدم الإدارة" });
+  await logAdminActivity("admin_user_update", { entity_type: "admin_user", entity_id: userId, entity_name: data.display_name || data.username, before_data: before || {}, after_data: data || {}, details: { fields: Object.keys(update) } });
+  res.json({ success: true, user: data });
+});
+
+app.put("/api/admin/users/:id/password", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  const userId = Number(req.params.id);
+  const password = String(req.body?.password || "");
+  if (password.length < 8) return res.status(400).json({ success: false, error: "كلمة السر يجب ألا تقل عن 8 أحرف" });
+  const { salt, hash } = hashAdminPassword(password);
+  const { data: user } = await supabase.from("admin_users").select("id,username,display_name").eq("id", userId).single();
+  const { error } = await supabase.from("admin_users").update({ password_salt: salt, password_hash: hash, updated_at: new Date().toISOString() }).eq("id", userId);
+  if (error) return res.status(500).json({ success: false, error: "تعذر تغيير كلمة السر" });
+  await logAdminActivity("admin_user_password_change", { entity_type: "admin_user", entity_id: userId, entity_name: user?.display_name || user?.username || "مستخدم إدارة" });
+  res.json({ success: true });
+});
+
+app.delete("/api/admin/users/:id", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  const userId = Number(req.params.id);
+  if (req.admin && String(req.admin.id || "") === String(userId)) return res.status(400).json({ success: false, error: "لا يمكن حذف حسابك الحالي" });
+  const { data: before } = await supabase.from("admin_users").select("id,username,display_name,role,active").eq("id", userId).single();
+  const { error } = await supabase.from("admin_users").delete().eq("id", userId);
+  if (error) return res.status(500).json({ success: false, error: "تعذر حذف مستخدم الإدارة" });
+  await logAdminActivity("admin_user_delete", { entity_type: "admin_user", entity_id: userId, entity_name: before?.display_name || before?.username || "مستخدم إدارة", before_data: before || {} });
+  res.json({ success: true });
 });
 
 const upload = multer({
@@ -330,22 +543,39 @@ function activityActionLabel(action){
     trade_add:"إضافة حرفة",
     trade_delete:"حذف حرفة",
     area_add:"إضافة منطقة",
-    area_delete:"حذف منطقة"
+    area_delete:"حذف منطقة",
+    admin_user_create:"إنشاء مستخدم إدارة",
+    admin_user_update:"تعديل مستخدم إدارة",
+    admin_user_password_change:"تغيير كلمة سر مستخدم إدارة",
+    admin_user_delete:"حذف مستخدم إدارة"
   }[action] || action;
 }
 async function logAdminActivity(action, options={}){
   try{
     if(!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
-    const row={
+    const admin = options.admin || currentAdminFromContext() || null;
+    const baseRow={
       action:String(action||"admin_action"),
       action_label:activityActionLabel(action),
       entity_type:options.entity_type?String(options.entity_type):null,
       entity_id:options.entity_id!==undefined && options.entity_id!==null && options.entity_id!=="" ? Number(options.entity_id) : null,
       entity_name:options.entity_name?String(options.entity_name):null,
       details:options.details || {},
-      admin_name:options.admin_name || "الإدارة"
+      admin_name:options.admin_name || admin?.display_name || admin?.username || "الإدارة"
     };
-    const {error}=await supabase.from("admin_activity_log").insert(row);
+    const fullRow={
+      ...baseRow,
+      admin_id: admin?.id || null,
+      admin_username: admin?.username || null,
+      admin_role: admin?.role || null,
+      before_data: options.before_data || options.before || {},
+      after_data: options.after_data || options.after || {}
+    };
+    let {error}=await supabase.from("admin_activity_log").insert(fullRow);
+    if(error){
+      const retry = await supabase.from("admin_activity_log").insert(baseRow);
+      error = retry.error;
+    }
     if(error) console.warn("Admin activity log skipped:", error.message);
   }catch(e){
     console.warn("Admin activity log skipped:", e.message);
@@ -368,10 +598,10 @@ app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,er
 app.get("/api/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 app.get("/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 
-app.get("/api/admin/workers", requireAdmin, async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
-app.get("/api/workers/all", requireAdmin, (req,res)=>{ req.url="/api/admin/workers"; app._router.handle(req,res); });
+app.get("/api/admin/workers", requirePermission("workers:read"), async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
+app.get("/api/workers/all", requirePermission("workers:read"), (req,res)=>{ req.url="/api/admin/workers"; app._router.handle(req,res); });
 
-app.get("/api/admin/workers/:id/id-card/:side", requireAdmin, async (req,res)=>{
+app.get("/api/admin/workers/:id/id-card/:side", requirePermission("workers:review"), async (req,res)=>{
   if(!ready(res))return;
   const side=String(req.params.side||"");
   if(side!=="front" && side!=="back") return res.status(400).json({success:false,error:"نوع صورة البطاقة غير صحيح"});
@@ -384,7 +614,7 @@ app.get("/api/admin/workers/:id/id-card/:side", requireAdmin, async (req,res)=>{
   res.json({success:true,url:signed.data.signedUrl});
 });
 
-app.put("/api/admin/workers/:id/identity-review", requireAdmin, async (req,res)=>{
+app.put("/api/admin/workers/:id/identity-review", requirePermission("workers:review"), async (req,res)=>{
   if(!ready(res))return;
   const status=normalizeIdentityStatus(req.body.identity_status || req.body.status);
   const reason=String(req.body.reason || req.body.identity_rejection_reason || "").trim();
@@ -711,7 +941,7 @@ async function createWorkerFromAdmin(req,res){
     return res.status(500).json({success:false,error:e.message || "حدث خطأ أثناء إضافة الصنايعي من الإدارة"});
   }
 }
-app.post("/api/admin/workers/create", requireAdmin, workerUpload, createWorkerFromAdmin);
+app.post("/api/admin/workers/create", requirePermission("workers:create"), workerUpload, createWorkerFromAdmin);
 
 
 async function updateWorker(req,res){
@@ -721,18 +951,22 @@ async function updateWorker(req,res){
   if(b.approved!==undefined) u.approved=bool(b.approved);
   if(b.active!==undefined) u.active=bool(b.active);
   if(b.featured!==undefined) u.featured=bool(b.featured);
-  const {data:before}=await supabase.from("workers").select("id,name").eq("id",id(req)).single();
-  const {error}=await supabase.from("workers").update(u).eq("id",id(req));
+  const {data:before}=await supabase.from("workers").select("*").eq("id",id(req)).single();
+  const beforeFields={};
+  Object.keys(u).forEach(k=>{ beforeFields[k]=before ? before[k] : null; });
+  const {data:afterRow,error}=await supabase.from("workers").update(u).eq("id",id(req)).select("*").single();
   if(error)return res.status(500).json({success:false,error:error.message});
-  await logAdminActivity("worker_update",{entity_type:"worker",entity_id:id(req),entity_name:(u.name||before?.name||"صنايعي"),details:{fields:Object.keys(u)}});
+  const afterFields={};
+  Object.keys(u).forEach(k=>{ afterFields[k]=afterRow ? afterRow[k] : u[k]; });
+  await logAdminActivity("worker_update",{entity_type:"worker",entity_id:id(req),entity_name:(u.name||before?.name||"صنايعي"),details:{fields:Object.keys(u)},before_data:beforeFields,after_data:afterFields});
   res.json({success:true});
 }
-app.put("/api/workers/:id", requireAdmin, updateWorker); app.put("/api/sanaieya/:id", requireAdmin, updateWorker);
+app.put("/api/workers/:id", requirePermission("workers:update"), updateWorker); app.put("/api/sanaieya/:id", requirePermission("workers:update"), updateWorker);
 async function setBool(req,res,col){
   if(!ready(res))return;
   const value=bool(req.body[col]);
   const updates={[col]:value};
-  const {data:worker}=await supabase.from("workers").select("id,name").eq("id",id(req)).single();
+  const {data:worker}=await supabase.from("workers").select("*").eq("id",id(req)).single();
 
   if(col==="approved" && value){
     // Admin override: approval is allowed from the dashboard even if ID card images are missing.
@@ -749,12 +983,12 @@ async function setBool(req,res,col){
   const {error}=await supabase.from("workers").update(updates).eq("id",id(req));
   if(error)return res.status(500).json({success:false,error:error.message});
   const action = col==="approved" ? (value?"worker_approve":"worker_unapprove") : col==="active" ? (value?"worker_activate":"worker_deactivate") : col==="featured" ? (value?"worker_feature":"worker_unfeature") : "worker_update";
-  await logAdminActivity(action,{entity_type:"worker",entity_id:id(req),entity_name:worker?.name||"صنايعي",details:{field:col,value}});
+  await logAdminActivity(action,{entity_type:"worker",entity_id:id(req),entity_name:worker?.name||"صنايعي",details:{field:col,value},before_data:{[col]:worker?worker[col]:null,identity_status:worker?worker.identity_status:null,identity_verified:worker?worker.identity_verified:null},after_data:updates});
   res.json({success:true});
 }
-app.put("/api/workers/:id/approve", requireAdmin, (req,res)=>setBool(req,res,"approved")); app.put("/api/sanaieya/:id/approve", requireAdmin, (req,res)=>setBool(req,res,"approved"));
-app.put("/api/workers/:id/active", requireAdmin, (req,res)=>setBool(req,res,"active")); app.put("/api/sanaieya/:id/active", requireAdmin, (req,res)=>setBool(req,res,"active"));
-app.put("/api/workers/:id/featured", requireAdmin, (req,res)=>setBool(req,res,"featured")); app.put("/api/sanaieya/:id/featured", requireAdmin, (req,res)=>setBool(req,res,"featured"));
+app.put("/api/workers/:id/approve", requirePermission("workers:review"), (req,res)=>setBool(req,res,"approved")); app.put("/api/sanaieya/:id/approve", requirePermission("workers:review"), (req,res)=>setBool(req,res,"approved"));
+app.put("/api/workers/:id/active", requirePermission("workers:update"), (req,res)=>setBool(req,res,"active")); app.put("/api/sanaieya/:id/active", requirePermission("workers:update"), (req,res)=>setBool(req,res,"active"));
+app.put("/api/workers/:id/featured", requirePermission("workers:update"), (req,res)=>setBool(req,res,"featured")); app.put("/api/sanaieya/:id/featured", requirePermission("workers:update"), (req,res)=>setBool(req,res,"featured"));
 
 function subscriptionPlanDefaults(plan){
   const plans = {
@@ -825,9 +1059,9 @@ async function renew(req,res){
     warning:paymentLogWarning
   });
 }
-app.put("/api/workers/:id/renew", requireAdmin, renew); app.put("/api/sanaieya/:id/renew", requireAdmin, renew); app.put("/api/workers/:id/subscription", requireAdmin, renew); app.put("/api/sanaieya/:id/subscription", requireAdmin, renew);
+app.put("/api/workers/:id/renew", requirePermission("subscriptions:manage"), renew); app.put("/api/sanaieya/:id/renew", requirePermission("subscriptions:manage"), renew); app.put("/api/workers/:id/subscription", requirePermission("subscriptions:manage"), renew); app.put("/api/sanaieya/:id/subscription", requirePermission("subscriptions:manage"), renew);
 
-app.get("/api/workers/:id/subscription-payments", requireAdmin, async (req,res)=>{
+app.get("/api/workers/:id/subscription-payments", requirePermission("subscriptions:manage"), async (req,res)=>{
   if(!ready(res))return;
   const {data,error}=await supabase
     .from("subscription_payments")
@@ -842,32 +1076,32 @@ app.get("/api/workers/:id/subscription-payments", requireAdmin, async (req,res)=
 
 // Photos
 app.get("/api/workers/:id/photos", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("worker_photos").select("*").eq("worker_id",id(req)).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
-app.post("/api/workers/:id/photos", requireAdmin, upload.array("workPhotos",5), async (req,res)=>{ if(!ready(res))return; try{ if(!req.files||!req.files.length)return res.status(400).json({success:false,error:"لم يتم رفع أي صور"}); const rows=[]; for(const f of req.files){ rows.push({worker_id:id(req),image:await uploadImage(f,"work-photos")}); } const {error}=await supabase.from("worker_photos").insert(rows); if(error)throw error; const {data:worker}=await supabase.from("workers").select("id,name").eq("id",id(req)).single(); await logAdminActivity("work_photos_add",{entity_type:"worker",entity_id:id(req),entity_name:worker?.name||"صنايعي",details:{count:rows.length}}); res.json({success:true,count:rows.length}); }catch(e){ res.status(500).json({success:false,error:e.message}); }});
-app.delete("/api/workers/photos/:photoId", requireAdmin, async (req,res)=>{ if(!ready(res))return; const photoId=Number(req.params.photoId); const {data:photo}=await supabase.from("worker_photos").select("id,worker_id").eq("id",photoId).single(); const {error}=await supabase.from("worker_photos").delete().eq("id",photoId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity("work_photo_delete",{entity_type:"worker_photo",entity_id:photoId,entity_name:"صورة عمل",details:{worker_id:photo?.worker_id||null}}); res.json({success:true}); });
+app.post("/api/workers/:id/photos", requirePermission("workers:update"), upload.array("workPhotos",5), async (req,res)=>{ if(!ready(res))return; try{ if(!req.files||!req.files.length)return res.status(400).json({success:false,error:"لم يتم رفع أي صور"}); const rows=[]; for(const f of req.files){ rows.push({worker_id:id(req),image:await uploadImage(f,"work-photos")}); } const {error}=await supabase.from("worker_photos").insert(rows); if(error)throw error; const {data:worker}=await supabase.from("workers").select("id,name").eq("id",id(req)).single(); await logAdminActivity("work_photos_add",{entity_type:"worker",entity_id:id(req),entity_name:worker?.name||"صنايعي",details:{count:rows.length}}); res.json({success:true,count:rows.length}); }catch(e){ res.status(500).json({success:false,error:e.message}); }});
+app.delete("/api/workers/photos/:photoId", requirePermission("workers:update"), async (req,res)=>{ if(!ready(res))return; const photoId=Number(req.params.photoId); const {data:photo}=await supabase.from("worker_photos").select("id,worker_id").eq("id",photoId).single(); const {error}=await supabase.from("worker_photos").delete().eq("id",photoId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity("work_photo_delete",{entity_type:"worker_photo",entity_id:photoId,entity_name:"صورة عمل",details:{worker_id:photo?.worker_id||null}}); res.json({success:true}); });
 
 // Reviews
 app.get("/api/workers/:id/reviews", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("reviews").select("*").eq("worker_id",id(req)).eq("approved",true).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
 app.get("/api/workers/:id/reviews/summary", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("reviews").select("rating").eq("worker_id",id(req)).eq("approved",true); if(error)return res.status(500).json({success:false,error:error.message}); const count=(data||[]).length, sum=(data||[]).reduce((a,r)=>a+Number(r.rating||0),0); res.json({count,average:count?Math.round((sum/count)*10)/10:0}); });
 app.post("/api/workers/:id/reviews", async (req,res)=>{ if(!ready(res))return; const rating=Number(req.body.rating), comment=String(req.body.comment||req.body.review||"").trim(), customer=String(req.body.customer_name||req.body.customerName||req.body.name||"عميل").trim(); if(!rating||rating<1||rating>5)return res.status(400).json({success:false,error:"التقييم يجب أن يكون من 1 إلى 5"}); if(!comment)return res.status(400).json({success:false,error:"من فضلك اكتب الريفيو"}); const {error}=await supabase.from("reviews").insert({worker_id:id(req),customer_name:customer||"عميل",rating,comment,approved:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json({success:true,message:"تم إرسال التقييم بنجاح، وسيظهر بعد مراجعة الإدارة"}); });
-app.get("/api/admin/reviews", requireAdmin, async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("reviews").select("*, workers(name, trade, area)").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json((data||[]).map(r=>({...r,worker_name:r.workers?r.workers.name:"",worker_trade:r.workers?r.workers.trade:"",worker_area:r.workers?r.workers.area:""}))); });
-app.put("/api/reviews/:id/approve", requireAdmin, async (req,res)=>{ if(!ready(res))return; const reviewId=Number(req.params.id); const approved=bool(req.body.approved); const {data:review}=await supabase.from("reviews").select("id,worker_id,customer_name,rating").eq("id",reviewId).single(); const {error}=await supabase.from("reviews").update({approved}).eq("id",reviewId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity(approved?"review_approve":"review_unapprove",{entity_type:"review",entity_id:reviewId,entity_name:review?.customer_name||"تقييم",details:{worker_id:review?.worker_id||null,rating:review?.rating||null,approved}}); res.json({success:true}); });
-app.delete("/api/reviews/:id", requireAdmin, async (req,res)=>{ if(!ready(res))return; const reviewId=Number(req.params.id); const {data:review}=await supabase.from("reviews").select("id,worker_id,customer_name,rating").eq("id",reviewId).single(); const {error}=await supabase.from("reviews").delete().eq("id",reviewId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity("review_delete",{entity_type:"review",entity_id:reviewId,entity_name:review?.customer_name||"تقييم",details:{worker_id:review?.worker_id||null,rating:review?.rating||null}}); res.json({success:true}); });
+app.get("/api/admin/reviews", requirePermission("workers:read"), async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("reviews").select("*, workers(name, trade, area)").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json((data||[]).map(r=>({...r,worker_name:r.workers?r.workers.name:"",worker_trade:r.workers?r.workers.trade:"",worker_area:r.workers?r.workers.area:""}))); });
+app.put("/api/reviews/:id/approve", requirePermission("reviews:review"), async (req,res)=>{ if(!ready(res))return; const reviewId=Number(req.params.id); const approved=bool(req.body.approved); const {data:review}=await supabase.from("reviews").select("id,worker_id,customer_name,rating").eq("id",reviewId).single(); const {error}=await supabase.from("reviews").update({approved}).eq("id",reviewId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity(approved?"review_approve":"review_unapprove",{entity_type:"review",entity_id:reviewId,entity_name:review?.customer_name||"تقييم",details:{worker_id:review?.worker_id||null,rating:review?.rating||null,approved}}); res.json({success:true}); });
+app.delete("/api/reviews/:id", requirePermission("reviews:review"), async (req,res)=>{ if(!ready(res))return; const reviewId=Number(req.params.id); const {data:review}=await supabase.from("reviews").select("id,worker_id,customer_name,rating").eq("id",reviewId).single(); const {error}=await supabase.from("reviews").delete().eq("id",reviewId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity("review_delete",{entity_type:"review",entity_id:reviewId,entity_name:review?.customer_name||"تقييم",details:{worker_id:review?.worker_id||null,rating:review?.rating||null}}); res.json({success:true}); });
 
 // Delete worker
 async function deleteWorker(req,res){ if(!ready(res))return; const {data:worker}=await supabase.from("workers").select("id,name,phone,trade,area").eq("id",id(req)).single(); const {error}=await supabase.from("workers").delete().eq("id",id(req)); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity("worker_delete",{entity_type:"worker",entity_id:id(req),entity_name:worker?.name||"صنايعي",details:{phone:worker?.phone||"",trade:worker?.trade||"",area:worker?.area||""}}); res.json({success:true}); }
-app.delete("/api/workers/:id", requireAdmin, deleteWorker); app.delete("/api/sanaieya/:id", requireAdmin, deleteWorker);
+app.delete("/api/workers/:id", requirePermission("workers:delete"), deleteWorker); app.delete("/api/sanaieya/:id", requirePermission("workers:delete"), deleteWorker);
 
 // Trades / Areas
 async function listTable(res,table){ const {data,error}=await supabase.from(table).select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); }
 async function addToTable(req,res,table,label){ const name=req.body.name||req.body.trade||req.body.craft||req.body.area||req.body.location; if(!name||!String(name).trim())return res.status(400).json({success:false,error:`اسم ${label} مطلوب`}); const cleanName=String(name).trim(); const {data,error}=await supabase.from(table).insert({name:cleanName}).select().single(); if(error)return res.status(500).json({success:false,error:`${label} موجودة بالفعل أو حدث خطأ أثناء الإضافة`}); await logAdminActivity(table==="trades"?"trade_add":"area_add",{entity_type:table,entity_id:data.id,entity_name:data.name||cleanName,details:{label}}); res.json({success:true,id:data.id,name:data.name}); }
 async function delFromTable(req,res,table){ const rowId=Number(req.params.id); const {data:row}=await supabase.from(table).select("id,name").eq("id",rowId).single(); const {error}=await supabase.from(table).delete().eq("id",rowId); if(error)return res.status(500).json({success:false,error:error.message}); await logAdminActivity(table==="trades"?"trade_delete":"area_delete",{entity_type:table,entity_id:rowId,entity_name:row?.name||"",details:{}}); res.json({success:true}); }
 app.get("/api/trades",(req,res)=>ready(res)&&listTable(res,"trades")); app.get("/api/crafts",(req,res)=>ready(res)&&listTable(res,"trades")); app.get("/trades",(req,res)=>ready(res)&&listTable(res,"trades")); app.get("/crafts",(req,res)=>ready(res)&&listTable(res,"trades"));
-app.post("/api/trades", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة")); app.post("/api/crafts", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة")); app.post("/trades", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة")); app.post("/crafts", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة"));
-app.delete("/api/trades/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"trades")); app.delete("/api/crafts/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"trades")); app.delete("/trades/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"trades")); app.delete("/crafts/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"trades"));
+app.post("/api/trades", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة")); app.post("/api/crafts", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة")); app.post("/trades", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة")); app.post("/crafts", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"trades","الحرفة"));
+app.delete("/api/trades/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"trades")); app.delete("/api/crafts/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"trades")); app.delete("/trades/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"trades")); app.delete("/crafts/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"trades"));
 
 app.get("/api/areas",(req,res)=>ready(res)&&listTable(res,"areas")); app.get("/api/locations",(req,res)=>ready(res)&&listTable(res,"areas")); app.get("/areas",(req,res)=>ready(res)&&listTable(res,"areas")); app.get("/locations",(req,res)=>ready(res)&&listTable(res,"areas"));
-app.post("/api/areas", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة")); app.post("/api/locations", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة")); app.post("/areas", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة")); app.post("/locations", requireAdmin, (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة"));
-app.delete("/api/areas/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"areas")); app.delete("/api/locations/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"areas")); app.delete("/areas/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"areas")); app.delete("/locations/:id", requireAdmin, (req,res)=>ready(res)&&delFromTable(req,res,"areas"));
+app.post("/api/areas", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة")); app.post("/api/locations", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة")); app.post("/areas", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة")); app.post("/locations", requirePermission("settings:manage"), (req,res)=>ready(res)&&addToTable(req,res,"areas","المنطقة"));
+app.delete("/api/areas/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"areas")); app.delete("/api/locations/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"areas")); app.delete("/areas/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"areas")); app.delete("/locations/:id", requirePermission("settings:manage"), (req,res)=>ready(res)&&delFromTable(req,res,"areas"));
 
 
 
@@ -890,7 +1124,7 @@ function startOfCurrentMonthISO(){
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
-app.get("/api/admin/dashboard-stats", requireAdmin, async (req,res)=>{
+app.get("/api/admin/dashboard-stats", requirePermission("analytics:read"), async (req,res)=>{
   if(!ready(res))return;
   const t=today();
   const soonDate=new Date();
@@ -982,7 +1216,7 @@ app.get("/api/admin/dashboard-stats", requireAdmin, async (req,res)=>{
 
 
 
-app.get("/api/admin/activity-log", requireAdmin, async (req,res)=>{
+app.get("/api/admin/activity-log", requirePermission("activity_log:read"), async (req,res)=>{
   if(!ready(res))return;
   const limit=Math.max(10, Math.min(500, Number(req.query.limit)||150));
   const action=String(req.query.action||"").trim();
@@ -996,12 +1230,12 @@ app.get("/api/admin/activity-log", requireAdmin, async (req,res)=>{
 });
 
 // Notifications
-app.get("/api/admin/notifications", requireAdmin, async (req,res)=>{ if(!ready(res))return; const t=today(); const s=new Date(); s.setDate(s.getDate()+7); const st=s.toISOString().split("T")[0]; const [a,b,c,d]=await Promise.all([supabase.from("workers").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("reviews").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("workers").select("id",{count:"exact",head:true}).gte("subscription_end",t).lte("subscription_end",st),supabase.from("workers").select("id",{count:"exact",head:true}).lt("subscription_end",t)]); res.json({pendingWorkers:a.count||0,pendingReviews:b.count||0,subscriptionsSoon:c.count||0,subscriptionsExpired:d.count||0}); });
+app.get("/api/admin/notifications", requirePermission("workers:read"), async (req,res)=>{ if(!ready(res))return; const t=today(); const s=new Date(); s.setDate(s.getDate()+7); const st=s.toISOString().split("T")[0]; const [a,b,c,d]=await Promise.all([supabase.from("workers").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("reviews").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("workers").select("id",{count:"exact",head:true}).gte("subscription_end",t).lte("subscription_end",st),supabase.from("workers").select("id",{count:"exact",head:true}).lt("subscription_end",t)]); res.json({pendingWorkers:a.count||0,pendingReviews:b.count||0,subscriptionsSoon:c.count||0,subscriptionsExpired:d.count||0}); });
 
 // Export CSV
 function csv(v){ if(v===null||v===undefined)return ""; const t=String(v).replace(/"/g,'""'); return /[,"\n]/.test(t)?`"${t}"`:t; }
-app.get("/api/export-workers", requireAdmin, async (req,res)=>{ if(!ready(res))return; const {data:workers,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); const {data:reviews}=await supabase.from("reviews").select("worker_id,rating").eq("approved",true); const by={}; (reviews||[]).forEach(r=>{ const k=String(r.worker_id); if(!by[k])by[k]=[]; by[k].push(Number(r.rating||0)); }); const headers=["رقم الطلب","ID","الاسم","رقم الهاتف","رقم الواتساب","الحرفة","المنطقة","الوصف","حالة الموافقة","حالة التفعيل","حالة التحقق","سبب التحقق","مميز","بداية الاشتراك","نهاية الاشتراك","تاريخ التسجيل","عدد التقييمات المعتمدة","متوسط التقييم"]; const lines=[headers.map(csv).join(",")]; (workers||[]).forEach(w=>{ const rs=by[String(w.id)]||[], count=rs.length, avg=count?Math.round((rs.reduce((a,b)=>a+b,0)/count)*10)/10:0; lines.push([w.registration_code||makeRegistrationCode(w.id,w.created_at),w.id,w.name,w.phone,w.whatsapp,w.trade,w.area,w.description,w.approved?"موافق عليه":"بانتظار الموافقة",w.active?"نشط":"متوقف",identityStatusLabel(normalizeIdentityStatus(w.identity_status || (w.identity_verified?"verified":"pending"))),w.identity_rejection_reason||"",w.featured?"مميز":"عادي",w.subscription_start,w.subscription_end,w.created_at,count,avg].map(csv).join(",")); }); const content="\uFEFF"+lines.join("\n"); res.setHeader("Content-Type","text/csv; charset=utf-8"); res.setHeader("Content-Disposition",`attachment; filename="sanay3i-workers-report.csv"`); res.send(content); });
-app.get("/api/backup-db", requireAdmin, (req,res)=>res.status(400).json({success:false,error:"النسخ الاحتياطي لقاعدة Supabase يتم من لوحة Supabase"}));
+app.get("/api/export-workers", requirePermission("backup:export"), async (req,res)=>{ if(!ready(res))return; const {data:workers,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); const {data:reviews}=await supabase.from("reviews").select("worker_id,rating").eq("approved",true); const by={}; (reviews||[]).forEach(r=>{ const k=String(r.worker_id); if(!by[k])by[k]=[]; by[k].push(Number(r.rating||0)); }); const headers=["رقم الطلب","ID","الاسم","رقم الهاتف","رقم الواتساب","الحرفة","المنطقة","الوصف","حالة الموافقة","حالة التفعيل","حالة التحقق","سبب التحقق","مميز","بداية الاشتراك","نهاية الاشتراك","تاريخ التسجيل","عدد التقييمات المعتمدة","متوسط التقييم"]; const lines=[headers.map(csv).join(",")]; (workers||[]).forEach(w=>{ const rs=by[String(w.id)]||[], count=rs.length, avg=count?Math.round((rs.reduce((a,b)=>a+b,0)/count)*10)/10:0; lines.push([w.registration_code||makeRegistrationCode(w.id,w.created_at),w.id,w.name,w.phone,w.whatsapp,w.trade,w.area,w.description,w.approved?"موافق عليه":"بانتظار الموافقة",w.active?"نشط":"متوقف",identityStatusLabel(normalizeIdentityStatus(w.identity_status || (w.identity_verified?"verified":"pending"))),w.identity_rejection_reason||"",w.featured?"مميز":"عادي",w.subscription_start,w.subscription_end,w.created_at,count,avg].map(csv).join(",")); }); const content="\uFEFF"+lines.join("\n"); res.setHeader("Content-Type","text/csv; charset=utf-8"); res.setHeader("Content-Disposition",`attachment; filename="sanay3i-workers-report.csv"`); res.send(content); });
+app.get("/api/backup-db", requirePermission("backup:export"), (req,res)=>res.status(400).json({success:false,error:"النسخ الاحتياطي لقاعدة Supabase يتم من لوحة Supabase"}));
 
 
 // ===============================
@@ -1056,7 +1290,7 @@ app.post("/api/analytics/track", async (req, res) => {
   }
 });
 
-app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+app.get("/api/admin/analytics", requirePermission("analytics:read"), async (req, res) => {
   try {
     const daysRaw = Number(req.query.days || req.query.range || 30);
     const days = Math.max(1, Math.min(365, Number.isFinite(daysRaw) ? daysRaw : 30));
