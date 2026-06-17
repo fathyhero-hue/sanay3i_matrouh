@@ -2321,6 +2321,30 @@
       }
     }
 
+    function trackWorkerAction(workerId, eventType, source) {
+      try {
+        if (!workerId || !eventType) return;
+        const payload = JSON.stringify({
+          worker_id: String(workerId),
+          event_type: eventType,
+          source: source || "home",
+          page_path: location.pathname
+        });
+
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon("/api/analytics/track", blob);
+        } else {
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
     function renderWorkers(workers) {
       const workersGrid = document.getElementById("workersGrid");
       const emptyBox = document.getElementById("emptyBox");
@@ -2416,6 +2440,22 @@
             </div>
           </div>
         `;
+
+        const callActionBtn = card.querySelector(".call-btn");
+        if (callActionBtn) {
+          callActionBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (callNumber) trackWorkerAction(workerId, "call", "home_card");
+          });
+        }
+
+        const whatsappActionBtn = card.querySelector(".whatsapp-btn");
+        if (whatsappActionBtn) {
+          whatsappActionBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (whatsappNumber) trackWorkerAction(workerId, "whatsapp", "home_card");
+          });
+        }
 
         workersGrid.appendChild(card);
       });
