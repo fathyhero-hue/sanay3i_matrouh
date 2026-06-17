@@ -874,4 +874,196 @@ app.get("/api/backup-db", requireAdmin, (req,res)=>res.status(400).json({success
 app.use((req,res,next)=>{ if(req.path.startsWith("/api")) return res.status(404).json({success:false,error:"API route not found"}); next(); });
 
 module.exports = app;
-// VERSION: NEW CLEAN DEPLOY - 2026-06-17
+
+
+// ===============================
+// 🚀 PERFORMANCE PATCH - FAST STATS + CACHE
+// ===============================
+
+let __statsCache = null;
+let __statsTime = 0;
+const CACHE_MS = 60 * 1000;
+
+// Fast stats endpoint (optimized)
+app.get("/api/stats", async (req, res) => {
+  try {
+    const now = Date.now();
+    if (__statsCache && now - __statsTime < CACHE_MS) {
+      return res.json(__statsCache);
+    }
+
+    const { data, error } = await supabase
+      .from("workers")
+      .select("id,status");
+
+    if (error) throw error;
+
+    const stats = {
+      total: data.length,
+      pending: data.filter(x => x.status === "pending").length,
+      approved: data.filter(x => x.status === "approved").length
+    };
+
+    __statsCache = stats;
+    __statsTime = now;
+
+    res.json(stats);
+  } catch (e) {
+    res.json({ total: 0, pending: 0, approved: 0 });
+  }
+});
+
+// Ultra fast admin dashboard (single request)
+app.get("/api/admin/dashboard-fast", async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from("workers")
+      .select("id,name,trade,area,status,created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const stats = {
+      total: data.length,
+      pending: data.filter(x => x.status === "pending").length,
+      approved: data.filter(x => x.status === "approved").length
+    };
+
+    res.json({
+      stats,
+      workers: data
+    });
+
+  } catch (e) {
+    res.json({ stats: {}, workers: [] });
+  }
+});
+
+
+
+// ===============================
+// 🚀 ULTRA FAST PERFORMANCE PATCH
+// ===============================
+
+// Compression (safe optional)
+try {
+  const compression = require("compression");
+  app.use(compression());
+} catch (e) {
+  console.log("compression not installed");
+}
+
+// In-memory cache
+const CACHE = new Map();
+
+function setCache(key, data, ttl = 30000) {
+  CACHE.set(key, {
+    data,
+    expire: Date.now() + ttl
+  });
+}
+
+function getCache(key) {
+  const item = CACHE.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expire) {
+    CACHE.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+
+// FAST STATS ENDPOINT (FIXED)
+app.get("/api/stats-fast", async (req, res) => {
+  const cached = getCache("stats");
+  if (cached) return res.json(cached);
+
+  try {
+    const { data } = await supabase.from("workers").select("id,status");
+
+    const stats = {
+      total: data?.length || 0,
+      pending: data?.filter(x => x.status === "pending").length || 0,
+      approved: data?.filter(x => x.status === "approved").length || 0
+    };
+
+    setCache("stats", stats, 30000);
+    return res.json(stats);
+  } catch (e) {
+    return res.json({ total: 0, pending: 0, approved: 0 });
+  }
+});
+// ===============================
+// DASHBOARD ULTRA (CACHE + LIMIT ONLY)
+// ===============================
+app.get("/api/admin/dashboard-ultra", async (req,res)=>{
+  const cached = getCache("dash_ultra");
+  if(cached) return res.json(cached);
+
+  try{
+    const { data } = await supabase
+      .from("workers")
+      .select("id,name,trade,area,status,image")
+      .order("created_at",{ascending:false})
+      .limit(20);
+
+    const payload = { workers: data || [] };
+
+    setCache("dash_ultra",payload,60000);
+    res.json(payload);
+
+  }catch(e){
+    res.json({workers:[]});
+  }
+});
+
+
+
+// ===============================
+// ⚡ REALTIME LAYER (WEBSOCKET)
+// ===============================
+const http = require("http");
+const WebSocket = require("ws");
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+// store last stats in memory
+let LIVE_STATS = { total:0, pending:0, approved:0 };
+
+function broadcast(type, data) {
+  const msg = JSON.stringify({ type, data });
+
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(msg);
+    }
+  });
+}
+
+// realtime update trigger helper
+async function refreshLiveStats() {
+  try {
+    const { data } = await supabase.from("workers").select("id,status");
+
+    LIVE_STATS = {
+      total: data?.length || 0,
+      pending: data?.filter(x => x.status === "pending").length || 0,
+      approved: data?.filter(x => x.status === "approved").length || 0
+    };
+
+    broadcast("stats", LIVE_STATS);
+  } catch (e) {}
+}
+
+// websocket connection
+wss.on("connection", (ws) => {
+  ws.send(JSON.stringify({ type:"init", data: LIVE_STATS }));
+});
+
+// ===============================
+// OVERRIDE EXISTING RESPONSE FLOW (HOOKS)
+// ===============================
+
+// NOTE: call refreshLiveStats() after any create/update/delete worker operation
+
