@@ -357,6 +357,7 @@ app.get("/", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
 app.get("/register", (req,res)=>res.sendFile(path.join(STATIC_DIR,"register.html")));
 app.get("/status", (req,res)=>res.sendFile(path.join(STATIC_DIR,"status.html")));
 app.get("/admin", (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin.html")));
+app.get("/admin/add-worker", (req,res)=>res.sendFile(path.join(STATIC_DIR,"admin-add-worker.html")));
 app.get("/worker/:id", (req,res)=>res.sendFile(path.join(STATIC_DIR,"worker.html")));
 app.get("/trade/:trade/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
 app.get("/trade/:trade", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
@@ -581,6 +582,137 @@ async function insertWorker(req,res){
 app.post("/api/register", workerUpload, insertWorker);
 app.post("/api/sanaieya", workerUpload, insertWorker);
 app.post("/api/workers", workerUpload, insertWorker);
+
+// ===============================
+// Admin Direct Worker Create
+// ===============================
+async function createWorkerFromAdmin(req,res){
+  if(!ready(res))return;
+  try{
+    const b = req.body || {};
+    const name = String(b.name || "").trim();
+    const phone = String(b.phone || "").trim();
+    const whatsapp = String(b.whatsapp || "").trim();
+    const trade = String(b.trade || "").trim();
+    const area = String(b.area || "").trim();
+    const description = String(b.description || "").trim();
+
+    if(!name || !phone || !trade || !area){
+      return res.status(400).json({success:false,error:"الاسم ورقم الهاتف والحرفة والمنطقة مطلوبين"});
+    }
+
+    const duplicate = await findDuplicateWorkerByPhone(phone, whatsapp);
+    if(duplicate){
+      return res.status(409).json({
+        success:false,
+        error:`هذا الرقم مسجل بالفعل باسم ${duplicate.name}. لا يمكن تسجيل نفس رقم الهاتف أو الواتساب أكثر من مرة.`,
+        duplicate:true,
+        duplicate_worker_id:duplicate.id
+      });
+    }
+
+    const frontFile = idFrontFile(req);
+    const backFile = idBackFile(req);
+
+    if((frontFile && !backFile) || (!frontFile && backFile)){
+      return res.status(400).json({success:false,error:"لو هترفع البطاقة لازم ترفع الوجه والظهر معًا، أو اترك الاثنين فارغين."});
+    }
+
+    const image = mainFile(req) ? await uploadImage(mainFile(req),"profiles") : "";
+    const id_front_path = frontFile ? await uploadPrivateImage(frontFile,"id-cards") : "";
+    const id_back_path = backFile ? await uploadPrivateImage(backFile,"id-cards") : "";
+
+    const start = today();
+    const monthsRaw = Number(b.subscription_months || b.months || 1);
+    const months = Math.max(1, Math.min(60, Number.isFinite(monthsRaw) ? monthsRaw : 1));
+    const end = addMonths(start, months);
+
+    const hasFullId = !!(frontFile && backFile);
+    const identityVerified = hasFullId && bool(b.identity_verified);
+    const approved = b.approved === undefined ? true : bool(b.approved);
+    const active = b.active === undefined ? true : bool(b.active);
+    const featured = bool(b.featured);
+
+    const insertRow = {
+      name,
+      phone,
+      whatsapp,
+      trade,
+      area,
+      description,
+      image,
+      id_front_path,
+      id_back_path,
+      id_submitted_at: hasFullId ? new Date().toISOString() : null,
+      identity_status: identityVerified ? "verified" : "pending",
+      identity_verified: identityVerified,
+      identity_rejection_reason: "",
+      identity_review_note: "",
+      identity_reviewed_at: identityVerified ? new Date().toISOString() : null,
+      approved,
+      active,
+      featured,
+      subscription_start: start,
+      subscription_end: end
+    };
+
+    const {data:worker,error}=await supabase.from("workers").insert(insertRow).select().single();
+    if(error) throw error;
+
+    const registrationCode = makeRegistrationCode(worker.id, worker.created_at || Date.now());
+    const {error:codeError}=await supabase.from("workers").update({registration_code:registrationCode}).eq("id",worker.id);
+    if(codeError) console.warn("Registration code was generated but not saved:", codeError.message);
+
+    const photos = [];
+    for(const f of workFiles(req)){
+      photos.push({worker_id:worker.id,image:await uploadImage(f,"work-photos")});
+    }
+    if(photos.length){
+      const {error:pe}=await supabase.from("worker_photos").insert(photos);
+      if(pe) throw pe;
+    }
+
+    await logAdminActivity("worker_register",{
+      entity_type:"worker",
+      entity_id:worker.id,
+      entity_name:worker.name || name,
+      details:{
+        source:"admin_direct_create",
+        registration_code:registrationCode,
+        trade,
+        area,
+        approved,
+        active,
+        featured,
+        identity_verified:identityVerified,
+        has_identity_files:hasFullId,
+        subscription_months:months,
+        work_photos:photos.length
+      }
+    });
+
+    try{
+      if(typeof refreshLiveStats === "function") await refreshLiveStats();
+    }catch(e){}
+
+    return res.json({
+      success:true,
+      message:"تمت إضافة الصنايعي من الإدارة بنجاح",
+      id:worker.id,
+      registration_code:registrationCode,
+      registrationCode,
+      approved,
+      active,
+      featured,
+      identity_verified:identityVerified,
+      identity_status:identityVerified ? "verified" : "pending"
+    });
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message || "حدث خطأ أثناء إضافة الصنايعي من الإدارة"});
+  }
+}
+app.post("/api/admin/workers/create", requireAdmin, workerUpload, createWorkerFromAdmin);
+
 
 async function updateWorker(req,res){
   if(!ready(res))return;
