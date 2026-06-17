@@ -1003,6 +1003,148 @@ function csv(v){ if(v===null||v===undefined)return ""; const t=String(v).replace
 app.get("/api/export-workers", requireAdmin, async (req,res)=>{ if(!ready(res))return; const {data:workers,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); const {data:reviews}=await supabase.from("reviews").select("worker_id,rating").eq("approved",true); const by={}; (reviews||[]).forEach(r=>{ const k=String(r.worker_id); if(!by[k])by[k]=[]; by[k].push(Number(r.rating||0)); }); const headers=["رقم الطلب","ID","الاسم","رقم الهاتف","رقم الواتساب","الحرفة","المنطقة","الوصف","حالة الموافقة","حالة التفعيل","حالة التحقق","سبب التحقق","مميز","بداية الاشتراك","نهاية الاشتراك","تاريخ التسجيل","عدد التقييمات المعتمدة","متوسط التقييم"]; const lines=[headers.map(csv).join(",")]; (workers||[]).forEach(w=>{ const rs=by[String(w.id)]||[], count=rs.length, avg=count?Math.round((rs.reduce((a,b)=>a+b,0)/count)*10)/10:0; lines.push([w.registration_code||makeRegistrationCode(w.id,w.created_at),w.id,w.name,w.phone,w.whatsapp,w.trade,w.area,w.description,w.approved?"موافق عليه":"بانتظار الموافقة",w.active?"نشط":"متوقف",identityStatusLabel(normalizeIdentityStatus(w.identity_status || (w.identity_verified?"verified":"pending"))),w.identity_rejection_reason||"",w.featured?"مميز":"عادي",w.subscription_start,w.subscription_end,w.created_at,count,avg].map(csv).join(",")); }); const content="\uFEFF"+lines.join("\n"); res.setHeader("Content-Type","text/csv; charset=utf-8"); res.setHeader("Content-Disposition",`attachment; filename="sanay3i-workers-report.csv"`); res.send(content); });
 app.get("/api/backup-db", requireAdmin, (req,res)=>res.status(400).json({success:false,error:"النسخ الاحتياطي لقاعدة Supabase يتم من لوحة Supabase"}));
 
+
+// ===============================
+// Analytics Patch - Contact Tracking
+// ===============================
+function analyticsSafeString(v, max = 500) {
+  return String(v || "").trim().slice(0, max);
+}
+
+function analyticsIpHash(req) {
+  try {
+    const rawIp = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "")
+      .split(",")[0]
+      .trim();
+    const salt = process.env.ADMIN_SESSION_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "sanay3i";
+    return crypto.createHash("sha256").update(rawIp + "|" + salt).digest("hex").slice(0, 64);
+  } catch (e) {
+    return "";
+  }
+}
+
+app.post("/api/analytics/track", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const eventType = analyticsSafeString(body.event_type || body.type, 40);
+    const allowed = new Set(["profile_view", "call", "whatsapp", "share"]);
+
+    if (!allowed.has(eventType)) {
+      return res.status(400).json({ success: false, error: "Invalid analytics event type" });
+    }
+
+    const row = {
+      worker_id: analyticsSafeString(body.worker_id || body.workerId, 80),
+      event_type: eventType,
+      source: analyticsSafeString(body.source, 80),
+      page_path: analyticsSafeString(body.page_path || body.page || req.headers.referer || "", 500),
+      user_agent: analyticsSafeString(req.headers["user-agent"], 500),
+      ip_hash: analyticsIpHash(req)
+    };
+
+    const { error } = await supabase.from("analytics_events").insert(row);
+
+    // Do not break the public user journey if analytics table is not created yet.
+    if (error) {
+      console.warn("Analytics tracking skipped:", error.message);
+      return res.json({ success: true, tracked: false, setup_required: true });
+    }
+
+    return res.json({ success: true, tracked: true });
+  } catch (e) {
+    return res.json({ success: true, tracked: false });
+  }
+});
+
+app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+  try {
+    const daysRaw = Number(req.query.days || req.query.range || 30);
+    const days = Math.max(1, Math.min(365, Number.isFinite(daysRaw) ? daysRaw : 30));
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: events, error } = await supabase
+      .from("analytics_events")
+      .select("worker_id,event_type,source,page_path,created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(10000);
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        setup_required: true,
+        error: "جدول التحليلات غير موجود أو يحتاج تشغيل ملف SUPABASE-ANALYTICS-PATCH.sql"
+      });
+    }
+
+    const totals = {
+      profile_view: 0,
+      call: 0,
+      whatsapp: 0,
+      share: 0,
+      total_contacts: 0,
+      total_events: events.length
+    };
+
+    const byWorker = {};
+    const bySource = {};
+
+    for (const ev of events) {
+      const type = ev.event_type;
+      if (totals[type] !== undefined) totals[type] += 1;
+      if (type === "call" || type === "whatsapp") totals.total_contacts += 1;
+
+      const source = ev.source || "unknown";
+      bySource[source] = (bySource[source] || 0) + 1;
+
+      const wid = String(ev.worker_id || "");
+      if (wid) {
+        if (!byWorker[wid]) {
+          byWorker[wid] = { worker_id: wid, profile_view: 0, call: 0, whatsapp: 0, share: 0, total_contacts: 0, total_events: 0 };
+        }
+        byWorker[wid].total_events += 1;
+        if (byWorker[wid][type] !== undefined) byWorker[wid][type] += 1;
+        if (type === "call" || type === "whatsapp") byWorker[wid].total_contacts += 1;
+      }
+    }
+
+    const ids = Object.keys(byWorker).slice(0, 200);
+    let workersMap = {};
+    if (ids.length) {
+      const { data: workers } = await supabase
+        .from("workers")
+        .select("id,name,trade,area,phone,whatsapp,featured,identity_verified")
+        .in("id", ids);
+      (workers || []).forEach(w => {
+        workersMap[String(w.id)] = w;
+      });
+    }
+
+    const top_workers = Object.values(byWorker)
+      .map(row => ({
+        ...row,
+        worker: workersMap[String(row.worker_id)] || null
+      }))
+      .sort((a, b) => (b.total_contacts - a.total_contacts) || (b.total_events - a.total_events))
+      .slice(0, 20);
+
+    const source_breakdown = Object.entries(bySource)
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return res.json({
+      success: true,
+      days,
+      totals,
+      top_workers,
+      source_breakdown,
+      generated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message || "Analytics error" });
+  }
+});
+
 app.use((req,res,next)=>{ if(req.path.startsWith("/api")) return res.status(404).json({success:false,error:"API route not found"}); next(); });
 
 module.exports = app;

@@ -263,7 +263,7 @@
 <main class="admin-dashboard" id="dashboard"><header class="admin-topbar"><div class="container admin-topbar-content"><a href="/admin" class="brand"><div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="brand-text"><h1>صنايعي مطروح</h1><span>لوحة الإدارة والتحكم</span></div></a><div class="admin-actions-top"><button class="admin-mini-btn" onclick="loadAllData()"><i class="fa-solid fa-rotate"></i> تحديث</button><button class="admin-mini-btn" onclick="downloadBackup()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button><button class="admin-mini-btn" onclick="exportWorkersReport()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button><a href="/" class="admin-mini-btn"><i class="fa-solid fa-house"></i> الرئيسية</a><button class="admin-mini-btn logout-btn" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button></div></div></header>
 <section class="admin-hero"><div class="container"><div class="admin-hero-box"><div><span class="section-label">Dashboard</span><h2>إدارة دليل صنايعي مطروح</h2><p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p></div><button class="btn btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button></div></div></section>
 <section class="container"><div class="admin-tabs"><button class="admin-tab active" onclick="switchTab('workers',this)"><i class="fa-solid fa-users-gear"></i> الصنايعية</button><a class="admin-tab" href="/admin/add-worker"><i class="fa-solid fa-user-plus"></i> إضافة صنايعي</a><button class="admin-tab" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button><button class="admin-tab" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
-<button class="admin-tab" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button></div>
+<button class="admin-tab" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button></div>
 
 <div class="notifications-grid" id="notificationsGrid">
   <div class="notification-card" onclick="showPendingWorkers()">
@@ -333,6 +333,51 @@
     </div>
   </div>
   <div class="admin-workers-grid" id="reviewsGrid"></div>
+</section>
+
+<section class="admin-section" id="analyticsSection">
+  <div class="admin-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h3>تحليلات التواصل</h3>
+        <p>تتبع ضغطات الاتصال والواتساب ومشاهدات صفحات الصنايعية.</p>
+      </div>
+      <div class="form-row" style="margin:0;max-width:260px">
+        <select id="analyticsRange" onchange="loadAnalytics()">
+          <option value="7">آخر 7 أيام</option>
+          <option value="30" selected>آخر 30 يوم</option>
+          <option value="90">آخر 90 يوم</option>
+          <option value="365">آخر سنة</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-stats-grid">
+    <div class="admin-stat">
+      <div class="admin-stat-icon"><i class="fa-solid fa-phone"></i></div>
+      <div><h3 id="analyticsCalls">0</h3><p>ضغطات اتصال</p></div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-icon"><i class="fa-brands fa-whatsapp"></i></div>
+      <div><h3 id="analyticsWhatsapp">0</h3><p>ضغطات واتساب</p></div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-icon"><i class="fa-solid fa-eye"></i></div>
+      <div><h3 id="analyticsViews">0</h3><p>مشاهدات صفحات</p></div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-icon"><i class="fa-solid fa-bolt"></i></div>
+      <div><h3 id="analyticsContacts">0</h3><p>إجمالي تواصل</p></div>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <h3>أفضل الصنايعية حسب التواصل</h3>
+    <p>الصنايعيون أصحاب أعلى ضغطات اتصال وواتساب في الفترة المحددة.</p>
+    <div id="analyticsTopWorkers" class="admin-workers-grid"></div>
+    <div id="analyticsMessage" class="empty-state" style="display:none"></div>
+  </div>
 </section>
 
 </section></main>

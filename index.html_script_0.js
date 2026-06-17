@@ -1070,6 +1070,31 @@
       }
     }
 
+
+    function trackWorkerAction(workerId, eventType, source) {
+      try {
+        if (!workerId || !eventType) return;
+        const payload = JSON.stringify({
+          worker_id: String(workerId),
+          event_type: eventType,
+          source: source || "home",
+          page_path: location.pathname
+        });
+
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon("/api/analytics/track", blob);
+        } else {
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
     function renderWorkers(workers) {
       const workersGrid = document.getElementById("workersGrid");
       const emptyBox = document.getElementById("emptyBox");
@@ -1165,6 +1190,21 @@
             </div>
           </div>
         `;
+
+        const callBtn = card.querySelector(".call-btn");
+        const whatsappBtn = card.querySelector(".whatsapp-btn");
+
+        if (callBtn) {
+          callBtn.addEventListener("click", function () {
+            if (callNumber) trackWorkerAction(workerId, "call", "home_card");
+          });
+        }
+
+        if (whatsappBtn) {
+          whatsappBtn.addEventListener("click", function () {
+            if (whatsappNumber) trackWorkerAction(workerId, "whatsapp", "home_card");
+          });
+        }
 
         workersGrid.appendChild(card);
       });

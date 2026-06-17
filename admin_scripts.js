@@ -5,7 +5,7 @@ function showDashboard(){document.getElementById("loginScreen").style.display="n
 function showLogin(){document.getElementById("dashboard").classList.remove("show");document.getElementById("loginScreen").style.display="flex"}
 async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST",credentials:"include"})}catch(e){} location.reload()}
 async function checkLogin(){try{const r=await fetch("/api/admin/me",{credentials:"include"});const d=await r.json();if(d.authenticated)showDashboard();else showLogin()}catch(e){showLogin()}}
-function switchTab(t,b){document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
+function switchTab(t,b){document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews();if(t==='analytics')loadAnalytics()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
 async function fetchJson(urls){for(const u of urls){try{const r=await fetch(u,{credentials:"include"});if(r.status===401){showLogin();return []}if(r.ok)return await r.json()}catch(e){}}return []}function arr(d){if(Array.isArray(d))return d;for(const k of["data","workers","sanaieya","trades","crafts","areas","items"])if(d&&Array.isArray(d[k]))return d[k];return[]}function itemName(i){if(typeof i==="string")return i;return i.name||i.title||i.trade||i.craft||i.area||i.location||""}function itemId(i){if(typeof i==="string")return i;return i.id||i._id||i.name||i.title||""}
 async function loadAllData(){await loadTrades();await loadAreas();await loadWorkers();await loadPhotosForAll();await loadReviewsAdmin();await loadNotifications();buildRatingMaps();fillTradeSelects();fillAreaSelects();renderWorkers(allWorkers);stats()}
 async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers","/api/workers/all"]))}async function loadTrades(){allTrades=arr(await fetchJson(["/api/trades","/api/crafts","/trades","/crafts"]));renderTrades();fillTradeSelects()}async function loadAreas(){allAreas=arr(await fetchJson(["/api/areas","/api/locations","/areas","/locations"]));renderAreas();fillAreaSelects()}
@@ -384,3 +384,70 @@ checkLogin();
       });
     }
   
+
+async function loadAnalytics(){
+  const box=document.getElementById("analyticsTopWorkers");
+  const msg=document.getElementById("analyticsMessage");
+  const rangeEl=document.getElementById("analyticsRange");
+  if(!box)return;
+
+  const days=rangeEl?rangeEl.value:30;
+  box.innerHTML='<div class="admin-card">جاري تحميل التحليلات...</div>';
+  if(msg)msg.style.display="none";
+
+  try{
+    const r=await fetch("/api/admin/analytics?days="+encodeURIComponent(days),{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+
+    if(!r.ok||!d.success){
+      throw new Error(d.error||"تعذر تحميل التحليلات");
+    }
+
+    const totals=d.totals||{};
+    const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=Number(val||0).toLocaleString("ar-EG")};
+
+    setText("analyticsCalls",totals.call);
+    setText("analyticsWhatsapp",totals.whatsapp);
+    setText("analyticsViews",totals.profile_view);
+    setText("analyticsContacts",totals.total_contacts);
+
+    const rows=d.top_workers||[];
+    if(!rows.length){
+      box.innerHTML="";
+      if(msg){
+        msg.textContent="لا توجد بيانات تواصل في الفترة المحددة حتى الآن.";
+        msg.style.display="block";
+      }
+      return;
+    }
+
+    box.innerHTML=rows.map((row,idx)=>{
+      const w=row.worker||{};
+      const name=w.name||("صنايعي رقم "+row.worker_id);
+      const trade=w.trade||"";
+      const area=w.area||"";
+      return `
+        <div class="admin-worker-card">
+          <div class="worker-row-head">
+            <div>
+              <h4>#${idx+1} ${name}</h4>
+              <p>${trade}${area?" - "+area:""}</p>
+            </div>
+            <span class="status-badge active">تواصل ${row.total_contacts||0}</span>
+          </div>
+          <div class="worker-row-actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">
+            <span class="small-badge"><i class="fa-solid fa-phone"></i> اتصال: ${row.call||0}</span>
+            <span class="small-badge"><i class="fa-brands fa-whatsapp"></i> واتساب: ${row.whatsapp||0}</span>
+            <span class="small-badge"><i class="fa-solid fa-eye"></i> مشاهدات: ${row.profile_view||0}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }catch(e){
+    box.innerHTML="";
+    if(msg){
+      msg.textContent=e.message||"تعذر تحميل التحليلات";
+      msg.style.display="block";
+    }
+  }
+}

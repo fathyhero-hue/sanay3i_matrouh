@@ -1,4 +1,29 @@
 
+
+    function trackWorkerAction(workerId, eventType, source) {
+      try {
+        if (!workerId || !eventType) return;
+        const payload = JSON.stringify({
+          worker_id: String(workerId),
+          event_type: eventType,
+          source: source || "worker_page",
+          page_path: location.pathname
+        });
+
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon("/api/analytics/track", blob);
+        } else {
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
     function toggleMobileMenu() {
       const nav = document.getElementById("mobileNav");
       nav.classList.toggle("show");
@@ -396,6 +421,26 @@
         document.getElementById("whatsappBtn").href = whatsappUrl;
         document.getElementById("mobileCallBtn").href = callUrl;
         document.getElementById("mobileWhatsappBtn").href = whatsappUrl;
+
+        trackWorkerAction(id, "profile_view", "worker_page");
+
+        ["callBtn", "mobileCallBtn"].forEach(function(btnId) {
+          const btn = document.getElementById(btnId);
+          if (btn) {
+            btn.onclick = function() {
+              if (call) trackWorkerAction(id, "call", btnId === "mobileCallBtn" ? "worker_mobile_sticky" : "worker_page");
+            };
+          }
+        });
+
+        ["whatsappBtn", "mobileWhatsappBtn"].forEach(function(btnId) {
+          const btn = document.getElementById(btnId);
+          if (btn) {
+            btn.onclick = function() {
+              if (wa) trackWorkerAction(id, "whatsapp", btnId === "mobileWhatsappBtn" ? "worker_mobile_sticky" : "worker_page");
+            };
+          }
+        });
 
         await loadPhotos(id);
         await loadReviews(id);
