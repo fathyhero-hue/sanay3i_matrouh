@@ -15,6 +15,70 @@ const requestContext = new AsyncLocalStorage();
 app.use((req, res, next) => requestContext.run({ req }, next));
 
 // ===============================
+// Security Hardening Patch
+// ===============================
+app.disable("x-powered-by");
+
+function clientIp(req) {
+  return String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "")
+    .split(",")[0]
+    .trim() || "unknown";
+}
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (req.path.startsWith("/admin") || req.path.startsWith("/api/admin")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+  next();
+});
+
+function createMemoryRateLimiter({ windowMs, max, keyFn, message }) {
+  const hits = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = keyFn ? keyFn(req) : clientIp(req);
+    const item = hits.get(key) || { count: 0, resetAt: now + windowMs };
+    if (now > item.resetAt) {
+      item.count = 0;
+      item.resetAt = now + windowMs;
+    }
+    item.count += 1;
+    hits.set(key, item);
+    res.setHeader("X-RateLimit-Limit", String(max));
+    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, max - item.count)));
+    if (item.count > max) {
+      return res.status(429).json({ success: false, error: message || "طلبات كثيرة جدًا. حاول مرة أخرى بعد قليل" });
+    }
+    return next();
+  };
+}
+
+const analyticsRateLimit = createMemoryRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: Number(process.env.ANALYTICS_RATE_LIMIT || 180),
+  keyFn: req => `analytics:${clientIp(req)}`,
+  message: "تم تجاوز الحد المسموح لتسجيل الأحداث مؤقتًا"
+});
+
+const adminApiRateLimit = createMemoryRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.ADMIN_API_RATE_LIMIT || 240),
+  keyFn: req => `admin-api:${clientIp(req)}`,
+  message: "طلبات لوحة الإدارة كثيرة جدًا. انتظر دقيقة ثم حاول مرة أخرى"
+});
+
+app.use("/api/admin", (req, res, next) => {
+  if (req.path === "/login") return next();
+  return adminApiRateLimit(req, res, next);
+});
+
+// ===============================
 // Static / PWA files for Local + Vercel
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
@@ -74,7 +138,7 @@ const supabase = createClient(SUPABASE_URL || "", SUPABASE_SERVICE_ROLE_KEY || "
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || "";
 const ADMIN_COOKIE_NAME = "sanay3i_admin_token";
-const ADMIN_SESSION_DAYS = Number(process.env.ADMIN_SESSION_DAYS || 7);
+const ADMIN_SESSION_DAYS = Math.max(1, Math.min(14, Number(process.env.ADMIN_SESSION_DAYS || 7)));
 const ADMIN_PASSWORD_ITERATIONS = 120000;
 
 const ADMIN_ROLES = {
@@ -260,6 +324,51 @@ function verifyAdminUserPassword(row, password) {
   return crypto.timingSafeEqual(a, b);
 }
 
+const adminLoginAttempts = new Map();
+const ADMIN_LOGIN_MAX_ATTEMPTS = Number(process.env.ADMIN_LOGIN_MAX_ATTEMPTS || 8);
+const ADMIN_LOGIN_LOCK_MINUTES = Number(process.env.ADMIN_LOGIN_LOCK_MINUTES || 15);
+
+function adminLoginAttemptKey(req, username) {
+  return `${clientIp(req)}:${String(username || "env_admin").trim().toLowerCase()}`;
+}
+
+function getAdminLoginAttempt(req, username) {
+  const key = adminLoginAttemptKey(req, username);
+  const now = Date.now();
+  const item = adminLoginAttempts.get(key) || { count: 0, lockedUntil: 0, lastFailAt: 0 };
+  if (item.lockedUntil && item.lockedUntil <= now) {
+    adminLoginAttempts.delete(key);
+    return { key, item: { count: 0, lockedUntil: 0, lastFailAt: 0 } };
+  }
+  return { key, item };
+}
+
+function isAdminLoginLocked(req, username) {
+  const { item } = getAdminLoginAttempt(req, username);
+  return item.lockedUntil && item.lockedUntil > Date.now();
+}
+
+function registerAdminLoginFailure(req, username) {
+  const { key, item } = getAdminLoginAttempt(req, username);
+  item.count += 1;
+  item.lastFailAt = Date.now();
+  if (item.count >= ADMIN_LOGIN_MAX_ATTEMPTS) {
+    item.lockedUntil = Date.now() + ADMIN_LOGIN_LOCK_MINUTES * 60 * 1000;
+  }
+  adminLoginAttempts.set(key, item);
+}
+
+function clearAdminLoginFailures(req, username) {
+  adminLoginAttempts.delete(adminLoginAttemptKey(req, username));
+}
+
+function adminLoginBlockedResponse(req, res, username) {
+  const { item } = getAdminLoginAttempt(req, username);
+  const seconds = Math.max(1, Math.ceil(((item.lockedUntil || Date.now()) - Date.now()) / 1000));
+  res.setHeader("Retry-After", String(seconds));
+  return res.status(429).json({ success: false, error: `محاولات دخول كثيرة. حاول مرة أخرى بعد ${Math.ceil(seconds / 60)} دقيقة` });
+}
+
 app.post("/api/admin/login", async (req, res) => {
   if (!ADMIN_SESSION_SECRET) {
     return res.status(500).json({ success: false, error: "ADMIN_SESSION_SECRET غير مضبوط" });
@@ -267,6 +376,10 @@ app.post("/api/admin/login", async (req, res) => {
 
   const username = String(req.body?.username || "").trim().toLowerCase();
   const password = req.body ? req.body.password : "";
+
+  if (isAdminLoginLocked(req, username || "env_admin")) {
+    return adminLoginBlockedResponse(req, res, username || "env_admin");
+  }
 
   // New multi-admin login: username + password from admin_users table.
   if (username) {
@@ -282,9 +395,11 @@ app.post("/api/admin/login", async (req, res) => {
       return res.status(500).json({ success: false, error: "جدول admin_users غير جاهز. شغّل ملف SQL الخاص بالصلاحيات أولًا." });
     }
     if (!user || !verifyAdminUserPassword(user, password)) {
+      registerAdminLoginFailure(req, username);
       return res.status(401).json({ success: false, error: "اسم المستخدم أو كلمة السر غير صحيحة" });
     }
 
+    clearAdminLoginFailures(req, username);
     const admin = publicAdmin(user);
     setAdminCookie(res, createAdminToken(admin));
     await supabase.from("admin_users").update({ last_login_at: new Date().toISOString() }).eq("id", user.id);
@@ -296,9 +411,11 @@ app.post("/api/admin/login", async (req, res) => {
     return res.status(500).json({ success: false, error: "ADMIN_PASSWORD غير مضبوط" });
   }
   if (!safePasswordEqual(password, ADMIN_PASSWORD)) {
+    registerAdminLoginFailure(req, "env_admin");
     return res.status(401).json({ success: false, error: "كلمة السر غير صحيحة" });
   }
 
+  clearAdminLoginFailures(req, "env_admin");
   const admin = publicAdmin({ id: null, username: "env_admin", display_name: "المدير الرئيسي", role: "super_admin" });
   setAdminCookie(res, createAdminToken(admin));
   return res.json({ success: true, admin });
@@ -388,10 +505,30 @@ app.delete("/api/admin/users/:id", requirePermission("admin_users:manage"), asyn
   res.json({ success: true });
 });
 
+const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+
+function secureImageFileFilter(req, file, cb) {
+  const mimetype = String(file.mimetype || "").toLowerCase();
+  const extension = path.extname(String(file.originalname || "")).toLowerCase();
+  if (!ALLOWED_IMAGE_MIME_TYPES.has(mimetype)) {
+    return cb(new Error("نوع الصورة غير مسموح. المسموح JPG / PNG / WEBP فقط"));
+  }
+  if (extension && !ALLOWED_IMAGE_EXTENSIONS.has(extension)) {
+    return cb(new Error("امتداد الصورة غير مسموح"));
+  }
+  return cb(null, true);
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 6 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => file.mimetype && file.mimetype.startsWith("image/") ? cb(null, true) : cb(new Error("Only images are allowed"))
+  limits: {
+    fileSize: 6 * 1024 * 1024,
+    files: 8,
+    fields: 80,
+    fieldSize: 512 * 1024
+  },
+  fileFilter: secureImageFileFilter
 });
 const workerUpload = upload.fields([{ name: "image", maxCount: 1 }, { name: "workPhotos", maxCount: 5 }, { name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]);
 
@@ -476,8 +613,23 @@ function identityStatusLabel(value){ return {pending:"بانتظار المرا�
 function makeRegistrationCode(workerId, createdAt){ const year=new Date(createdAt||Date.now()).getFullYear(); const num=String(workerId||0).padStart(5,"0"); return `SN-${year}-${num}`; }
 function id(req){ return Number(req.params.id); }
 function ext(file){ const e=path.extname(file.originalname||""); if(e) return e.toLowerCase(); if(file.mimetype==="image/png") return ".png"; if(file.mimetype==="image/webp") return ".webp"; return ".jpg"; }
-async function uploadImage(file, folder){ if(!file) return ""; const name=`${folder}/${Date.now()}-${Math.round(Math.random()*1e9)}${ext(file)}`; const {error}=await supabase.storage.from(SUPABASE_BUCKET).upload(name,file.buffer,{contentType:file.mimetype||"image/jpeg",upsert:false}); if(error) throw error; return supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(name).data.publicUrl; }
-async function uploadPrivateImage(file, folder){ if(!file) return ""; const name=`${folder}/${Date.now()}-${Math.round(Math.random()*1e9)}${ext(file)}`; const {error}=await supabase.storage.from(SUPABASE_ID_BUCKET).upload(name,file.buffer,{contentType:file.mimetype||"image/jpeg",upsert:false}); if(error) throw error; return name; }
+function assertValidImageBuffer(file){
+  if(!file || !file.buffer) return;
+  const b = file.buffer;
+  const mime = String(file.mimetype || "").toLowerCase();
+  const jpg = b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  const png = b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+  const webp = b.length > 12 && b.slice(0,4).toString("ascii") === "RIFF" && b.slice(8,12).toString("ascii") === "WEBP";
+  if((mime === "image/jpeg" && !jpg) || (mime === "image/png" && !png) || (mime === "image/webp" && !webp)){
+    throw new Error("ملف الصورة غير صالح أو امتداده لا يطابق محتواه");
+  }
+}
+function safeStorageFolder(folder){
+  const f = String(folder || "uploads").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+  return f || "uploads";
+}
+async function uploadImage(file, folder){ if(!file) return ""; assertValidImageBuffer(file); const name=`${safeStorageFolder(folder)}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext(file)}`; const {error}=await supabase.storage.from(SUPABASE_BUCKET).upload(name,file.buffer,{contentType:file.mimetype||"image/jpeg",upsert:false}); if(error) throw error; return supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(name).data.publicUrl; }
+async function uploadPrivateImage(file, folder){ if(!file) return ""; assertValidImageBuffer(file); const name=`${safeStorageFolder(folder)}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext(file)}`; const {error}=await supabase.storage.from(SUPABASE_ID_BUCKET).upload(name,file.buffer,{contentType:file.mimetype||"image/jpeg",upsert:false}); if(error) throw error; return name; }
 function mainFile(req){ return req.files && req.files.image && req.files.image[0] ? req.files.image[0] : null; }
 function workFiles(req){ return req.files && req.files.workPhotos ? req.files.workPhotos : []; }
 function idFrontFile(req){ return req.files && req.files.idFront && req.files.idFront[0] ? req.files.idFront[0] : null; }
@@ -1233,7 +1385,12 @@ app.get("/api/admin/activity-log", requirePermission("activity_log:read"), async
 app.get("/api/admin/notifications", requirePermission("workers:read"), async (req,res)=>{ if(!ready(res))return; const t=today(); const s=new Date(); s.setDate(s.getDate()+7); const st=s.toISOString().split("T")[0]; const [a,b,c,d]=await Promise.all([supabase.from("workers").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("reviews").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("workers").select("id",{count:"exact",head:true}).gte("subscription_end",t).lte("subscription_end",st),supabase.from("workers").select("id",{count:"exact",head:true}).lt("subscription_end",t)]); res.json({pendingWorkers:a.count||0,pendingReviews:b.count||0,subscriptionsSoon:c.count||0,subscriptionsExpired:d.count||0}); });
 
 // Export CSV
-function csv(v){ if(v===null||v===undefined)return ""; const t=String(v).replace(/"/g,'""'); return /[,"\n]/.test(t)?`"${t}"`:t; }
+function csv(v){
+  if(v===null||v===undefined)return "";
+  let t=String(v).replace(/"/g,'""');
+  if(/^[=+\-@]/.test(t)) t="'"+t;
+  return /[,"\n]/.test(t)?`"${t}"`:t;
+}
 app.get("/api/export-workers", requirePermission("backup:export"), async (req,res)=>{ if(!ready(res))return; const {data:workers,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); const {data:reviews}=await supabase.from("reviews").select("worker_id,rating").eq("approved",true); const by={}; (reviews||[]).forEach(r=>{ const k=String(r.worker_id); if(!by[k])by[k]=[]; by[k].push(Number(r.rating||0)); }); const headers=["رقم الطلب","ID","الاسم","رقم الهاتف","رقم الواتساب","الحرفة","المنطقة","الوصف","حالة الموافقة","حالة التفعيل","حالة التحقق","سبب التحقق","مميز","بداية الاشتراك","نهاية الاشتراك","تاريخ التسجيل","عدد التقييمات المعتمدة","متوسط التقييم"]; const lines=[headers.map(csv).join(",")]; (workers||[]).forEach(w=>{ const rs=by[String(w.id)]||[], count=rs.length, avg=count?Math.round((rs.reduce((a,b)=>a+b,0)/count)*10)/10:0; lines.push([w.registration_code||makeRegistrationCode(w.id,w.created_at),w.id,w.name,w.phone,w.whatsapp,w.trade,w.area,w.description,w.approved?"موافق عليه":"بانتظار الموافقة",w.active?"نشط":"متوقف",identityStatusLabel(normalizeIdentityStatus(w.identity_status || (w.identity_verified?"verified":"pending"))),w.identity_rejection_reason||"",w.featured?"مميز":"عادي",w.subscription_start,w.subscription_end,w.created_at,count,avg].map(csv).join(",")); }); const content="\uFEFF"+lines.join("\n"); res.setHeader("Content-Type","text/csv; charset=utf-8"); res.setHeader("Content-Disposition",`attachment; filename="sanay3i-workers-report.csv"`); res.send(content); });
 app.get("/api/backup-db", requirePermission("backup:export"), (req,res)=>res.status(400).json({success:false,error:"النسخ الاحتياطي لقاعدة Supabase يتم من لوحة Supabase"}));
 
@@ -1257,7 +1414,7 @@ function analyticsIpHash(req) {
   }
 }
 
-app.post("/api/analytics/track", async (req, res) => {
+app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
   try {
     const body = req.body || {};
     const eventType = analyticsSafeString(body.event_type || body.type, 40);
@@ -1377,6 +1534,19 @@ app.get("/api/admin/analytics", requirePermission("analytics:read"), async (req,
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message || "Analytics error" });
   }
+});
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ success: false, error: "خطأ في رفع الملفات: " + err.message });
+  }
+  if (err && err.message) {
+    const msg = String(err.message || "");
+    if (msg.includes("الصورة") || msg.includes("image") || msg.includes("امتداد") || msg.includes("نوع")) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+  }
+  return next(err);
 });
 
 app.use((req,res,next)=>{ if(req.path.startsWith("/api")) return res.status(404).json({success:false,error:"API route not found"}); next(); });
