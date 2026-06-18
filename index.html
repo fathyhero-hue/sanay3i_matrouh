@@ -2345,6 +2345,55 @@
       } catch (e) {}
     }
 
+
+    const directoryAnalyticsState = { trade: "", area: "", search: "", timer: null };
+
+    function trackDirectoryEvent(eventType, value, sourcePrefix) {
+      try {
+        const clean = String(value || "").trim().slice(0, 80);
+        if (!eventType || !clean) return;
+        const payload = JSON.stringify({
+          worker_id: "",
+          event_type: eventType,
+          source: (sourcePrefix || eventType) + ":" + clean,
+          page_path: location.pathname + location.search
+        });
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon("/api/analytics/track", blob);
+        } else {
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function trackCurrentDirectoryFilters(searchValue, tradeValue, areaValue) {
+      clearTimeout(directoryAnalyticsState.timer);
+      directoryAnalyticsState.timer = setTimeout(function () {
+        const trade = String(tradeValue || "").trim();
+        const area = String(areaValue || "").trim();
+        const search = String(searchValue || "").trim();
+
+        if (trade && trade !== directoryAnalyticsState.trade) {
+          directoryAnalyticsState.trade = trade;
+          trackDirectoryEvent("filter_trade", trade, "trade");
+        }
+        if (area && area !== directoryAnalyticsState.area) {
+          directoryAnalyticsState.area = area;
+          trackDirectoryEvent("filter_area", area, "area");
+        }
+        if (search.length >= 2 && search !== directoryAnalyticsState.search) {
+          directoryAnalyticsState.search = search;
+          trackDirectoryEvent("search", "search_used", "search");
+        }
+      }, 700);
+    }
+
     function renderWorkers(workers) {
       const workersGrid = document.getElementById("workersGrid");
       const emptyBox = document.getElementById("emptyBox");
@@ -2556,6 +2605,7 @@
       updateTradeIconsActiveState();
       updateAreaIconsActiveState();
       updateWorkersHeading(selectedTradeRaw, selectedAreaRaw, sorted.length);
+      trackCurrentDirectoryFilters(searchValue, selectedTradeRaw, selectedAreaRaw);
       renderWorkers(sorted);
     }
 

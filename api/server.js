@@ -699,7 +699,12 @@ function activityActionLabel(action){
     admin_user_create:"إنشاء مستخدم إدارة",
     admin_user_update:"تعديل مستخدم إدارة",
     admin_user_password_change:"تغيير كلمة سر مستخدم إدارة",
-    admin_user_delete:"حذف مستخدم إدارة"
+    admin_user_delete:"حذف مستخدم إدارة",
+    backup_export_json:"تصدير نسخة JSON",
+    backup_create_storage:"إنشاء نسخة احتياطية في Storage",
+    backup_export_subscriptions_csv:"تصدير الاشتراكات CSV",
+    backup_export_payments_csv:"تصدير المدفوعات CSV",
+    backup_auto_daily:"نسخ احتياطي يومي تلقائي"
   }[action] || action;
 }
 async function logAdminActivity(action, options={}){
@@ -1392,7 +1397,247 @@ function csv(v){
   return /[,"\n]/.test(t)?`"${t}"`:t;
 }
 app.get("/api/export-workers", requirePermission("backup:export"), async (req,res)=>{ if(!ready(res))return; const {data:workers,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); const {data:reviews}=await supabase.from("reviews").select("worker_id,rating").eq("approved",true); const by={}; (reviews||[]).forEach(r=>{ const k=String(r.worker_id); if(!by[k])by[k]=[]; by[k].push(Number(r.rating||0)); }); const headers=["رقم الطلب","ID","الاسم","رقم الهاتف","رقم الواتساب","الحرفة","المنطقة","الوصف","حالة الموافقة","حالة التفعيل","حالة التحقق","سبب التحقق","مميز","بداية الاشتراك","نهاية الاشتراك","تاريخ التسجيل","عدد التقييمات المعتمدة","متوسط التقييم"]; const lines=[headers.map(csv).join(",")]; (workers||[]).forEach(w=>{ const rs=by[String(w.id)]||[], count=rs.length, avg=count?Math.round((rs.reduce((a,b)=>a+b,0)/count)*10)/10:0; lines.push([w.registration_code||makeRegistrationCode(w.id,w.created_at),w.id,w.name,w.phone,w.whatsapp,w.trade,w.area,w.description,w.approved?"موافق عليه":"بانتظار الموافقة",w.active?"نشط":"متوقف",identityStatusLabel(normalizeIdentityStatus(w.identity_status || (w.identity_verified?"verified":"pending"))),w.identity_rejection_reason||"",w.featured?"مميز":"عادي",w.subscription_start,w.subscription_end,w.created_at,count,avg].map(csv).join(",")); }); const content="\uFEFF"+lines.join("\n"); res.setHeader("Content-Type","text/csv; charset=utf-8"); res.setHeader("Content-Disposition",`attachment; filename="sanay3i-workers-report.csv"`); res.send(content); });
-app.get("/api/backup-db", requirePermission("backup:export"), (req,res)=>res.status(400).json({success:false,error:"النسخ الاحتياطي لقاعدة Supabase يتم من لوحة Supabase"}));
+// ===============================
+// Backup & Export Patch
+// ===============================
+const BACKUP_BUCKET = process.env.SUPABASE_BACKUP_BUCKET || "backups";
+const BACKUP_TABLES = [
+  { name: "workers", label: "الصنايعية", required: true },
+  { name: "worker_photos", label: "صور الأعمال" },
+  { name: "reviews", label: "التقييمات" },
+  { name: "trades", label: "الحرف" },
+  { name: "areas", label: "المناطق" },
+  { name: "subscription_payments", label: "مدفوعات الاشتراكات" },
+  { name: "analytics_events", label: "أحداث التحليلات" },
+  { name: "admin_activity_log", label: "سجل عمليات الإدارة" },
+  { name: "admin_users", label: "مستخدمي الإدارة", sanitize: true }
+];
+
+function backupFileStamp(){
+  return new Date().toISOString().replace(/[:.]/g,"-");
+}
+
+function backupFileName(prefix="sanay3i-backup"){
+  return `${prefix}-${backupFileStamp()}.json`;
+}
+
+function sanitizeBackupRow(tableName, row){
+  const out = { ...(row || {}) };
+  if(tableName === "admin_users"){
+    delete out.password_hash;
+    delete out.password_salt;
+  }
+  return out;
+}
+
+async function readSupabaseTableForBackup(tableName, options={}){
+  const pageSize = 1000;
+  let from = 0;
+  const rows = [];
+  while(true){
+    let q = supabase.from(tableName).select("*").range(from, from + pageSize - 1);
+    const { data, error } = await q;
+    if(error) return { success:false, table:tableName, count:0, rows:[], error:error.message };
+    const chunk = data || [];
+    rows.push(...chunk.map(r => options.sanitize ? sanitizeBackupRow(tableName, r) : r));
+    if(chunk.length < pageSize) break;
+    from += pageSize;
+    if(from > 100000) break;
+  }
+  return { success:true, table:tableName, count:rows.length, rows };
+}
+
+async function buildFullBackup(admin=null){
+  const generatedAt = new Date().toISOString();
+  const result = {
+    meta: {
+      project: "sanay3i_matrouh",
+      app: "صنايعي مطروح",
+      type: "full_supabase_export",
+      generated_at: generatedAt,
+      generated_by: admin ? { username: admin.username, display_name: admin.display_name, role: admin.role } : null,
+      note: "admin_users password hashes are intentionally excluded from this backup export."
+    },
+    tables: {},
+    errors: []
+  };
+
+  for(const t of BACKUP_TABLES){
+    const tableResult = await readSupabaseTableForBackup(t.name, { sanitize: !!t.sanitize });
+    if(tableResult.success){
+      result.tables[t.name] = {
+        label: t.label,
+        count: tableResult.count,
+        rows: tableResult.rows
+      };
+    }else{
+      result.tables[t.name] = { label: t.label, count: 0, rows: [], skipped: true };
+      result.errors.push({ table: t.name, error: tableResult.error, required: !!t.required });
+    }
+  }
+  result.meta.table_count = Object.keys(result.tables).length;
+  result.meta.total_rows = Object.values(result.tables).reduce((sum, t) => sum + Number(t.count || 0), 0);
+  return result;
+}
+
+function sendJsonDownload(res, data, filename){
+  const body = JSON.stringify(data, null, 2);
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.send(body);
+}
+
+function sendCsvDownload(res, filename, headers, rows){
+  const lines = [headers.map(csv).join(",")];
+  (rows || []).forEach(row => lines.push(row.map(csv).join(",")));
+  const content = "\uFEFF" + lines.join("\n");
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.send(content);
+}
+
+async function ensureBackupBucket(){
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if(listError) throw new Error("تعذر قراءة Buckets من Supabase Storage: " + listError.message);
+  const found = (buckets || []).some(b => b.name === BACKUP_BUCKET);
+  if(!found){
+    const { error: createError } = await supabase.storage.createBucket(BACKUP_BUCKET, { public: false });
+    if(createError) throw new Error("تعذر إنشاء Bucket النسخ الاحتياطي: " + createError.message);
+  }
+}
+
+async function uploadBackupToStorage(backup, folder="manual"){
+  await ensureBackupBucket();
+  const filePath = `${folder}/${backupFileName()}`;
+  const payload = Buffer.from(JSON.stringify(backup, null, 2), "utf8");
+  const { error } = await supabase.storage
+    .from(BACKUP_BUCKET)
+    .upload(filePath, payload, { contentType: "application/json; charset=utf-8", upsert: true });
+  if(error) throw new Error("تعذر رفع النسخة الاحتياطية إلى Supabase Storage: " + error.message);
+  return filePath;
+}
+
+app.get("/api/admin/backups/summary", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  const items = [];
+  for(const t of BACKUP_TABLES){
+    const { count, error } = await supabase.from(t.name).select("*", { count:"exact", head:true });
+    items.push({ table:t.name, label:t.label, count: error ? null : (count || 0), error: error ? error.message : null });
+  }
+  res.json({ success:true, bucket:BACKUP_BUCKET, items, generated_at:new Date().toISOString() });
+});
+
+app.get("/api/admin/backups/full-json", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  try{
+    const backup = await buildFullBackup(req.admin || null);
+    await logAdminActivity("backup_export_json", { entity_type:"backup", entity_name:"Full JSON backup", details:{ tables:Object.keys(backup.tables), total_rows:backup.meta.total_rows } });
+    return sendJsonDownload(res, backup, backupFileName());
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message || "تعذر إنشاء النسخة الاحتياطية" });
+  }
+});
+
+app.post("/api/admin/backups/create", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  try{
+    const backup = await buildFullBackup(req.admin || null);
+    const filePath = await uploadBackupToStorage(backup, "manual");
+    await logAdminActivity("backup_create_storage", { entity_type:"backup", entity_name:filePath, details:{ bucket:BACKUP_BUCKET, total_rows:backup.meta.total_rows } });
+    return res.json({ success:true, bucket:BACKUP_BUCKET, path:filePath, total_rows:backup.meta.total_rows, generated_at:backup.meta.generated_at });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message || "تعذر إنشاء النسخة الاحتياطية" });
+  }
+});
+
+app.get("/api/admin/backups/subscriptions-csv", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  const { data: workers, error } = await supabase
+    .from("workers")
+    .select("id,registration_code,name,phone,whatsapp,trade,area,featured,active,approved,subscription_start,subscription_end,created_at")
+    .order("subscription_end", { ascending:false, nullsFirst:false });
+  if(error) return res.status(500).json({ success:false, error:error.message });
+
+  const rows = (workers || []).map(w => {
+    const end = w.subscription_end ? new Date(w.subscription_end) : null;
+    const now = new Date();
+    const daysLeft = end ? Math.ceil((end - now) / (24*60*60*1000)) : "";
+    const status = !end ? "غير محدد" : daysLeft < 0 ? "منتهي" : daysLeft <= 7 ? "قارب الانتهاء" : "نشط";
+    return [
+      w.registration_code || makeRegistrationCode(w.id, w.created_at), w.id, w.name, w.phone, w.whatsapp,
+      w.trade, w.area, w.featured ? "مميز" : "عادي", w.active ? "نشط" : "متوقف",
+      w.approved ? "موافق عليه" : "بانتظار الموافقة", w.subscription_start, w.subscription_end, daysLeft, status
+    ];
+  });
+  await logAdminActivity("backup_export_subscriptions_csv", { entity_type:"backup", entity_name:"subscriptions CSV", details:{ rows:rows.length } });
+  return sendCsvDownload(res, "sanay3i-subscriptions-report.csv", ["رقم الطلب","ID","الاسم","الهاتف","واتساب","الحرفة","المنطقة","مميز","التفعيل","الموافقة","بداية الاشتراك","نهاية الاشتراك","الأيام المتبقية","حالة الاشتراك"], rows);
+});
+
+app.get("/api/admin/backups/payments-csv", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  const { data, error } = await supabase
+    .from("subscription_payments")
+    .select("*")
+    .order("id", { ascending:false });
+  if(error) return res.status(500).json({ success:false, error:"جدول subscription_payments غير موجود أو غير جاهز" });
+  const all = data || [];
+  const headers = Array.from(new Set(all.flatMap(row => Object.keys(row || {}))));
+  const rows = all.map(row => headers.map(h => row[h]));
+  await logAdminActivity("backup_export_payments_csv", { entity_type:"backup", entity_name:"payments CSV", details:{ rows:rows.length } });
+  return sendCsvDownload(res, "sanay3i-payments-report.csv", headers, rows);
+});
+
+app.get("/api/admin/backups/activity-log-csv", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  const { data, error } = await supabase.from("admin_activity_log").select("*").order("id", { ascending:false }).limit(10000);
+  if(error) return res.status(500).json({ success:false, error:"جدول admin_activity_log غير موجود أو غير جاهز" });
+  const all = data || [];
+  const headers = Array.from(new Set(all.flatMap(row => Object.keys(row || {}))));
+  const rows = all.map(row => headers.map(h => typeof row[h] === "object" ? JSON.stringify(row[h]) : row[h]));
+  return sendCsvDownload(res, "sanay3i-admin-activity-log.csv", headers, rows);
+});
+
+app.get("/api/admin/backups/analytics-csv", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  const daysRaw = Number(req.query.days || 90);
+  const days = Math.max(1, Math.min(365, Number.isFinite(daysRaw) ? daysRaw : 90));
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase.from("analytics_events").select("*").gte("created_at", since).order("id", { ascending:false }).limit(50000);
+  if(error) return res.status(500).json({ success:false, error:"جدول analytics_events غير موجود أو غير جاهز" });
+  const all = data || [];
+  const headers = Array.from(new Set(all.flatMap(row => Object.keys(row || {}))));
+  const rows = all.map(row => headers.map(h => row[h]));
+  return sendCsvDownload(res, `sanay3i-analytics-${days}-days.csv`, headers, rows);
+});
+
+// Backward-compatible old button route.
+app.get("/api/backup-db", requirePermission("backup:export"), async (req,res)=>{
+  if(!ready(res)) return;
+  try{
+    const backup = await buildFullBackup(req.admin || null);
+    await logAdminActivity("backup_export_json", { entity_type:"backup", entity_name:"Full JSON backup", details:{ route:"/api/backup-db", total_rows:backup.meta.total_rows } });
+    return sendJsonDownload(res, backup, backupFileName());
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message || "تعذر إنشاء النسخة الاحتياطية" });
+  }
+});
+
+app.get("/api/cron/daily-backup", async (req,res)=>{
+  if(!ready(res)) return;
+  const secret = String(process.env.BACKUP_CRON_SECRET || "");
+  const provided = String(req.query.secret || req.headers["x-backup-cron-secret"] || "");
+  if(!secret || !provided || !safePasswordEqual(provided, secret)){
+    return res.status(401).json({ success:false, error:"BACKUP_CRON_SECRET مطلوب لتشغيل النسخ الاحتياطي التلقائي" });
+  }
+  try{
+    const backup = await buildFullBackup({ username:"cron", display_name:"Daily Backup Cron", role:"system" });
+    const filePath = await uploadBackupToStorage(backup, "daily");
+    await logAdminActivity("backup_auto_daily", { admin_name:"Daily Backup Cron", entity_type:"backup", entity_name:filePath, details:{ bucket:BACKUP_BUCKET, total_rows:backup.meta.total_rows } });
+    return res.json({ success:true, bucket:BACKUP_BUCKET, path:filePath, total_rows:backup.meta.total_rows, generated_at:backup.meta.generated_at });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message || "تعذر تشغيل النسخ الاحتياطي التلقائي" });
+  }
+});
 
 
 // ===============================
@@ -1418,7 +1663,7 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
   try {
     const body = req.body || {};
     const eventType = analyticsSafeString(body.event_type || body.type, 40);
-    const allowed = new Set(["profile_view", "call", "whatsapp", "share"]);
+    const allowed = new Set(["profile_view", "call", "whatsapp", "share", "filter_trade", "filter_area", "search"]);
 
     if (!allowed.has(eventType)) {
       return res.status(400).json({ success: false, error: "Invalid analytics event type" });
@@ -1427,7 +1672,7 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
     const row = {
       worker_id: analyticsSafeString(body.worker_id || body.workerId, 80),
       event_type: eventType,
-      source: analyticsSafeString(body.source, 80),
+      source: analyticsSafeString(body.source, 160),
       page_path: analyticsSafeString(body.page_path || body.page || req.headers.referer || "", 500),
       user_agent: analyticsSafeString(req.headers["user-agent"], 500),
       ip_hash: analyticsIpHash(req)
@@ -1447,7 +1692,106 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
   }
 });
 
+function analyticsDateKey(value) {
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10);
+  } catch (e) {
+    return "";
+  }
+}
+
+function analyticsSourceValue(source, prefix) {
+  const s = String(source || "").trim();
+  const p = String(prefix || "") + ":";
+  if (!s.startsWith(p)) return "";
+  return s.slice(p.length).trim().slice(0, 80);
+}
+
+function analyticsEmptyAgg(label) {
+  return {
+    name: label,
+    profile_view: 0,
+    call: 0,
+    whatsapp: 0,
+    share: 0,
+    filter_trade: 0,
+    filter_area: 0,
+    search: 0,
+    total_contacts: 0,
+    total_events: 0
+  };
+}
+
+function analyticsIncAgg(map, key, type) {
+  const cleanKey = String(key || "").trim() || "غير محدد";
+  if (!map[cleanKey]) map[cleanKey] = analyticsEmptyAgg(cleanKey);
+  map[cleanKey].total_events += 1;
+  if (map[cleanKey][type] !== undefined) map[cleanKey][type] += 1;
+  if (type === "call" || type === "whatsapp") map[cleanKey].total_contacts += 1;
+}
+
+async function analyticsFetchWorkersByIds(ids) {
+  if (!ids.length) return [];
+  const fields = "id,name,trade,area,phone,whatsapp,featured,approved,active,subscription_end,identity_verified,created_at";
+  let { data, error } = await supabase.from("workers").select(fields).in("id", ids);
+  if (error) {
+    const fallbackFields = "id,name,trade,area,phone,whatsapp,featured,approved,active,subscription_end,created_at";
+    const fallback = await supabase.from("workers").select(fallbackFields).in("id", ids);
+    data = fallback.data || [];
+    error = fallback.error;
+  }
+  if (error) return [];
+  return data || [];
+}
+
+async function analyticsFetchAllWorkersLite() {
+  let { data, error } = await supabase.from("workers").select("id,trade,area,approved,active").limit(10000);
+  if (error) return [];
+  return data || [];
+}
+
+async function analyticsFetchNameList(tableName, fallbackRows, fallbackKey) {
+  try {
+    const { data, error } = await supabase.from(tableName).select("name").limit(1000);
+    if (!error && Array.isArray(data) && data.length) {
+      return Array.from(new Set(data.map(x => String(x.name || "").trim()).filter(Boolean)));
+    }
+  } catch (e) {}
+  return Array.from(new Set((fallbackRows || []).map(x => String(x[fallbackKey] || "").trim()).filter(Boolean)));
+}
+
+function analyticsWorkerIdFromPagePath(pagePath) {
+  const raw = String(pagePath || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = raw.startsWith("http://") || raw.startsWith("https://")
+      ? new URL(raw)
+      : new URL(raw, "https://sanay3i.local");
+
+    const queryId = parsed.searchParams.get("id") || parsed.searchParams.get("worker_id") || parsed.searchParams.get("workerId");
+    if (queryId) return String(queryId).trim();
+
+    const path = String(parsed.pathname || "").replace(/\/+$/, "");
+    const match = path.match(/\/worker\/([^\/?#]+)/i);
+    return match ? decodeURIComponent(match[1]).trim() : "";
+  } catch (e) {
+    const clean = raw.split("?")[0].replace(/\/+$/, "");
+    const match = clean.match(/\/worker\/([^\/?#]+)/i);
+    return match ? decodeURIComponent(match[1]).trim() : "";
+  }
+}
+
+function analyticsWorkerPageTitle(worker, pagePath) {
+  if (!worker) return pagePath || "غير محدد";
+  const parts = [worker.name, worker.trade, worker.area].map(x => String(x || "").trim()).filter(Boolean);
+  return parts.length ? parts.join(" - ") : (pagePath || "غير محدد");
+}
+
 app.get("/api/admin/analytics", requirePermission("analytics:read"), async (req, res) => {
+  if (!ready(res)) return;
   try {
     const daysRaw = Number(req.query.days || req.query.range || 30);
     const days = Math.max(1, Math.min(365, Number.isFinite(daysRaw) ? daysRaw : 30));
@@ -1458,7 +1802,7 @@ app.get("/api/admin/analytics", requirePermission("analytics:read"), async (req,
       .select("worker_id,event_type,source,page_path,created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
-      .limit(10000);
+      .limit(50000);
 
     if (error) {
       return res.status(500).json({
@@ -1473,22 +1817,56 @@ app.get("/api/admin/analytics", requirePermission("analytics:read"), async (req,
       call: 0,
       whatsapp: 0,
       share: 0,
+      filter_trade: 0,
+      filter_area: 0,
+      search: 0,
       total_contacts: 0,
-      total_events: events.length
+      total_events: events.length,
+      conversion_rate: 0
     };
 
     const byWorker = {};
     const bySource = {};
+    const byPage = {};
+    const byDay = {};
+    const filterTrades = {};
+    const filterAreas = {};
 
-    for (const ev of events) {
-      const type = ev.event_type;
+    const dailyWindow = Math.min(days, 31);
+    for (let i = dailyWindow - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      byDay[d] = { date: d, profile_view: 0, call: 0, whatsapp: 0, share: 0, total_contacts: 0, total_events: 0 };
+    }
+
+    for (const ev of events || []) {
+      const type = String(ev.event_type || "");
       if (totals[type] !== undefined) totals[type] += 1;
       if (type === "call" || type === "whatsapp") totals.total_contacts += 1;
 
       const source = ev.source || "unknown";
       bySource[source] = (bySource[source] || 0) + 1;
 
-      const wid = String(ev.worker_id || "");
+      const page = String(ev.page_path || "").split("?")[0] || "unknown";
+      byPage[page] = (byPage[page] || 0) + 1;
+
+      const dk = analyticsDateKey(ev.created_at);
+      if (dk && byDay[dk]) {
+        byDay[dk].total_events += 1;
+        if (byDay[dk][type] !== undefined) byDay[dk][type] += 1;
+        if (type === "call" || type === "whatsapp") byDay[dk].total_contacts += 1;
+      }
+
+      if (type === "filter_trade") {
+        const tradeName = analyticsSourceValue(source, "trade");
+        if (tradeName) analyticsIncAgg(filterTrades, tradeName, type);
+      }
+
+      if (type === "filter_area") {
+        const areaName = analyticsSourceValue(source, "area");
+        if (areaName) analyticsIncAgg(filterAreas, areaName, type);
+      }
+
+      const wid = String(ev.worker_id || "").trim();
       if (wid) {
         if (!byWorker[wid]) {
           byWorker[wid] = { worker_id: wid, profile_view: 0, call: 0, whatsapp: 0, share: 0, total_contacts: 0, total_events: 0 };
@@ -1499,36 +1877,107 @@ app.get("/api/admin/analytics", requirePermission("analytics:read"), async (req,
       }
     }
 
-    const ids = Object.keys(byWorker).slice(0, 200);
-    let workersMap = {};
-    if (ids.length) {
-      const { data: workers } = await supabase
-        .from("workers")
-        .select("id,name,trade,area,phone,whatsapp,featured,identity_verified")
-        .in("id", ids);
-      (workers || []).forEach(w => {
-        workersMap[String(w.id)] = w;
-      });
+    totals.conversion_rate = totals.profile_view ? Math.round((totals.total_contacts / totals.profile_view) * 1000) / 10 : 0;
+
+    const pageWorkerIds = Object.keys(byPage)
+      .map(pagePath => analyticsWorkerIdFromPagePath(pagePath))
+      .filter(Boolean);
+    const ids = Array.from(new Set([...Object.keys(byWorker), ...pageWorkerIds])).slice(0, 500);
+    const workers = await analyticsFetchWorkersByIds(ids);
+    const workersMap = {};
+    (workers || []).forEach(w => { workersMap[String(w.id)] = w; });
+
+    const byTrade = {};
+    const byArea = {};
+    for (const ev of events || []) {
+      const wid = String(ev.worker_id || "").trim();
+      if (!wid || !workersMap[wid]) continue;
+      const type = String(ev.event_type || "");
+      const worker = workersMap[wid];
+      analyticsIncAgg(byTrade, worker.trade || "غير محدد", type);
+      analyticsIncAgg(byArea, worker.area || "غير محدد", type);
     }
 
     const top_workers = Object.values(byWorker)
-      .map(row => ({
-        ...row,
-        worker: workersMap[String(row.worker_id)] || null
-      }))
+      .map(row => ({ ...row, worker: workersMap[String(row.worker_id)] || null }))
       .sort((a, b) => (b.total_contacts - a.total_contacts) || (b.total_events - a.total_events))
-      .slice(0, 20);
+      .slice(0, 30);
+
+    const sortAgg = rows => Object.values(rows)
+      .sort((a, b) => (b.total_contacts - a.total_contacts) || (b.total_events - a.total_events) || String(a.name).localeCompare(String(b.name), "ar"));
 
     const source_breakdown = Object.entries(bySource)
       .map(([source, count]) => ({ source, count }))
-      .sort((a, b) => b.count - a.count);
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 30);
+
+    const top_pages = Object.entries(byPage)
+      .map(([page_path, count]) => {
+        const page_worker_id = analyticsWorkerIdFromPagePath(page_path);
+        const pageWorker = page_worker_id ? workersMap[String(page_worker_id)] : null;
+        return {
+          page_path,
+          count,
+          worker_id: page_worker_id || null,
+          worker: pageWorker || null,
+          name: analyticsWorkerPageTitle(pageWorker, page_path)
+        };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
+
+    const daily = Object.values(byDay);
+
+    const allWorkersLite = await analyticsFetchAllWorkersLite();
+    const tradesList = await analyticsFetchNameList("trades", allWorkersLite, "trade");
+    const areasList = await analyticsFetchNameList("areas", allWorkersLite, "area");
+
+    const supply = {};
+    for (const w of allWorkersLite || []) {
+      const trade = String(w.trade || "").trim();
+      const area = String(w.area || "").trim();
+      if (!trade || !area) continue;
+      const key = trade + "||" + area;
+      supply[key] = (supply[key] || 0) + 1;
+    }
+
+    const demandedTrades = Array.from(new Set([
+      ...Object.keys(filterTrades),
+      ...sortAgg(byTrade).map(x => x.name),
+      ...tradesList
+    ].filter(Boolean))).slice(0, 20);
+
+    const demandedAreas = Array.from(new Set([
+      ...Object.keys(filterAreas),
+      ...sortAgg(byArea).map(x => x.name),
+      ...areasList
+    ].filter(Boolean))).slice(0, 20);
+
+    const missing_trade_area = [];
+    for (const area of demandedAreas) {
+      for (const trade of demandedTrades) {
+        const count = supply[trade + "||" + area] || 0;
+        if (count === 0) {
+          missing_trade_area.push({ trade, area, worker_count: 0 });
+          if (missing_trade_area.length >= 40) break;
+        }
+      }
+      if (missing_trade_area.length >= 40) break;
+    }
 
     return res.json({
       success: true,
       days,
       totals,
       top_workers,
+      top_trades: sortAgg(byTrade).slice(0, 20),
+      top_areas: sortAgg(byArea).slice(0, 20),
+      filter_trades: sortAgg(filterTrades).slice(0, 20),
+      filter_areas: sortAgg(filterAreas).slice(0, 20),
       source_breakdown,
+      top_pages,
+      daily,
+      missing_trade_area,
       generated_at: new Date().toISOString()
     });
   } catch (e) {

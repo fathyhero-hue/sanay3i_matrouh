@@ -264,6 +264,7 @@
 .admin-user-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:var(--shadow-sm)}
 .admin-user-card h4{font-size:18px;font-weight:900;color:var(--primary);margin-bottom:4px}.admin-user-card p{font-size:13px;color:var(--muted);font-weight:800;margin:2px 0}.role-pill{display:inline-flex;border-radius:999px;padding:7px 10px;background:#eef2ff;color:#1d4ed8;font-weight:900;font-size:12px;margin-top:8px}.role-pill.off{background:#fee2e2;color:#991b1b}
 .disabled-role-action{opacity:.45;pointer-events:none}
+.backup-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.backup-action-card{border:1px solid var(--border);background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow-sm)}.backup-action-card h4{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:6px}.backup-action-card p{font-size:12px;color:var(--muted);font-weight:800;min-height:34px}.backup-action-card button,.backup-action-card a{margin-top:10px;width:100%;justify-content:center}.backup-summary-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.backup-summary-item{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px}.backup-summary-item strong{display:block;color:var(--primary);font-size:18px}.backup-summary-item span{color:var(--muted);font-size:12px;font-weight:800}
 </style>
 
 </head>
@@ -272,7 +273,7 @@
 <main class="admin-dashboard" id="dashboard"><header class="admin-topbar"><div class="container admin-topbar-content"><a href="/admin" class="brand"><div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="brand-text"><h1>صنايعي مطروح</h1><span>لوحة الإدارة والتحكم</span></div></a><div class="admin-actions-top"><span class="admin-role-badge" id="adminRoleBadge"><i class="fa-solid fa-user-shield"></i> الإدارة</span><button class="admin-mini-btn" onclick="loadAllData()"><i class="fa-solid fa-rotate"></i> تحديث</button><button class="admin-mini-btn" data-permission="backup:export" onclick="downloadBackup()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button><button class="admin-mini-btn" data-permission="backup:export" onclick="exportWorkersReport()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button><a href="/" class="admin-mini-btn"><i class="fa-solid fa-house"></i> الرئيسية</a><button class="admin-mini-btn logout-btn" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button></div></div></header>
 <section class="admin-hero"><div class="container"><div class="admin-hero-box"><div><span class="section-label">Dashboard</span><h2>إدارة دليل صنايعي مطروح</h2><p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p></div><button class="btn btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button></div></div></section>
 <section class="container"><div class="admin-tabs"><button class="admin-tab active" onclick="switchTab('workers',this)"><i class="fa-solid fa-users-gear"></i> الصنايعية</button><a class="admin-tab" data-permission="workers:create" href="/admin/add-worker"><i class="fa-solid fa-user-plus"></i> إضافة صنايعي</a><button class="admin-tab" data-permission="settings:manage" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button><button class="admin-tab" data-permission="settings:manage" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
-<button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button><button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button></div>
+<button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button><button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button><button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button></div>
 
 <div class="notifications-grid" id="notificationsGrid">
   <div class="notification-card" onclick="showPendingWorkers()">
@@ -348,8 +349,8 @@
   <div class="admin-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div>
-        <h3>تحليلات التواصل</h3>
-        <p>تتبع ضغطات الاتصال والواتساب ومشاهدات صفحات الصنايعية.</p>
+        <h3>تحليلات احترافية</h3>
+        <p>تحليل التواصل، الحرف المطلوبة، المناطق النشطة، الصفحات الأكثر زيارة، والفجوات في التغطية.</p>
       </div>
       <div class="form-row" style="margin:0;max-width:260px">
         <select id="analyticsRange" onchange="loadAnalytics()">
@@ -379,6 +380,14 @@
       <div class="admin-stat-icon"><i class="fa-solid fa-bolt"></i></div>
       <div><h3 id="analyticsContacts">0</h3><p>إجمالي تواصل</p></div>
     </div>
+    <div class="admin-stat">
+      <div class="admin-stat-icon"><i class="fa-solid fa-chart-simple"></i></div>
+      <div><h3 id="analyticsEvents">0</h3><p>إجمالي أحداث</p></div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-icon"><i class="fa-solid fa-percent"></i></div>
+      <div><h3 id="analyticsConversion">0%</h3><p>تحويل مشاهدة لتواصل</p></div>
+    </div>
   </div>
 
   <div class="admin-panel">
@@ -386,6 +395,50 @@
     <p>الصنايعيون أصحاب أعلى ضغطات اتصال وواتساب في الفترة المحددة.</p>
     <div id="analyticsTopWorkers" class="admin-workers-grid"></div>
     <div id="analyticsMessage" class="empty-state" style="display:none"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px">
+    <div class="admin-panel">
+      <h3>أكثر الحرف طلبًا</h3>
+      <p>مرتبة حسب التواصل والمشاهدات.</p>
+      <div id="analyticsTopTrades" class="analytics-list"></div>
+    </div>
+    <div class="admin-panel">
+      <h3>أكثر المناطق طلبًا</h3>
+      <p>مرتبة حسب التواصل والمشاهدات.</p>
+      <div id="analyticsTopAreas" class="analytics-list"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px">
+    <div class="admin-panel">
+      <h3>اختيارات الزوار للحرف</h3>
+      <p>من فلاتر الصفحة الرئيسية وروابط الحرف.</p>
+      <div id="analyticsFilterTrades" class="analytics-list"></div>
+    </div>
+    <div class="admin-panel">
+      <h3>اختيارات الزوار للمناطق</h3>
+      <p>من فلاتر الصفحة الرئيسية وروابط المناطق.</p>
+      <div id="analyticsFilterAreas" class="analytics-list"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px">
+    <div class="admin-panel">
+      <h3>أكثر الصفحات زيارة</h3>
+      <div id="analyticsTopPages" class="analytics-list"></div>
+    </div>
+    <div class="admin-panel">
+      <h3>آخر الأيام</h3>
+      <p>آخر 31 يوم كحد أقصى حسب الفترة المختارة.</p>
+      <div id="analyticsDaily" class="analytics-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-panel" style="margin-top:14px">
+    <h3>فجوات التغطية</h3>
+    <p>حرف غير موجودة في مناطق معينة بناءً على بيانات الحرف والمناطق الحالية. استخدمها كإشارة للتوسع، وليست حكمًا نهائيًا على الطلب.</p>
+    <div id="analyticsGaps" class="analytics-list"></div>
   </div>
 </section>
 
@@ -410,7 +463,28 @@
     </form>
     <div id="adminUsersList" class="admin-users-grid"></div>
   </div>
+
 </section>
+
+<section class="admin-section" id="backupsSection">
+  <div class="admin-panel">
+    <h3>النسخ الاحتياطي وتصدير البيانات</h3>
+    <p>صدّر نسخة كاملة من بيانات النظام أو تقارير CSV قابلة للفتح في Excel. الصلاحية متاحة للمدير الكامل فقط أو من يملك صلاحية النسخ الاحتياطي.</p>
+    <div class="permission-note"><i class="fa-solid fa-shield-halved"></i> النسخة الكاملة تتضمن بيانات التشغيل المهمة، ولا تتضمن Hash كلمات مرور مستخدمي الإدارة.</div>
+    <div id="backupSummary" class="backup-summary-list"><div class="empty-state">اضغط تحديث الملخص لقراءة أعداد الجداول.</div></div>
+    <div class="backup-actions-grid">
+      <div class="backup-action-card"><h4><i class="fa-solid fa-rotate"></i> ملخص الجداول</h4><p>يعرض عدد السجلات في أهم الجداول قبل التصدير.</p><button class="big-btn btn-dark" onclick="loadBackupSummary()">تحديث الملخص</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-file-code"></i> نسخة كاملة JSON</h4><p>تحميل نسخة كاملة من الجداول الأساسية على جهازك.</p><button class="big-btn btn-blue" onclick="downloadFullBackup()">تحميل JSON</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-cloud-arrow-up"></i> حفظ في Supabase Storage</h4><p>إنشاء نسخة احتياطية داخل Bucket خاص باسم backups.</p><button class="big-btn btn-green" onclick="createStorageBackup()">إنشاء وحفظ</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-users"></i> الصنايعية Excel</h4><p>تقرير الصنايعية الحالي بكل بيانات الإدارة والتقييمات.</p><button class="big-btn btn-dark" onclick="exportWorkersReport()">تصدير الصنايعية</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-calendar-check"></i> الاشتراكات Excel</h4><p>تقرير الاشتراكات ونهاياتها وحالة كل صنايعي.</p><button class="big-btn btn-dark" onclick="exportSubscriptionsReport()">تصدير الاشتراكات</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-money-bill-wave"></i> المدفوعات Excel</h4><p>تصدير سجل مدفوعات الاشتراكات إن كان الجدول مفعّلًا.</p><button class="big-btn btn-dark" onclick="exportPaymentsReport()">تصدير المدفوعات</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-chart-line"></i> التحليلات Excel</h4><p>تصدير أحداث التحليلات آخر 90 يومًا.</p><button class="big-btn btn-dark" onclick="exportAnalyticsReport()">تصدير التحليلات</button></div>
+      <div class="backup-action-card"><h4><i class="fa-solid fa-clipboard-list"></i> سجل العمليات Excel</h4><p>تصدير سجل عمليات الإدارة للمراجعة والمحاسبة.</p><button class="big-btn btn-dark" onclick="exportActivityLogReport()">تصدير السجل</button></div>
+    </div>
+    <div id="backupMessage" class="empty-state" style="display:none;margin-top:14px"></div>
+  </div>
+
 
 <div class="modal-backdrop" id="editModal"><div class="modal-card"><div class="modal-head"><h3>تعديل بيانات الصنايعي</h3><button class="close-modal" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button></div><form onsubmit="submitEditWorker(event)"><input type="hidden" id="editId"><div class="edit-grid"><div class="edit-field"><label>الاسم</label><input id="editName" required></div><div class="edit-field"><label>رقم الاتصال</label><input id="editPhone" required></div><div class="edit-field"><label>رقم الواتساب</label><input id="editWhatsapp" placeholder="اتركه فارغًا لو نفس رقم الاتصال"></div><div class="edit-field"><label>الحرفة</label><select id="editTrade" required></select></div><div class="edit-field"><label>المنطقة</label><select id="editArea" required></select></div><div class="edit-field full"><label>الوصف</label><textarea id="editDescription"></textarea></div></div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeEditModal()">إلغاء</button><button type="submit" class="big-btn btn-dark">حفظ التعديل</button></div></form></div></div>
 
@@ -429,7 +503,7 @@ function showDashboard(){document.getElementById("loginScreen").style.display="n
 function showLogin(){document.getElementById("dashboard").classList.remove("show");document.getElementById("loginScreen").style.display="flex"}
 async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST",credentials:"include"})}catch(e){} location.reload()}
 async function checkLogin(){try{const r=await fetch("/api/admin/me",{credentials:"include"});const d=await r.json();if(d.authenticated){currentAdmin=d.admin||null;showDashboard()}else showLogin()}catch(e){showLogin()}}
-function switchTab(t,b){if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews();if(t==='analytics')loadAnalytics();if(t==='users')loadAdminUsers()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
+function switchTab(t,b){if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews();if(t==='analytics')loadAnalytics();if(t==='users')loadAdminUsers();if(t==='backups')loadBackupSummary()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
 async function fetchJson(urls){for(const u of urls){try{const r=await fetch(u,{credentials:"include"});if(r.status===401){showLogin();return []}if(r.ok)return await r.json()}catch(e){}}return []}function arr(d){if(Array.isArray(d))return d;for(const k of["data","workers","sanaieya","trades","crafts","areas","items"])if(d&&Array.isArray(d[k]))return d[k];return[]}function itemName(i){if(typeof i==="string")return i;return i.name||i.title||i.trade||i.craft||i.area||i.location||""}function itemId(i){if(typeof i==="string")return i;return i.id||i._id||i.name||i.title||""}
 async function loadAllData(){applyPermissionUI();await loadTrades();await loadAreas();await loadWorkers();await loadPhotosForAll();await loadReviewsAdmin();await loadNotifications();if(can("admin_users:manage"))await loadAdminUsers();buildRatingMaps();fillTradeSelects();fillAreaSelects();renderWorkers(allWorkers);stats()}
 async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers","/api/workers/all"]))}async function loadTrades(){allTrades=arr(await fetchJson(["/api/trades","/api/crafts","/trades","/crafts"]));renderTrades();fillTradeSelects()}async function loadAreas(){allAreas=arr(await fetchJson(["/api/areas","/api/locations","/areas","/locations"]));renderAreas();fillAreaSelects()}
@@ -468,7 +542,7 @@ function identityStatusClass(v){return {pending:"status-yellow",verified:"status
 function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
 function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
 function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
-function renderIdentityDocsAdmin(w){const id=wid(w),docsOk=hasIdentityDocs(w),status=identityStatusValue(w),reason=identityReason(w),note=identityNote(w);if(!can("workers:review")){return `<div class="subscription-box"><strong><i class="fa-solid fa-id-card"></i> حالة التحقق</strong><div class="status-row"><span class="status-badge ${docsOk?'status-green':'status-red'}">${docsOk?'تم رفع البطاقة':'البطاقة غير مكتملة'}</span><span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span></div></div>`}return `<div class="subscription-box"><strong><i class="fa-solid fa-id-card"></i> مستندات التحقق</strong><div class="status-row"><span class="status-badge ${docsOk?'status-green':'status-red'}">${docsOk?'تم رفع وجه وظهر البطاقة':'البطاقة غير مكتملة'}</span><span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span></div>${reason?`<div class="verification-note"><strong>السبب:</strong> ${reason}</div>`:""}${note?`<span class="verification-small">ملاحظة إدارية: ${note}</span>`:""}<div class="card-actions">${w.id_front_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','front')"><i class="fa-solid fa-address-card"></i> عرض وجه البطاقة</button>`:''}${w.id_back_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','back')"><i class="fa-solid fa-id-card-clip"></i> عرض ظهر البطاقة</button>`:''}<button class="action-btn btn-dark" onclick="openIdentityReviewModal('${id}')"><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button></div></div>`}
+function renderIdentityDocsAdmin(w){const id=wid(w),docsOk=hasIdentityDocs(w),status=identityStatusValue(w),reason=identityReason(w),note=identityNote(w);return `<div class="subscription-box"><strong><i class="fa-solid fa-id-card"></i> مستندات التحقق</strong><div class="status-row"><span class="status-badge ${docsOk?'status-green':'status-red'}">${docsOk?'تم رفع وجه وظهر البطاقة':'البطاقة غير مكتملة'}</span><span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span></div>${reason?`<div class="verification-note"><strong>السبب:</strong> ${reason}</div>`:""}${note?`<span class="verification-small">ملاحظة إدارية: ${note}</span>`:""}<div class="card-actions">${w.id_front_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','front')"><i class="fa-solid fa-address-card"></i> عرض وجه البطاقة</button>`:''}${w.id_back_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','back')"><i class="fa-solid fa-id-card-clip"></i> عرض ظهر البطاقة</button>`:''}<button class="action-btn btn-dark" onclick="openIdentityReviewModal('${id}')"><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button></div></div>`}
 async function openIdentityDoc(id,side){try{const r=await fetch(`/api/admin/workers/${id}/id-card/${side}`,{credentials:"include"});const data=await r.json();if(r.status===401){showLogin();return}if(!r.ok||!data.success)throw new Error(data.error||"تعذر فتح صورة البطاقة");window.open(data.url,"_blank","noopener");}catch(e){toast("error",e.message||"تعذر فتح صورة البطاقة")}}
 function openIdentityReviewModal(id){const w=allWorkers.find(x=>String(wid(x))===String(id));if(!w)return;document.getElementById("identityReviewWorkerId").value=id;document.getElementById("identityReviewWorkerName").textContent=wname(w);document.getElementById("identityReviewWorkerInfo").textContent=`${wtrade(w)} - ${warea(w)} - ${wphone(w)||"لا يوجد رقم"}`;document.getElementById("identityReviewStatus").value=identityStatusValue(w);document.getElementById("identityReviewReason").value=identityReason(w);document.getElementById("identityReviewNote").value=identityNote(w);document.getElementById("identityReviewModal").classList.add("show");syncIdentityReviewHint()}
 function closeIdentityReviewModal(){document.getElementById("identityReviewModal").classList.remove("show")}
@@ -789,13 +863,45 @@ async function deleteReview(id){
 }
 
 
-function downloadBackup(){if(!can("backup:export"))return toast("error","ليس لديك صلاحية النسخ الاحتياطي");
-  window.location.href = "/api/backup-db";
+function downloadBackup(){return downloadFullBackup()}
+function backupMsg(text,show=true){const el=document.getElementById("backupMessage");if(!el)return;if(!show){el.style.display="none";el.textContent="";return}el.textContent=text;el.style.display="block"}
+function requireBackupPermission(){if(!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return false}return true}
+function downloadFullBackup(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/full-json"}
+function exportWorkersReport(){if(!requireBackupPermission())return;window.location.href="/api/export-workers"}
+function exportSubscriptionsReport(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/subscriptions-csv"}
+function exportPaymentsReport(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/payments-csv"}
+function exportAnalyticsReport(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/analytics-csv?days=90"}
+function exportActivityLogReport(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/activity-log-csv"}
+async function loadBackupSummary(){
+  if(!requireBackupPermission())return;
+  const box=document.getElementById("backupSummary");
+  if(box)box.innerHTML='<div class="empty-state">جاري تحميل ملخص النسخ الاحتياطي...</div>';
+  backupMsg("",false);
+  try{
+    const r=await fetch("/api/admin/backups/summary",{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل ملخص النسخ الاحتياطي");
+    if(box){
+      box.innerHTML=(d.items||[]).map(item=>`<div class="backup-summary-item"><strong>${item.count===null?"—":item.count}</strong><span>${item.label||item.table}</span>${item.error?`<small style="display:block;color:#991b1b;margin-top:5px">غير جاهز</small>`:""}</div>`).join("") || '<div class="empty-state">لا توجد بيانات</div>';
+    }
+  }catch(e){
+    if(box)box.innerHTML='<div class="empty-state">تعذر تحميل الملخص</div>';
+    backupMsg(e.message||"تعذر تحميل الملخص");
+  }
 }
-
-
-function exportWorkersReport(){if(!can("backup:export"))return toast("error","ليس لديك صلاحية التصدير");
-  window.location.href = "/api/export-workers";
+async function createStorageBackup(){
+  if(!requireBackupPermission())return;
+  backupMsg("جاري إنشاء النسخة الاحتياطية ورفعها إلى Supabase Storage...");
+  try{
+    const r=await fetch("/api/admin/backups/create",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر إنشاء النسخة الاحتياطية");
+    backupMsg(`تم إنشاء النسخة بنجاح داخل bucket: ${d.bucket} — الملف: ${d.path} — عدد السجلات: ${d.total_rows}`);
+    toast("success","تم إنشاء النسخة الاحتياطية");
+  }catch(e){
+    backupMsg(e.message||"تعذر إنشاء النسخة الاحتياطية");
+    toast("error",e.message||"تعذر إنشاء النسخة الاحتياطية");
+  }
 }
 
 
@@ -900,6 +1006,40 @@ async function updateAdminUser(id,body){const ok=await reqs([{url:`/api/admin/us
 async function changeAdminPassword(id){const password=prompt("اكتب كلمة السر الجديدة - 8 أحرف على الأقل");if(!password)return;const ok=await reqs([{url:`/api/admin/users/${id}/password`,method:"PUT",body:{password}}]);if(ok)toast("success","تم تغيير كلمة السر")}
 async function deleteAdminUser(id){if(!confirm("حذف مستخدم الإدارة؟"))return;const ok=await reqs([{url:`/api/admin/users/${id}`,method:"DELETE"}]);if(ok){toast("success","تم حذف المستخدم");await loadAdminUsers()}}
 
+function analyticsNumber(v){return Number(v||0).toLocaleString("ar-EG")}
+function analyticsPercent(v){return (Number(v||0)||0).toLocaleString("ar-EG")+"%"}
+function renderAnalyticsList(id, rows, opts){
+  const box=document.getElementById(id);
+  if(!box)return;
+  const options=opts||{};
+  const items=(rows||[]).slice(0, options.limit||10);
+  if(!items.length){box.innerHTML='<div class="empty-admin">لا توجد بيانات كافية.</div>';return}
+  box.innerHTML=items.map((x,idx)=>{
+    const title=x.name||x.source||x.page_path||"غير محدد";
+    const main=options.main==="filters" ? (x.filter_trade||x.filter_area||x.total_events||x.count||0) : (x.total_contacts!==undefined?x.total_contacts:x.count||x.total_events||0);
+    const sub=[];
+    if(x.call!==undefined)sub.push(`<span class="small-badge"><i class="fa-solid fa-phone"></i> ${analyticsNumber(x.call)}</span>`);
+    if(x.whatsapp!==undefined)sub.push(`<span class="small-badge"><i class="fa-brands fa-whatsapp"></i> ${analyticsNumber(x.whatsapp)}</span>`);
+    if(x.profile_view!==undefined)sub.push(`<span class="small-badge"><i class="fa-solid fa-eye"></i> ${analyticsNumber(x.profile_view)}</span>`);
+    if(x.count!==undefined)sub.push(`<span class="small-badge"><i class="fa-solid fa-chart-simple"></i> ${analyticsNumber(x.count)}</span>`);
+    return `<div class="admin-worker-card" style="padding:14px"><div class="worker-row-head"><div><h4>#${idx+1} ${title}</h4><p>${options.label||"إجمالي"}: ${analyticsNumber(main)}</p></div></div><div class="worker-row-actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">${sub.join("")}</div></div>`;
+  }).join("");
+}
+function renderAnalyticsDaily(rows){
+  const box=document.getElementById("analyticsDaily");
+  if(!box)return;
+  const items=(rows||[]).slice(-10).reverse();
+  if(!items.length){box.innerHTML='<div class="empty-admin">لا توجد بيانات يومية.</div>';return}
+  box.innerHTML=items.map(x=>`<div class="admin-worker-card" style="padding:14px"><div class="worker-row-head"><div><h4>${x.date}</h4><p>تواصل: ${analyticsNumber(x.total_contacts)} | أحداث: ${analyticsNumber(x.total_events)}</p></div></div><div class="worker-row-actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><span class="small-badge"><i class="fa-solid fa-phone"></i> ${analyticsNumber(x.call)}</span><span class="small-badge"><i class="fa-brands fa-whatsapp"></i> ${analyticsNumber(x.whatsapp)}</span><span class="small-badge"><i class="fa-solid fa-eye"></i> ${analyticsNumber(x.profile_view)}</span></div></div>`).join("");
+}
+function renderAnalyticsGaps(rows){
+  const box=document.getElementById("analyticsGaps");
+  if(!box)return;
+  const items=(rows||[]).slice(0,20);
+  if(!items.length){box.innerHTML='<div class="empty-admin">لا توجد فجوات واضحة حاليًا.</div>';return}
+  box.innerHTML=items.map(x=>`<span class="small-badge" style="display:inline-flex;margin:5px"><i class="fa-solid fa-triangle-exclamation"></i> ${x.trade} في ${x.area}</span>`).join("");
+}
+
 async function loadAnalytics(){
   const box=document.getElementById("analyticsTopWorkers");
   const msg=document.getElementById("analyticsMessage");
@@ -921,13 +1061,16 @@ async function loadAnalytics(){
     const totals=d.totals||{};
     const setText=(id,val)=>{
       const el=document.getElementById(id);
-      if(el)el.textContent=Number(val||0).toLocaleString("ar-EG");
+      if(el)el.textContent=analyticsNumber(val);
     };
 
     setText("analyticsCalls",totals.call);
     setText("analyticsWhatsapp",totals.whatsapp);
     setText("analyticsViews",totals.profile_view);
     setText("analyticsContacts",totals.total_contacts);
+    setText("analyticsEvents",totals.total_events);
+    const conv=document.getElementById("analyticsConversion");
+    if(conv)conv.textContent=analyticsPercent(totals.conversion_rate);
 
     const rows=d.top_workers||[];
     if(!rows.length){
@@ -936,31 +1079,38 @@ async function loadAnalytics(){
         msg.textContent="لا توجد بيانات تواصل في الفترة المحددة حتى الآن.";
         msg.style.display="block";
       }
-      return;
+    }else{
+      box.innerHTML=rows.map((row,idx)=>{
+        const w=row.worker||{};
+        const name=w.name||("صنايعي رقم "+row.worker_id);
+        const trade=w.trade||"";
+        const area=w.area||"";
+        return `
+          <div class="admin-worker-card">
+            <div class="worker-row-head">
+              <div>
+                <h4>#${idx+1} ${name}</h4>
+                <p>${trade}${area?" - "+area:""}</p>
+              </div>
+              <span class="status-badge active">تواصل ${analyticsNumber(row.total_contacts||0)}</span>
+            </div>
+            <div class="worker-row-actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">
+              <span class="small-badge"><i class="fa-solid fa-phone"></i> اتصال: ${analyticsNumber(row.call||0)}</span>
+              <span class="small-badge"><i class="fa-brands fa-whatsapp"></i> واتساب: ${analyticsNumber(row.whatsapp||0)}</span>
+              <span class="small-badge"><i class="fa-solid fa-eye"></i> مشاهدات: ${analyticsNumber(row.profile_view||0)}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
 
-    box.innerHTML=rows.map((row,idx)=>{
-      const w=row.worker||{};
-      const name=w.name||("صنايعي رقم "+row.worker_id);
-      const trade=w.trade||"";
-      const area=w.area||"";
-      return `
-        <div class="admin-worker-card">
-          <div class="worker-row-head">
-            <div>
-              <h4>#${idx+1} ${name}</h4>
-              <p>${trade}${area?" - "+area:""}</p>
-            </div>
-            <span class="status-badge active">تواصل ${row.total_contacts||0}</span>
-          </div>
-          <div class="worker-row-actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">
-            <span class="small-badge"><i class="fa-solid fa-phone"></i> اتصال: ${row.call||0}</span>
-            <span class="small-badge"><i class="fa-brands fa-whatsapp"></i> واتساب: ${row.whatsapp||0}</span>
-            <span class="small-badge"><i class="fa-solid fa-eye"></i> مشاهدات: ${row.profile_view||0}</span>
-          </div>
-        </div>
-      `;
-    }).join("");
+    renderAnalyticsList("analyticsTopTrades",d.top_trades,{label:"تواصل"});
+    renderAnalyticsList("analyticsTopAreas",d.top_areas,{label:"تواصل"});
+    renderAnalyticsList("analyticsFilterTrades",d.filter_trades,{label:"اختيارات",main:"filters"});
+    renderAnalyticsList("analyticsFilterAreas",d.filter_areas,{label:"اختيارات",main:"filters"});
+    renderAnalyticsList("analyticsTopPages",d.top_pages,{label:"زيارات",limit:8});
+    renderAnalyticsDaily(d.daily);
+    renderAnalyticsGaps(d.missing_trade_area);
   }catch(e){
     box.innerHTML="";
     if(msg){
