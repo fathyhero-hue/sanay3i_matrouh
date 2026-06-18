@@ -264,7 +264,7 @@
 .admin-user-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:var(--shadow-sm)}
 .admin-user-card h4{font-size:18px;font-weight:900;color:var(--primary);margin-bottom:4px}.admin-user-card p{font-size:13px;color:var(--muted);font-weight:800;margin:2px 0}.role-pill{display:inline-flex;border-radius:999px;padding:7px 10px;background:#eef2ff;color:#1d4ed8;font-weight:900;font-size:12px;margin-top:8px}.role-pill.off{background:#fee2e2;color:#991b1b}
 .disabled-role-action{opacity:.45;pointer-events:none}
-.backup-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.backup-action-card{border:1px solid var(--border);background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow-sm)}.backup-action-card h4{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:6px}.backup-action-card p{font-size:12px;color:var(--muted);font-weight:800;min-height:34px}.backup-action-card button,.backup-action-card a{margin-top:10px;width:100%;justify-content:center}.backup-summary-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.backup-summary-item{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px}.backup-summary-item strong{display:block;color:var(--primary);font-size:18px}.backup-summary-item span{color:var(--muted);font-size:12px;font-weight:800}
+.backup-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.backup-action-card{border:1px solid var(--border);background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow-sm)}.backup-action-card h4{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:6px}.backup-action-card p{font-size:12px;color:var(--muted);font-weight:800;min-height:34px}.backup-action-card button,.backup-action-card a{margin-top:10px;width:100%;justify-content:center}.backup-summary-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.backup-summary-item{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px}.backup-summary-item strong{display:block;color:var(--primary);font-size:18px}.backup-summary-item span{color:var(--muted);font-size:12px;font-weight:800}.reports-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}.report-card{border:1px solid var(--border);border-radius:18px;background:#fff;padding:16px;box-shadow:var(--shadow-sm);margin-bottom:12px}.report-card-header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.report-title{font-weight:950;color:var(--primary);font-size:17px}.report-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.report-message{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px;margin-top:12px;color:#334155;font-weight:800;line-height:1.8}.report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.report-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950}.report-new{background:#fef3c7;color:#92400e}.report-reviewing{background:#dbeafe;color:#1d4ed8}.report-resolved{background:#dcfce7;color:#166534}.report-rejected{background:#fee2e2;color:#991b1b}
 </style>
 
 </head>
@@ -273,7 +273,7 @@
 <main class="admin-dashboard" id="dashboard"><header class="admin-topbar"><div class="container admin-topbar-content"><a href="/admin" class="brand"><div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="brand-text"><h1>صنايعي مطروح</h1><span>لوحة الإدارة والتحكم</span></div></a><div class="admin-actions-top"><span class="admin-role-badge" id="adminRoleBadge"><i class="fa-solid fa-user-shield"></i> الإدارة</span><button class="admin-mini-btn" onclick="loadAllData()"><i class="fa-solid fa-rotate"></i> تحديث</button><button class="admin-mini-btn" data-permission="backup:export" onclick="downloadBackup()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button><button class="admin-mini-btn" data-permission="backup:export" onclick="exportWorkersReport()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button><a href="/" class="admin-mini-btn"><i class="fa-solid fa-house"></i> الرئيسية</a><button class="admin-mini-btn logout-btn" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button></div></div></header>
 <section class="admin-hero"><div class="container"><div class="admin-hero-box"><div><span class="section-label">Dashboard</span><h2>إدارة دليل صنايعي مطروح</h2><p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p></div><button class="btn btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button></div></div></section>
 <section class="container"><div class="admin-tabs"><button class="admin-tab active" onclick="switchTab('workers',this)"><i class="fa-solid fa-users-gear"></i> الصنايعية</button><a class="admin-tab" data-permission="workers:create" href="/admin/add-worker"><i class="fa-solid fa-user-plus"></i> إضافة صنايعي</a><button class="admin-tab" data-permission="settings:manage" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button><button class="admin-tab" data-permission="settings:manage" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
-<button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button><button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button><button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button></div>
+<button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" data-permission="reports:read" onclick="switchTab('reports',this)"><i class="fa-solid fa-triangle-exclamation"></i> البلاغات</button><button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button><button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button><button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button></div>
 
 <div class="notifications-grid" id="notificationsGrid">
   <div class="notification-card" onclick="showPendingWorkers()">
@@ -444,6 +444,32 @@
 
 </section></main>
 
+
+<section class="admin-section" id="reportsSection">
+  <div class="admin-panel">
+    <h3>بلاغات وشكاوى الصنايعية</h3>
+    <p>راجع البلاغات الواردة من صفحة الصنايعي، وحدد حالتها بعد المراجعة.</p>
+    <div class="permission-note"><i class="fa-solid fa-shield-halved"></i> موظف المراجعة والمدير الكامل يمكنهم تحديث حالة البلاغ. المشاهد يرى فقط.</div>
+    <div class="admin-stats" id="reportsStats">
+      <div class="stat-card"><strong>0</strong><span>إجمالي البلاغات</span></div>
+      <div class="stat-card"><strong>0</strong><span>جديد</span></div>
+      <div class="stat-card"><strong>0</strong><span>قيد المراجعة</span></div>
+      <div class="stat-card"><strong>0</strong><span>تم الحل</span></div>
+    </div>
+    <div class="reports-toolbar">
+      <select id="reportsStatusFilter" onchange="renderReports()">
+        <option value="all">كل الحالات</option>
+        <option value="new">جديد</option>
+        <option value="reviewing">قيد المراجعة</option>
+        <option value="resolved">تم الحل</option>
+        <option value="rejected">مرفوض</option>
+      </select>
+      <button class="big-btn btn-dark" onclick="loadReports()"><i class="fa-solid fa-rotate"></i> تحديث البلاغات</button>
+    </div>
+    <div id="reportsList"><div class="empty-state">اضغط تحديث البلاغات لعرض البلاغات.</div></div>
+  </div>
+</section>
+
 <section class="admin-section" id="usersSection">
   <div class="admin-panel">
     <h3>صلاحيات مستخدمي الإدارة</h3>
@@ -494,7 +520,7 @@
 <div class="modal-backdrop" id="renewModal"><div class="modal-card"><div class="modal-head"><h3>تجديد الاشتراك وتسجيل الدفع</h3><button class="close-modal" onclick="closeRenewModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="renew-summary"><strong id="renewWorkerName">اسم الصنايعي</strong><span id="renewCurrentEnd">نهاية الاشتراك الحالية: غير محدد</span></div><form onsubmit="submitRenewWorker(event)"><input type="hidden" id="renewWorkerId"><div class="edit-grid"><div class="edit-field"><label>الباقة</label><select id="renewPlan" onchange="updateRenewPlanDefaults()"><option value="month">شهر - 100 جنيه</option><option value="half">نصف سنة - 600 جنيه</option><option value="year">سنة - 1200 جنيه</option><option value="custom">مخصص</option></select></div><div class="edit-field"><label>عدد الشهور</label><input id="renewMonths" type="number" min="1" max="60" required></div><div class="edit-field"><label>المبلغ المدفوع</label><input id="renewAmount" type="number" min="0" step="1" required></div><div class="edit-field"><label>طريقة الدفع</label><select id="renewPaymentMethod"><option value="cash">كاش</option><option value="vodafone_cash">فودافون كاش</option><option value="instapay">إنستاباي</option><option value="bank_transfer">تحويل بنكي</option><option value="free">مجاني / هدية</option><option value="other">أخرى</option></select></div><div class="edit-field"><label>حالة الدفع</label><select id="renewPaymentStatus"><option value="paid">مدفوع</option><option value="pending">منتظر الدفع</option><option value="partial">مدفوع جزئيًا</option></select></div><div class="edit-field full"><label>ملاحظات الدفع</label><textarea id="renewNote" placeholder="مثال: تم الدفع فودافون كاش، رقم العملية، ملاحظة إدارية..."></textarea></div></div><div id="renewWarning"></div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeRenewModal()">إلغاء</button><button type="submit" class="big-btn btn-dark">حفظ التجديد</button></div></form><div style="margin-top:18px"><h3 style="font-size:18px;color:var(--primary);font-weight:900">سجل التجديدات</h3><div id="subscriptionHistory" class="subscription-history-list"><div class="subscription-history-empty">جاري تحميل سجل التجديدات...</div></div></div></div></div>
 <div class="message-toast" id="toast"></div>
 <script>
-let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications={},adminUsers=[],currentAdmin=null;
+let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications={},adminUsers=[],adminReports=[],currentAdmin=null;
 async function loginAdmin(e){e.preventDefault();const username=(document.getElementById("adminUsername")?.value||"").trim();const p=document.getElementById("adminPassword").value.trim();const err=document.getElementById("loginError");err.classList.remove("show");err.textContent="جاري التحقق...";try{const r=await fetch("/api/admin/login",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password:p})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.success)throw new Error(d.error||"تعذر تسجيل الدخول");currentAdmin=d.admin||null;err.classList.remove("show");showDashboard()}catch(ex){err.textContent=ex.message||"كلمة السر غير صحيحة";err.classList.add("show")}}
 function roleLabel(role){return {super_admin:"مدير كامل",reviewer:"موظف مراجعة",subscription_manager:"موظف اشتراكات",viewer:"مشاهد"}[role]||role||"الإدارة"}
 function can(permission){return !!(currentAdmin&&Array.isArray(currentAdmin.permissions)&&currentAdmin.permissions.includes(permission))}
@@ -503,9 +529,9 @@ function showDashboard(){document.getElementById("loginScreen").style.display="n
 function showLogin(){document.getElementById("dashboard").classList.remove("show");document.getElementById("loginScreen").style.display="flex"}
 async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST",credentials:"include"})}catch(e){} location.reload()}
 async function checkLogin(){try{const r=await fetch("/api/admin/me",{credentials:"include"});const d=await r.json();if(d.authenticated){currentAdmin=d.admin||null;showDashboard()}else showLogin()}catch(e){showLogin()}}
-function switchTab(t,b){if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews();if(t==='analytics')loadAnalytics();if(t==='users')loadAdminUsers();if(t==='backups')loadBackupSummary()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
+function switchTab(t,b){if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}if(t==="reports"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض البلاغات");return}document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews')renderReviews();if(t==='reports')loadReports();if(t==='analytics')loadAnalytics();if(t==='users')loadAdminUsers();if(t==='backups')loadBackupSummary()}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
 async function fetchJson(urls){for(const u of urls){try{const r=await fetch(u,{credentials:"include"});if(r.status===401){showLogin();return []}if(r.ok)return await r.json()}catch(e){}}return []}function arr(d){if(Array.isArray(d))return d;for(const k of["data","workers","sanaieya","trades","crafts","areas","items"])if(d&&Array.isArray(d[k]))return d[k];return[]}function itemName(i){if(typeof i==="string")return i;return i.name||i.title||i.trade||i.craft||i.area||i.location||""}function itemId(i){if(typeof i==="string")return i;return i.id||i._id||i.name||i.title||""}
-async function loadAllData(){applyPermissionUI();await loadTrades();await loadAreas();await loadWorkers();await loadPhotosForAll();await loadReviewsAdmin();await loadNotifications();if(can("admin_users:manage"))await loadAdminUsers();buildRatingMaps();fillTradeSelects();fillAreaSelects();renderWorkers(allWorkers);stats()}
+async function loadAllData(){applyPermissionUI();await loadTrades();await loadAreas();await loadWorkers();await loadPhotosForAll();await loadReviewsAdmin();await loadNotifications();if(can("reports:read"))await loadReports();if(can("admin_users:manage"))await loadAdminUsers();buildRatingMaps();fillTradeSelects();fillAreaSelects();renderWorkers(allWorkers);stats()}
 async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers","/api/workers/all"]))}async function loadTrades(){allTrades=arr(await fetchJson(["/api/trades","/api/crafts","/trades","/crafts"]));renderTrades();fillTradeSelects()}async function loadAreas(){allAreas=arr(await fetchJson(["/api/areas","/api/locations","/areas","/locations"]));renderAreas();fillAreaSelects()}
 async function loadPhotosForAll(){photosByWorker={};for(const w of allWorkers){const id=wid(w);photosByWorker[id]=arr(await fetchJson(["/api/workers/"+id+"/photos"]))}}
 function fillTradeSelects(){const f=document.getElementById("adminTradeFilter"),e=document.getElementById("editTrade");if(!f||!e)return;f.innerHTML='<option value="">كل الحرف</option>';e.innerHTML='<option value="">اختر الحرفة</option>';allTrades.forEach(i=>{const name=itemName(i);if(name){f.innerHTML+=`<option value="${name}">${name}</option>`;e.innerHTML+=`<option value="${name}">${name}</option>`}})}function fillAreaSelects(){
@@ -864,6 +890,80 @@ async function deleteReview(id){
 
 
 function downloadBackup(){return downloadFullBackup()}
+
+function adminHtmlEscape(v){return String(v??"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function reportTypeLabel(t){return {wrong_phone:"رقم غير صحيح",wrong_data:"بيانات خاطئة",bad_service:"سوء خدمة",inappropriate_photos:"صور غير مناسبة",other:"أخرى"}[t]||t||"غير محدد"}
+function reportStatusLabel(s){return {new:"جديد",reviewing:"قيد المراجعة",resolved:"تم الحل",rejected:"مرفوض"}[s]||s||"غير محدد"}
+function reportStatusClass(s){return {new:"report-new",reviewing:"report-reviewing",resolved:"report-resolved",rejected:"report-rejected"}[s]||"report-new"}
+function reportDate(v){try{return v?new Date(v).toLocaleString("ar-EG"):"—"}catch(e){return v||"—"}}
+async function loadReports(){
+  if(!can("reports:read"))return;
+  const box=document.getElementById("reportsList");
+  if(box)box.innerHTML='<div class="empty-state">جاري تحميل البلاغات...</div>';
+  try{
+    const r=await fetch("/api/admin/reports",{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل البلاغات");
+    adminReports=d.items||[];
+    renderReports(d.stats||{});
+  }catch(e){
+    if(box)box.innerHTML=`<div class="empty-state">${adminHtmlEscape(e.message||"تعذر تحميل البلاغات")}</div>`;
+  }
+}
+function renderReportStats(stats){
+  const s=stats||{};
+  const total=s.total ?? adminReports.length;
+  const n=s.new ?? adminReports.filter(r=>r.status==='new').length;
+  const rev=s.reviewing ?? adminReports.filter(r=>r.status==='reviewing').length;
+  const res=s.resolved ?? adminReports.filter(r=>r.status==='resolved').length;
+  const box=document.getElementById("reportsStats");
+  if(!box)return;
+  box.innerHTML=`<div class="stat-card"><strong>${total}</strong><span>إجمالي البلاغات</span></div><div class="stat-card"><strong>${n}</strong><span>جديد</span></div><div class="stat-card"><strong>${rev}</strong><span>قيد المراجعة</span></div><div class="stat-card"><strong>${res}</strong><span>تم الحل</span></div>`;
+}
+function renderReports(stats){
+  renderReportStats(stats);
+  const box=document.getElementById("reportsList");
+  if(!box)return;
+  const filter=document.getElementById("reportsStatusFilter")?.value||"all";
+  const rows=(adminReports||[]).filter(r=>filter==='all'||r.status===filter);
+  if(!rows.length){box.innerHTML='<div class="empty-state">لا توجد بلاغات بهذه الحالة.</div>';return}
+  box.innerHTML=rows.map(r=>{
+    const w=r.worker||{};
+    const workerName=adminHtmlEscape(w.name||r.worker_snapshot?.name||`صنايعي رقم ${r.worker_id||""}`);
+    const tradeArea=[w.trade||r.worker_snapshot?.trade,w.area||r.worker_snapshot?.area].filter(Boolean).map(adminHtmlEscape).join(" - ");
+    const reporter=[r.reporter_name,r.reporter_phone].filter(Boolean).map(adminHtmlEscape).join(" - ")||"غير مذكور";
+    const canManage=can("reports:manage");
+    return `<div class="report-card">
+      <div class="report-card-header">
+        <div><div class="report-title">${workerName}</div><div style="color:var(--muted);font-weight:800;margin-top:4px">${tradeArea||"بيانات الصنايعي غير متاحة"}</div></div>
+        <span class="report-status ${reportStatusClass(r.status)}"><i class="fa-solid fa-circle"></i> ${reportStatusLabel(r.status)}</span>
+      </div>
+      <div class="report-meta">
+        <span class="small-badge"><i class="fa-solid fa-triangle-exclamation"></i> ${reportTypeLabel(r.report_type)}</span>
+        <span class="small-badge"><i class="fa-solid fa-clock"></i> ${reportDate(r.created_at)}</span>
+        <span class="small-badge"><i class="fa-solid fa-user"></i> ${reporter}</span>
+      </div>
+      <div class="report-message">${adminHtmlEscape(r.message||"")}</div>
+      ${r.admin_note?`<div class="report-message"><strong>ملاحظة الإدارة:</strong><br>${adminHtmlEscape(r.admin_note)}</div>`:""}
+      <div class="report-actions">
+        ${r.worker_id?`<a class="action-btn btn-dark" href="/worker/${encodeURIComponent(r.worker_id)}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح صفحة الصنايعي</a>`:""}
+        ${canManage?`<button class="action-btn btn-blue" onclick="updateReportStatus('${r.id}','reviewing')">قيد المراجعة</button><button class="action-btn btn-green" onclick="updateReportStatus('${r.id}','resolved')">تم الحل</button><button class="action-btn btn-yellow" onclick="updateReportStatus('${r.id}','rejected')">رفض البلاغ</button>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+async function updateReportStatus(reportId,status){
+  if(!can("reports:manage")){toast("error","ليس لديك صلاحية تعديل البلاغات");return}
+  const note=prompt("اكتب ملاحظة الإدارة للبلاغ، ويمكن تركها فارغة:")||"";
+  try{
+    const r=await fetch(`/api/admin/reports/${encodeURIComponent(reportId)}`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,admin_note:note})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحديث البلاغ");
+    toast("success","تم تحديث البلاغ");
+    await loadReports();
+  }catch(e){toast("error",e.message||"تعذر تحديث البلاغ")}
+}
+
 function backupMsg(text,show=true){const el=document.getElementById("backupMessage");if(!el)return;if(!show){el.style.display="none";el.textContent="";return}el.textContent=text;el.style.display="block"}
 function requireBackupPermission(){if(!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return false}return true}
 function downloadFullBackup(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/full-json"}

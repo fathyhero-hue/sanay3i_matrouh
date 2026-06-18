@@ -612,6 +612,61 @@
       color: #fff;
     }
 
+    .details-report {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+    }
+
+    .details-report:hover {
+      background: #ea580c;
+      color: #fff;
+    }
+
+    .report-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.62);
+      z-index: 4100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .report-modal-overlay.show { display: flex; }
+
+    .report-modal-box {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 25px 65px rgba(15,23,42,0.30);
+    }
+
+    .report-modal-box h3 { margin-bottom: 8px; color: var(--primary); }
+    .report-modal-box p { color: var(--muted); font-weight: 800; margin-bottom: 14px; }
+    .report-modal-box select,
+    .report-modal-box input,
+    .report-modal-box textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      margin-bottom: 10px;
+      font-family: inherit;
+      font-weight: 800;
+      outline: none;
+    }
+    .report-modal-box textarea { min-height: 120px; resize: vertical; }
+    .report-modal-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top: 8px; }
+    .report-modal-actions button { flex:1; min-height: 46px; border:0; border-radius:14px; font-weight:950; cursor:pointer; }
+    .report-submit-btn { background: var(--primary); color:#fff; }
+    .report-cancel-btn { background:#f1f5f9; color:var(--primary); }
+    .report-message { display:none; margin-top:10px; border-radius:14px; padding:12px; font-weight:900; }
+    .report-message.success { display:block; background:#dcfce7; color:#166534; }
+    .report-message.error { display:block; background:#fee2e2; color:#991b1b; }
+
     .copy-toast {
       position: fixed;
       bottom: 22px;
@@ -738,6 +793,61 @@
       background: var(--primary);
       color: #fff;
     }
+
+    .details-report {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+    }
+
+    .details-report:hover {
+      background: #ea580c;
+      color: #fff;
+    }
+
+    .report-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.62);
+      z-index: 4100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .report-modal-overlay.show { display: flex; }
+
+    .report-modal-box {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 25px 65px rgba(15,23,42,0.30);
+    }
+
+    .report-modal-box h3 { margin-bottom: 8px; color: var(--primary); }
+    .report-modal-box p { color: var(--muted); font-weight: 800; margin-bottom: 14px; }
+    .report-modal-box select,
+    .report-modal-box input,
+    .report-modal-box textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      margin-bottom: 10px;
+      font-family: inherit;
+      font-weight: 800;
+      outline: none;
+    }
+    .report-modal-box textarea { min-height: 120px; resize: vertical; }
+    .report-modal-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top: 8px; }
+    .report-modal-actions button { flex:1; min-height: 46px; border:0; border-radius:14px; font-weight:950; cursor:pointer; }
+    .report-submit-btn { background: var(--primary); color:#fff; }
+    .report-cancel-btn { background:#f1f5f9; color:var(--primary); }
+    .report-message { display:none; margin-top:10px; border-radius:14px; padding:12px; font-weight:900; }
+    .report-message.success { display:block; background:#dcfce7; color:#166534; }
+    .report-message.error { display:block; background:#fee2e2; color:#991b1b; }
 
     .copy-toast {
       position: fixed;
@@ -1117,6 +1227,11 @@
                   <i class="fa-solid fa-share-nodes"></i>
                   مشاركة الصفحة
                 </button>
+
+                <button type="button" class="details-action details-report" id="reportBtn">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  بلاغ عن البيانات
+                </button>
               </div>
 
               <a href="/" class="details-back">
@@ -1148,6 +1263,11 @@
       <i class="fa-solid fa-share-nodes"></i>
       مشاركة
     </a>
+
+    <a href="#" class="details-report" id="mobileReportBtn">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      بلاغ
+    </a>
   </div>
 
   <footer class="footer">
@@ -1173,12 +1293,39 @@
   </div>
 
 
+
+  <div class="report-modal-overlay" id="reportModal" onclick="closeReportModal(event)">
+    <div class="report-modal-box" onclick="event.stopPropagation()">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> بلاغ عن صنايعي</h3>
+      <p id="reportWorkerName">اكتب تفاصيل البلاغ وسيتم مراجعته من الإدارة. رقم التليفون مطلوب للتأكد من جدية البلاغ.</p>
+      <form id="reportForm">
+        <select id="reportType" required>
+          <option value="wrong_phone">رقم غير صحيح</option>
+          <option value="wrong_data">بيانات خاطئة</option>
+          <option value="bad_service">سوء خدمة</option>
+          <option value="inappropriate_photos">صور غير مناسبة</option>
+          <option value="other">أخرى</option>
+        </select>
+        <input id="reporterName" type="text" placeholder="اسمك اختياري">
+        <input id="reporterPhone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="رقم تليفونك — إجباري" aria-label="رقم تليفون صاحب البلاغ">
+        <textarea id="reportDetails" required placeholder="اكتب تفاصيل البلاغ بوضوح..."></textarea>
+        <div class="report-modal-actions">
+          <button type="submit" class="report-submit-btn">إرسال البلاغ</button>
+          <button type="button" class="report-cancel-btn" onclick="hideReportModal()">إلغاء</button>
+        </div>
+        <div class="report-message" id="reportMessage"></div>
+      </form>
+    </div>
+  </div>
+
   <div class="copy-toast" id="copyToast">
     <i class="fa-solid fa-circle-check"></i>
     تم نسخ رابط الصنايعي
   </div>
 
   <script>
+    let currentReportWorker = { id: "", name: "" };
+
     function trackWorkerAction(workerId, eventType, source) {
       try {
         if (!workerId || !eventType) return;
@@ -1579,6 +1726,70 @@
       }
     });
 
+
+    function showReportMessage(type, text) {
+      const msg = document.getElementById("reportMessage");
+      if (!msg) return;
+      msg.className = "report-message " + (type || "");
+      msg.textContent = text || "";
+    }
+
+    function openReportModal() {
+      const modal = document.getElementById("reportModal");
+      if (!modal) return;
+      const title = document.getElementById("reportWorkerName");
+      if (title) title.textContent = currentReportWorker.name ? "بلاغ عن: " + currentReportWorker.name : "اكتب تفاصيل البلاغ وسيتم مراجعته من الإدارة. رقم التليفون مطلوب للتأكد من جدية البلاغ.";
+      showReportMessage("", "");
+      const form = document.getElementById("reportForm");
+      if (form) form.reset();
+      modal.classList.add("show");
+    }
+
+    function hideReportModal() {
+      const modal = document.getElementById("reportModal");
+      if (modal) modal.classList.remove("show");
+    }
+
+    function closeReportModal(e) {
+      if (e && e.target && e.target.id === "reportModal") hideReportModal();
+    }
+
+    async function submitWorkerReport(e) {
+      e.preventDefault();
+      if (!currentReportWorker.id) return showReportMessage("error", "بيانات الصنايعي غير متاحة");
+      const details = (document.getElementById("reportDetails")?.value || "").trim();
+      const phoneRaw = (document.getElementById("reporterPhone")?.value || "").trim();
+      const phoneDigits = phoneRaw
+        .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+        .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+        .replace(/[^0-9]/g, "");
+      if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+        return showReportMessage("error", "رقم تليفون صاحب البلاغ مطلوب ويجب أن يكون صحيحًا");
+      }
+      if (details.length < 5) return showReportMessage("error", "اكتب تفاصيل البلاغ بوضوح");
+      showReportMessage("", "جاري إرسال البلاغ...");
+      try {
+        const r = await fetch("/api/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            worker_id: String(currentReportWorker.id),
+            report_type: document.getElementById("reportType")?.value || "other",
+            reporter_name: document.getElementById("reporterName")?.value || "",
+            reporter_phone: phoneDigits,
+            message: details,
+            page_path: location.pathname
+          })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال البلاغ");
+        showReportMessage("success", "تم إرسال البلاغ بنجاح. سيتم مراجعته من الإدارة.");
+        setTimeout(hideReportModal, 1400);
+      } catch (err) {
+        showReportMessage("error", err.message || "تعذر إرسال البلاغ");
+      }
+    }
+
     async function loadWorker() {
       const id = idFromUrl();
 
@@ -1622,6 +1833,17 @@
             shareCurrentWorker(name);
           };
         }
+
+        currentReportWorker = { id: id, name: name };
+        ["reportBtn", "mobileReportBtn"].forEach(function (btnId) {
+          const btn = document.getElementById(btnId);
+          if (btn) {
+            btn.onclick = function (e) {
+              e.preventDefault();
+              openReportModal();
+            };
+          }
+        });
 
         document.getElementById("workerImage").src = imgPath(w.image || w.photo || "");
         document.getElementById("workerImage").onerror = function () {
@@ -1690,6 +1912,9 @@
         sticky.style.display = "none";
       }
     }
+
+    const reportForm = document.getElementById("reportForm");
+    if (reportForm) reportForm.addEventListener("submit", submitWorkerReport);
 
     loadWorker();
   </script>

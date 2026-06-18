@@ -66,6 +66,13 @@ const analyticsRateLimit = createMemoryRateLimiter({
   message: "تم تجاوز الحد المسموح لتسجيل الأحداث مؤقتًا"
 });
 
+const reportsRateLimit = createMemoryRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: Number(process.env.REPORTS_RATE_LIMIT || 20),
+  keyFn: req => `reports:${clientIp(req)}`,
+  message: "تم إرسال بلاغات كثيرة مؤقتًا. حاول مرة أخرى بعد قليل"
+});
+
 const adminApiRateLimit = createMemoryRateLimiter({
   windowMs: 60 * 1000,
   max: Number(process.env.ADMIN_API_RATE_LIMIT || 240),
@@ -152,11 +159,11 @@ const ADMIN_ROLE_PERMISSIONS = {
   super_admin: [
     "workers:read", "workers:create", "workers:update", "workers:review", "workers:delete",
     "subscriptions:manage", "reviews:review", "settings:manage", "backup:export",
-    "analytics:read", "activity_log:read", "admin_users:manage", "whatsapp:send"
+    "analytics:read", "activity_log:read", "admin_users:manage", "whatsapp:send", "reports:read", "reports:manage"
   ],
-  reviewer: ["workers:read", "workers:review", "reviews:review", "analytics:read", "activity_log:read", "whatsapp:send"],
-  subscription_manager: ["workers:read", "subscriptions:manage", "analytics:read", "activity_log:read", "whatsapp:send"],
-  viewer: ["workers:read", "analytics:read", "activity_log:read"]
+  reviewer: ["workers:read", "workers:review", "reviews:review", "analytics:read", "activity_log:read", "whatsapp:send", "reports:read", "reports:manage"],
+  subscription_manager: ["workers:read", "subscriptions:manage", "analytics:read", "activity_log:read", "whatsapp:send", "reports:read"],
+  viewer: ["workers:read", "analytics:read", "activity_log:read", "reports:read"]
 };
 
 function normalizeAdminRole(role) {
@@ -672,6 +679,150 @@ const PUBLIC_WORKER_COLUMNS = "id,name,phone,whatsapp,trade,area,description,ima
 
 
 // ===============================
+// Smart Worker Score
+// ترتيب الصنايعية بذكاء بدون إضافة أعمدة جديدة
+// ===============================
+function smartBool(value) {
+  return value === 1 || value === true || value === "1" || value === "true" || value === "yes" || value === "approved" || value === "active";
+}
+
+function smartClamp(value, min, max) {
+  const n = Number(value) || 0;
+  return Math.max(min, Math.min(max, n));
+}
+
+function smartDateMs(value) {
+  if (!value) return 0;
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+function smartSubscriptionActive(worker) {
+  const end = worker?.subscription_end || worker?.subscriptionEnd || "";
+  if (!end) return true;
+  return String(end).slice(0, 10) >= today();
+}
+
+function smartScoreWorker(worker, signals) {
+  const s = signals || {};
+  const avgRating = Number(s.rating_average || 0);
+  const reviewCount = Number(s.review_count || 0);
+  const calls = Number(s.call || 0);
+  const whatsapps = Number(s.whatsapp || 0);
+  const views = Number(s.profile_view || 0);
+  const shares = Number(s.share || 0);
+  const createdMs = smartDateMs(worker?.created_at);
+  const ageDays = createdMs ? Math.floor((Date.now() - createdMs) / (24 * 60 * 60 * 1000)) : 9999;
+
+  const parts = {
+    featured: smartBool(worker?.featured) ? 350 : 0,
+    verified: smartBool(worker?.identity_verified || worker?.verified || worker?.is_verified) ? 250 : 0,
+    subscription: smartSubscriptionActive(worker) ? 180 : 0,
+    rating: Math.round(smartClamp(avgRating, 0, 5) * 35),
+    reviews: Math.round(smartClamp(reviewCount * 8, 0, 90)),
+    contacts: Math.round(smartClamp((calls * 20) + (whatsapps * 18) + (shares * 4), 0, 220)),
+    views: Math.round(smartClamp(views * 3, 0, 90)),
+    recency: Math.round(smartClamp(60 - (ageDays * 2), 0, 60))
+  };
+
+  const total = Object.values(parts).reduce((a, b) => a + b, 0);
+  const reasons = [];
+  if (parts.featured) reasons.push("مميز");
+  if (parts.verified) reasons.push("موثق");
+  if (parts.subscription) reasons.push("اشتراك نشط");
+  if (avgRating > 0) reasons.push(`تقييم ${Math.round(avgRating * 10) / 10}/5`);
+  if (calls + whatsapps > 0) reasons.push("تواصل مرتفع");
+  if (views > 0) reasons.push("زيارات");
+  if (parts.recency) reasons.push("حديث");
+
+  return {
+    smart_score: total,
+    smart_score_parts: parts,
+    smart_score_signals: {
+      rating_average: Math.round(avgRating * 10) / 10,
+      review_count: reviewCount,
+      call: calls,
+      whatsapp: whatsapps,
+      profile_view: views,
+      share: shares
+    },
+    smart_score_reasons: reasons
+  };
+}
+
+async function attachSmartScoresToWorkers(workers) {
+  const rows = Array.isArray(workers) ? workers : [];
+  const ids = rows.map(w => w && w.id).filter(v => v !== undefined && v !== null);
+  if (!ids.length) return rows;
+
+  const idKeys = ids.map(v => String(v));
+  const signalsById = {};
+  idKeys.forEach(k => { signalsById[k] = { rating_sum: 0, review_count: 0, rating_average: 0, call: 0, whatsapp: 0, profile_view: 0, share: 0 }; });
+
+  try {
+    const { data: reviews, error: reviewsError } = await supabase
+      .from("reviews")
+      .select("worker_id,rating,approved")
+      .in("worker_id", ids)
+      .eq("approved", true)
+      .limit(50000);
+
+    if (!reviewsError) {
+      (reviews || []).forEach(r => {
+        const key = String(r.worker_id || "");
+        if (!signalsById[key]) return;
+        signalsById[key].rating_sum += Number(r.rating || 0);
+        signalsById[key].review_count += 1;
+      });
+    }
+  } catch (e) {}
+
+  Object.values(signalsById).forEach(s => {
+    s.rating_average = s.review_count ? s.rating_sum / s.review_count : 0;
+  });
+
+  try {
+    const since = new Date(Date.now() - Number(process.env.SMART_SCORE_ANALYTICS_DAYS || 30) * 24 * 60 * 60 * 1000).toISOString();
+    const { data: events, error: eventsError } = await supabase
+      .from("analytics_events")
+      .select("worker_id,event_type,created_at")
+      .in("worker_id", idKeys)
+      .gte("created_at", since)
+      .limit(50000);
+
+    if (!eventsError) {
+      (events || []).forEach(ev => {
+        const key = String(ev.worker_id || "");
+        const type = String(ev.event_type || "");
+        if (!signalsById[key]) return;
+        if (["call", "whatsapp", "profile_view", "share"].includes(type)) {
+          signalsById[key][type] = (signalsById[key][type] || 0) + 1;
+        }
+      });
+    }
+  } catch (e) {}
+
+  const scored = rows.map(w => ({
+    ...w,
+    ...smartScoreWorker(w, signalsById[String(w.id)] || {})
+  }));
+
+  scored.sort((a, b) => {
+    const scoreDiff = Number(b.smart_score || 0) - Number(a.smart_score || 0);
+    if (scoreDiff) return scoreDiff;
+    const featuredDiff = (smartBool(b.featured) ? 1 : 0) - (smartBool(a.featured) ? 1 : 0);
+    if (featuredDiff) return featuredDiff;
+    const verifiedDiff = (smartBool(b.identity_verified) ? 1 : 0) - (smartBool(a.identity_verified) ? 1 : 0);
+    if (verifiedDiff) return verifiedDiff;
+    return smartDateMs(b.created_at) - smartDateMs(a.created_at);
+  });
+
+  scored.forEach((w, index) => { w.smart_rank = index + 1; });
+  return scored;
+}
+
+
+// ===============================
 // Admin Activity Log
 // ===============================
 function activityActionLabel(action){
@@ -704,7 +855,9 @@ function activityActionLabel(action){
     backup_create_storage:"إنشاء نسخة احتياطية في Storage",
     backup_export_subscriptions_csv:"تصدير الاشتراكات CSV",
     backup_export_payments_csv:"تصدير المدفوعات CSV",
-    backup_auto_daily:"نسخ احتياطي يومي تلقائي"
+    backup_auto_daily:"نسخ احتياطي يومي تلقائي",
+    worker_report_status_update:"تحديث حالة بلاغ",
+    worker_report_delete:"حذف بلاغ"
   }[action] || action;
 }
 async function logAdminActivity(action, options={}){
@@ -751,7 +904,7 @@ app.get("/trade/:trade", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.htm
 app.get("/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
 
 // Workers
-app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).order("featured",{ascending:false}).order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
+app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).limit(3000); if(error)return res.status(500).json({success:false,error:error.message}); const scored=await attachSmartScoresToWorkers(data||[]); res.json(scored); });
 app.get("/api/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 app.get("/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 
@@ -926,7 +1079,7 @@ app.get("/api/registration-status", async (req,res)=>{
   }
 });
 
-app.get("/api/workers/:id", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("id",id(req)).single(); if(error||!data)return res.status(404).json({success:false,error:"الصنايعي غير موجود"}); res.json(data); });
+app.get("/api/workers/:id", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("id",id(req)).single(); if(error||!data)return res.status(404).json({success:false,error:"الصنايعي غير موجود"}); const scored=await attachSmartScoresToWorkers([data]); res.json(scored[0]||data); });
 
 async function insertWorker(req,res){
   if(!ready(res))return;
@@ -1389,6 +1542,31 @@ app.get("/api/admin/activity-log", requirePermission("activity_log:read"), async
 // Notifications
 app.get("/api/admin/notifications", requirePermission("workers:read"), async (req,res)=>{ if(!ready(res))return; const t=today(); const s=new Date(); s.setDate(s.getDate()+7); const st=s.toISOString().split("T")[0]; const [a,b,c,d]=await Promise.all([supabase.from("workers").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("reviews").select("id",{count:"exact",head:true}).eq("approved",false),supabase.from("workers").select("id",{count:"exact",head:true}).gte("subscription_end",t).lte("subscription_end",st),supabase.from("workers").select("id",{count:"exact",head:true}).lt("subscription_end",t)]); res.json({pendingWorkers:a.count||0,pendingReviews:b.count||0,subscriptionsSoon:c.count||0,subscriptionsExpired:d.count||0}); });
 
+app.get("/api/admin/smart-score", requirePermission("analytics:read"), async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const {data,error}=await supabase
+      .from("workers")
+      .select(PUBLIC_WORKER_COLUMNS)
+      .eq("approved",true)
+      .eq("active",true)
+      .or(`subscription_end.is.null,subscription_end.gte.${today()}`)
+      .limit(3000);
+    if(error) return res.status(500).json({success:false,error:error.message});
+    const scored=await attachSmartScoresToWorkers(data||[]);
+    res.json({
+      success:true,
+      description:"ترتيب ذكي يعتمد على التمييز، التوثيق، الاشتراك، التقييمات، التواصل، الزيارات، والأحدث.",
+      analytics_days:Number(process.env.SMART_SCORE_ANALYTICS_DAYS || 30),
+      total:scored.length,
+      workers:scored.slice(0,200)
+    });
+  }catch(e){
+    res.status(500).json({success:false,error:e.message});
+  }
+});
+
+
 // Export CSV
 function csv(v){
   if(v===null||v===undefined)return "";
@@ -1409,6 +1587,7 @@ const BACKUP_TABLES = [
   { name: "areas", label: "المناطق" },
   { name: "subscription_payments", label: "مدفوعات الاشتراكات" },
   { name: "analytics_events", label: "أحداث التحليلات" },
+  { name: "worker_reports", label: "بلاغات الصنايعية" },
   { name: "admin_activity_log", label: "سجل عمليات الإدارة" },
   { name: "admin_users", label: "مستخدمي الإدارة", sanitize: true }
 ];
@@ -1639,6 +1818,182 @@ app.get("/api/cron/daily-backup", async (req,res)=>{
   }
 });
 
+
+
+// ===============================
+// Worker Reports & Complaints
+// ===============================
+const REPORT_TYPES = {
+  wrong_phone: "رقم غير صحيح",
+  wrong_data: "بيانات خاطئة",
+  bad_service: "سوء خدمة",
+  inappropriate_photos: "صور غير مناسبة",
+  other: "أخرى"
+};
+const REPORT_STATUSES = {
+  new: "جديد",
+  reviewing: "قيد المراجعة",
+  resolved: "تم الحل",
+  rejected: "مرفوض"
+};
+
+function reportSafeText(value, max = 500) {
+  return String(value || "").trim().slice(0, max);
+}
+function normalizeArabicDigits(value) {
+  return String(value || "")
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+}
+function normalizeReporterPhone(value) {
+  return normalizeArabicDigits(value).replace(/[^0-9]/g, "").slice(0, 15);
+}
+function isValidReporterPhone(value) {
+  const digits = normalizeReporterPhone(value);
+  return digits.length >= 8 && digits.length <= 15;
+}
+function normalizeReportType(value) {
+  const key = reportSafeText(value, 60);
+  return REPORT_TYPES[key] ? key : "other";
+}
+function normalizeReportStatus(value) {
+  const key = reportSafeText(value, 60);
+  return REPORT_STATUSES[key] ? key : "new";
+}
+function reportLabel(map, key) {
+  return map[key] || key || "غير محدد";
+}
+async function attachWorkersToReports(reports) {
+  const rows = Array.isArray(reports) ? reports : [];
+  const ids = Array.from(new Set(rows.map(r => String(r.worker_id || "").trim()).filter(Boolean)));
+  const byId = {};
+  if (ids.length) {
+    try {
+      const { data } = await supabase.from("workers").select("id,name,trade,area,phone,whatsapp,active,approved").in("id", ids);
+      (data || []).forEach(w => { byId[String(w.id)] = w; });
+    } catch (e) {}
+  }
+  return rows.map(r => ({
+    ...r,
+    type_label: reportLabel(REPORT_TYPES, r.report_type),
+    status_label: reportLabel(REPORT_STATUSES, r.status),
+    worker: byId[String(r.worker_id || "")] || null
+  }));
+}
+
+app.post("/api/reports", reportsRateLimit, async (req, res) => {
+  if (!ready(res)) return;
+  try {
+    const workerId = reportSafeText(req.body?.worker_id || req.body?.workerId, 80);
+    const reportType = normalizeReportType(req.body?.report_type || req.body?.type);
+    const reporterName = reportSafeText(req.body?.reporter_name || req.body?.name, 120);
+    const reporterPhone = normalizeReporterPhone(req.body?.reporter_phone || req.body?.phone);
+    const message = reportSafeText(req.body?.message || req.body?.details, 1200);
+
+    if (!workerId) return res.status(400).json({ success:false, error:"بيانات الصنايعي غير مكتملة" });
+    if (!isValidReporterPhone(req.body?.reporter_phone || req.body?.phone)) {
+      return res.status(400).json({ success:false, error:"رقم تليفون صاحب البلاغ مطلوب ويجب أن يكون صحيحًا" });
+    }
+    if (!message || message.length < 5) return res.status(400).json({ success:false, error:"اكتب تفاصيل البلاغ باختصار" });
+
+    const { data: workerRow } = await supabase.from("workers").select("id,name,trade,area,phone,whatsapp").eq("id", workerId).single();
+    if (!workerRow) return res.status(404).json({ success:false, error:"الصنايعي غير موجود" });
+
+    const row = {
+      worker_id: String(workerRow.id),
+      report_type: reportType,
+      reporter_name: reporterName,
+      reporter_phone: reporterPhone,
+      message,
+      status: "new",
+      page_path: reportSafeText(req.body?.page_path || req.headers.referer || "", 500),
+      user_agent: reportSafeText(req.headers["user-agent"], 500),
+      ip_hash: analyticsIpHash(req),
+      worker_snapshot: {
+        id: workerRow.id,
+        name: workerRow.name || "",
+        trade: workerRow.trade || "",
+        area: workerRow.area || "",
+        phone: workerRow.phone || "",
+        whatsapp: workerRow.whatsapp || ""
+      }
+    };
+
+    const { data, error } = await supabase.from("worker_reports").insert(row).select("id,status,created_at").single();
+    if (error) return res.status(500).json({ success:false, error:"جدول البلاغات غير جاهز. شغّل ملف SQL الخاص بالبلاغات أولًا." });
+    return res.json({ success:true, report:data });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message || "تعذر إرسال البلاغ" });
+  }
+});
+
+app.get("/api/admin/reports", requirePermission("reports:read"), async (req, res) => {
+  if (!ready(res)) return;
+  try {
+    const status = reportSafeText(req.query.status || "", 40);
+    let query = supabase.from("worker_reports").select("*").order("created_at", { ascending:false }).limit(500);
+    if (status && status !== "all" && REPORT_STATUSES[status]) query = query.eq("status", status);
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ success:false, error:"جدول worker_reports غير موجود. شغّل SQL البلاغات أولًا." });
+    const items = await attachWorkersToReports(data || []);
+    const stats = { total: items.length, new:0, reviewing:0, resolved:0, rejected:0 };
+    items.forEach(r => { if (stats[r.status] !== undefined) stats[r.status] += 1; });
+    return res.json({ success:true, items, stats, types:REPORT_TYPES, statuses:REPORT_STATUSES });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message || "تعذر تحميل البلاغات" });
+  }
+});
+
+app.put("/api/admin/reports/:id", requirePermission("reports:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  try {
+    const reportId = reportSafeText(req.params.id, 120);
+    const status = normalizeReportStatus(req.body?.status || "reviewing");
+    const adminNote = reportSafeText(req.body?.admin_note || req.body?.note, 1200);
+
+    const { data: before } = await supabase.from("worker_reports").select("*").eq("id", reportId).single();
+    if (!before) return res.status(404).json({ success:false, error:"البلاغ غير موجود" });
+
+    const update = { status, admin_note: adminNote, updated_at: new Date().toISOString() };
+    if (status === "resolved" || status === "rejected") update.resolved_at = new Date().toISOString();
+    else update.resolved_at = null;
+
+    const { data, error } = await supabase.from("worker_reports").update(update).eq("id", reportId).select("*").single();
+    if (error) return res.status(500).json({ success:false, error:"تعذر تحديث البلاغ" });
+
+    await logAdminActivity("worker_report_status_update", {
+      entity_type:"worker_report",
+      entity_name: before.worker_snapshot?.name || before.worker_name || `بلاغ ${reportId}`,
+      before_data: { status: before.status, admin_note: before.admin_note || "" },
+      after_data: { status: data.status, admin_note: data.admin_note || "" },
+      details: { report_id: reportId, worker_id: before.worker_id, report_type: before.report_type }
+    });
+
+    const [item] = await attachWorkersToReports([data]);
+    return res.json({ success:true, report:item });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message || "تعذر تحديث البلاغ" });
+  }
+});
+
+app.delete("/api/admin/reports/:id", requirePermission("reports:manage"), async (req, res) => {
+  if (!ready(res)) return;
+  try {
+    const reportId = reportSafeText(req.params.id, 120);
+    const { data: before } = await supabase.from("worker_reports").select("*").eq("id", reportId).single();
+    const { error } = await supabase.from("worker_reports").delete().eq("id", reportId);
+    if (error) return res.status(500).json({ success:false, error:"تعذر حذف البلاغ" });
+    await logAdminActivity("worker_report_delete", {
+      entity_type:"worker_report",
+      entity_name: before?.worker_snapshot?.name || `بلاغ ${reportId}`,
+      before_data: before || {},
+      details: { report_id: reportId, worker_id: before?.worker_id }
+    });
+    return res.json({ success:true });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message || "تعذر حذف البلاغ" });
+  }
+});
 
 // ===============================
 // Analytics Patch - Contact Tracking

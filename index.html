@@ -65,6 +65,26 @@
       color: #94a3b8;
     }
 
+
+    .smart-score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      width: fit-content;
+      background: rgba(37, 99, 235, 0.10);
+      color: #1d4ed8;
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .smart-score-badge i {
+      color: #2563eb;
+    }
+
     .sort-wrap {
       position: relative;
       height: 54px;
@@ -1008,7 +1028,7 @@
         <div class="sort-wrap">
           <i class="fa-solid fa-arrow-down-wide-short"></i>
           <select id="sortFilter" onchange="filterWorkers()">
-            <option value="default">الأفضل أولًا</option>
+            <option value="default">الأفضل تلقائيًا</option>
             <option value="featured">المميزين أولًا</option>
             <option value="verified">الموثّقين أولًا</option>
             <option value="rating">الأعلى تقييمًا</option>
@@ -1933,6 +1953,31 @@
       };
     }
 
+
+    function getSmartScore(worker) {
+      return Number(worker.smart_score || worker.smartScore || 0) || 0;
+    }
+
+    function compareSmartPriority(a, b) {
+      const bScore = getSmartScore(b);
+      const aScore = getSmartScore(a);
+      if (bScore !== aScore) return bScore - aScore;
+      return 0;
+    }
+
+    function renderSmartBadge(worker) {
+      const score = getSmartScore(worker);
+      if (!score) return "";
+      const rank = Number(worker.smart_rank || worker.smartRank || 0);
+      const label = rank && rank <= 10 ? "الأفضل #" + rank : "ترتيب ذكي";
+      return `
+        <div class="smart-score-badge" title="Score: ${score}">
+          <i class="fa-solid fa-ranking-star"></i>
+          ${label}
+        </div>
+      `;
+    }
+
     function renderRatingBadge(workerId) {
       const summary = getRatingSummary(workerId);
 
@@ -1999,6 +2044,9 @@
     }
 
     function compareDefaultPriority(a, b) {
+      const smartCompare = compareSmartPriority(a, b);
+      if (smartCompare) return smartCompare;
+
       const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
       if (featuredCompare) return featuredCompare;
 
@@ -2459,6 +2507,8 @@
             <h3>${name}</h3>
 
             ${renderVerifiedTrustLine(worker)}
+
+            ${renderSmartBadge(worker)}
 
             ${renderRatingBadge(workerId)}
 
