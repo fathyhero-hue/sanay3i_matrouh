@@ -978,6 +978,242 @@
       .form-group input, .form-group textarea, .form-group select { min-height: 40px !important; border-radius: 12px !important; }
       .form-group textarea { min-height: 90px !important; }
     }
+
+    /* ===============================
+       Worker Page UX Pro Patch
+       تحسين صفحة الصنايعي: ثقة، أزرار أوضح، نسخ الرقم، وصنايعية مشابهين
+    ================================ */
+    .worker-trust-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+      max-width: 720px;
+    }
+
+    .trust-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 11px 12px;
+      min-width: 0;
+    }
+
+    .trust-pill i {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .trust-pill small {
+      display: block;
+      color: rgba(255,255,255,0.72);
+      font-size: 11px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .trust-pill strong {
+      display: block;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 950;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .details-copy {
+      background: rgba(124, 58, 237, 0.08);
+      color: #6d28d9;
+      border: 1px solid rgba(124, 58, 237, 0.14);
+    }
+
+    .details-copy:hover {
+      background: #6d28d9;
+      color: #fff;
+    }
+
+    .details-action.is-disabled {
+      opacity: .52;
+      pointer-events: none;
+      filter: grayscale(.25);
+    }
+
+    .contact-tip {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: #f8fafc;
+      color: #475569;
+      border: 1px dashed #cbd5e1;
+      border-radius: 18px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.8;
+    }
+
+    .contact-tip i {
+      color: #0f766e;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .similar-workers-section {
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(226,232,240,0.9);
+      border-radius: 30px;
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      margin-top: 24px;
+    }
+
+    .similar-workers-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .similar-workers-head h2 {
+      color: var(--primary);
+      font-size: 22px;
+      font-weight: 950;
+      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .similar-workers-head h2 i { color: var(--blue); }
+
+    .similar-workers-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.8;
+    }
+
+    .similar-workers-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .similar-worker-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: .25s ease;
+      min-width: 0;
+    }
+
+    .similar-worker-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .similar-worker-card img {
+      width: 100%;
+      height: 132px;
+      object-fit: cover;
+      display: block;
+      background: #dbeafe;
+    }
+
+    .similar-worker-body {
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .similar-worker-body h3 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 15px;
+      font-weight: 950;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .similar-worker-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .similar-worker-meta span {
+      background: #f1f5f9;
+      color: #475569;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 10.5px;
+      font-weight: 900;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .similar-worker-link {
+      min-height: 38px;
+      border-radius: 14px;
+      background: var(--primary);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 950;
+      margin-top: 2px;
+    }
+
+    .similar-worker-link:hover { background: var(--blue); }
+
+    @media (max-width: 960px) {
+      .worker-trust-strip { grid-template-columns: 1fr; }
+      .similar-workers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .worker-trust-strip { gap: 7px; margin-top: 12px; }
+      .trust-pill { border-radius: 15px; padding: 8px 9px; }
+      .trust-pill i { width: 28px; height: 28px; border-radius: 10px; font-size: 12px; }
+      .trust-pill small { font-size: 9.5px; }
+      .trust-pill strong { font-size: 11px; }
+      .similar-workers-section { border-radius: 20px; padding: 14px; margin-top: 14px; }
+      .similar-workers-head h2 { font-size: 18px; }
+      .similar-workers-head p { font-size: 11.5px; }
+      .similar-workers-grid { grid-template-columns: 1fr; gap: 10px; }
+      .similar-worker-card { border-radius: 18px; display: grid; grid-template-columns: 96px 1fr; align-items: stretch; }
+      .similar-worker-card img { height: 100%; min-height: 118px; }
+      .similar-worker-body { padding: 10px; }
+      .similar-worker-body h3 { font-size: 13px; }
+      .similar-worker-link { min-height: 34px; font-size: 11px; }
+      .contact-tip { font-size: 11px; border-radius: 14px; padding: 10px; }
+      .mobile-sticky-contact { grid-template-columns: repeat(4, 1fr) !important; gap: 5px !important; }
+      .mobile-sticky-contact a { min-height: 44px !important; border-radius: 13px !important; font-size: 10px !important; padding: 6px 4px !important; gap: 4px !important; }
+      .mobile-sticky-contact a i { font-size: 13px !important; }
+    }
+
 </style>
 
   <!-- PWA -->
@@ -1101,6 +1337,32 @@
                   <div class="rating-count" id="ratingCount">لا توجد تقييمات بعد</div>
                 </div>
               </div>
+
+              <div class="worker-trust-strip" aria-label="معلومات سريعة عن الصنايعي">
+                <div class="trust-pill">
+                  <i class="fa-solid fa-phone-volume"></i>
+                  <div>
+                    <small>التواصل</small>
+                    <strong id="quickContactState">متاح مباشرة</strong>
+                  </div>
+                </div>
+
+                <div class="trust-pill">
+                  <i class="fa-solid fa-shield-halved"></i>
+                  <div>
+                    <small>الحالة</small>
+                    <strong id="quickVerifyState">قيد المراجعة</strong>
+                  </div>
+                </div>
+
+                <div class="trust-pill">
+                  <i class="fa-solid fa-calendar-check"></i>
+                  <div>
+                    <small>تاريخ الأنضمام للدليل</small>
+                    <strong id="quickJoinState">حديثًا</strong>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -1210,6 +1472,16 @@
                     <strong id="sideTrade">غير محدد</strong>
                   </div>
                 </div>
+
+                <div class="info-item">
+                  <div class="info-item-icon">
+                    <i class="fa-solid fa-calendar-days"></i>
+                  </div>
+                  <div>
+                    <small>تاريخ الانضمام</small>
+                    <strong id="workerJoinDate">غير محدد</strong>
+                  </div>
+                </div>
               </div>
 
               <div class="contact-actions">
@@ -1223,6 +1495,11 @@
                   تواصل واتساب
                 </a>
 
+                <button type="button" class="details-action details-copy" id="copyPhoneBtn">
+                  <i class="fa-solid fa-copy"></i>
+                  نسخ الرقم
+                </button>
+
                 <button type="button" class="details-action details-share" id="shareBtn">
                   <i class="fa-solid fa-share-nodes"></i>
                   مشاركة الصفحة
@@ -1234,6 +1511,11 @@
                 </button>
               </div>
 
+              <div class="contact-tip">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>اتفق على السعر والتفاصيل قبل بداية الشغل. لو الرقم غير صحيح أو البيانات محتاجة مراجعة، استخدم زر البلاغ.</span>
+              </div>
+
               <a href="/" class="details-back">
                 <i class="fa-solid fa-arrow-right"></i>
                 رجوع للدليل
@@ -1241,6 +1523,20 @@
             </div>
           </aside>
 
+        </section>
+
+        <section class="similar-workers-section" id="similarWorkersSection" style="display:none;">
+          <div class="similar-workers-head">
+            <div>
+              <h2><i class="fa-solid fa-people-arrows"></i> صنايعية مشابهين</h2>
+              <p id="similarWorkersHint">اقتراحات من نفس الحرفة أو المنطقة لتسهيل المقارنة.</p>
+            </div>
+            <a href="/#workers" class="similar-worker-link">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              عرض كل الصنايعية
+            </a>
+          </div>
+          <div class="similar-workers-grid" id="similarWorkersGrid"></div>
         </section>
 
       </div>
@@ -1495,6 +1791,136 @@
     function renderStars(value) {
       const rating = Math.round(Number(value) || 0);
       return "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating);
+    }
+
+    function formatJoinDate(value) {
+      if (!value) return "حديثًا";
+      try {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "حديثًا";
+        return d.toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
+      } catch (e) {
+        return "حديثًا";
+      }
+    }
+
+    function setLinkState(el, enabled, href) {
+      if (!el) return;
+      if (enabled) {
+        el.href = href;
+        el.classList.remove("is-disabled");
+        el.removeAttribute("aria-disabled");
+      } else {
+        el.href = "#";
+        el.classList.add("is-disabled");
+        el.setAttribute("aria-disabled", "true");
+      }
+    }
+
+    async function copyText(text, successMessage) {
+      if (!text) return showCopyToast("لا يوجد رقم متاح للنسخ");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (error) {
+        const tempInput = document.createElement("input");
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+      }
+      showCopyToast(successMessage || "تم النسخ");
+    }
+
+    function renderSimilarWorkers(currentWorker, workers) {
+      const section = document.getElementById("similarWorkersSection");
+      const grid = document.getElementById("similarWorkersGrid");
+      const hint = document.getElementById("similarWorkersHint");
+      if (!section || !grid || !Array.isArray(workers)) return;
+
+      const currentId = String(currentWorker.id || idFromUrl());
+      const currentTrade = getTrade(currentWorker);
+      const currentArea = getArea(currentWorker);
+
+      const picked = workers
+        .filter(w => String(w.id) !== currentId)
+        .map(w => {
+          let score = 0;
+          if (getTrade(w) === currentTrade) score += 4;
+          if (getArea(w) === currentArea) score += 3;
+          if (featured(w)) score += 2;
+          if (verified(w)) score += 1;
+          score += Number(w.smart_score || 0) / 1000;
+          return { worker: w, score };
+        })
+        .filter(x => x.score > 0)
+        .sort((a,b) => b.score - a.score)
+        .slice(0, 4)
+        .map(x => x.worker);
+
+      grid.innerHTML = "";
+      if (!picked.length) {
+        section.style.display = "none";
+        return;
+      }
+
+      if (hint) hint.textContent = "اقتراحات قريبة من " + currentTrade + " أو " + currentArea + ".";
+
+      picked.forEach(w => {
+        const card = document.createElement("article");
+        card.className = "similar-worker-card";
+
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.src = imgPath(w.image || w.photo || "");
+        img.alt = getName(w);
+        img.onerror = function(){ this.onerror = null; this.src = "/icons/default-worker-avatar.png"; };
+
+        const body = document.createElement("div");
+        body.className = "similar-worker-body";
+
+        const title = document.createElement("h3");
+        title.textContent = getName(w);
+
+        const meta = document.createElement("div");
+        meta.className = "similar-worker-meta";
+        const tradeSpan = document.createElement("span");
+        const tradeIcon = document.createElement("i");
+        tradeIcon.className = "fa-solid fa-screwdriver-wrench";
+        tradeSpan.appendChild(tradeIcon);
+        tradeSpan.appendChild(document.createTextNode(" " + getTrade(w)));
+        const areaSpan = document.createElement("span");
+        const areaIcon = document.createElement("i");
+        areaIcon.className = "fa-solid fa-location-dot";
+        areaSpan.appendChild(areaIcon);
+        areaSpan.appendChild(document.createTextNode(" " + getArea(w)));
+        meta.appendChild(tradeSpan);
+        meta.appendChild(areaSpan);
+
+        const link = document.createElement("a");
+        link.className = "similar-worker-link";
+        link.href = "/worker/" + encodeURIComponent(w.id);
+        link.innerHTML = '<i class="fa-solid fa-eye"></i> عرض التفاصيل';
+        link.addEventListener("click", () => trackWorkerAction(currentId, "similar_worker_click", "worker_page"));
+
+        body.appendChild(title);
+        body.appendChild(meta);
+        body.appendChild(link);
+        card.appendChild(img);
+        card.appendChild(body);
+        grid.appendChild(card);
+      });
+
+      section.style.display = "block";
+    }
+
+    async function loadSimilarWorkers(currentWorker) {
+      try {
+        const r = await fetch("/api/workers");
+        if (!r.ok) return;
+        const workers = await r.json();
+        renderSimilarWorkers(currentWorker, workers || []);
+      } catch (e) {}
     }
 
     function openLightbox(src) {
@@ -1811,6 +2237,7 @@
         const desc = getDesc(w);
         const phone = getPhone(w);
         const whatsappPhone = getWhatsapp(w);
+        const joinDate = formatJoinDate(w.created_at || w.createdAt || w.joined_at || w.updated_at);
 
         const call = callNum(phone);
         const wa = waNum(whatsappPhone);
@@ -1831,6 +2258,14 @@
           mobileShareBtn.onclick = function (e) {
             e.preventDefault();
             shareCurrentWorker(name);
+          };
+        }
+
+        const copyPhoneBtn = document.getElementById("copyPhoneBtn");
+        if (copyPhoneBtn) {
+          copyPhoneBtn.onclick = function () {
+            copyText(call || phone, "تم نسخ رقم الصنايعي");
+            if (call) trackWorkerAction(id, "copy_phone", "worker_page");
           };
         }
 
@@ -1861,6 +2296,10 @@
         document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
         document.getElementById("sideArea").textContent = area;
         document.getElementById("sideTrade").textContent = trade;
+        document.getElementById("workerJoinDate").textContent = joinDate;
+        document.getElementById("quickJoinState").textContent = joinDate;
+        document.getElementById("quickVerifyState").textContent = verified(w) ? "موثق من الإدارة" : "بيانات منشورة";
+        document.getElementById("quickContactState").textContent = (call && wa) ? "اتصال وواتساب" : (call ? "اتصال مباشر" : (wa ? "واتساب فقط" : "غير متاح"));
 
         if (featured(w)) {
           document.getElementById("featuredBadge").classList.add("show");
@@ -1873,10 +2312,10 @@
         const callUrl = call ? "tel:" + call : "#";
         const whatsappUrl = wa ? "https://wa.me/" + wa + "?text=" + txt : "#";
 
-        document.getElementById("callBtn").href = callUrl;
-        document.getElementById("whatsappBtn").href = whatsappUrl;
-        document.getElementById("mobileCallBtn").href = callUrl;
-        document.getElementById("mobileWhatsappBtn").href = whatsappUrl;
+        setLinkState(document.getElementById("callBtn"), !!call, callUrl);
+        setLinkState(document.getElementById("whatsappBtn"), !!wa, whatsappUrl);
+        setLinkState(document.getElementById("mobileCallBtn"), !!call, callUrl);
+        setLinkState(document.getElementById("mobileWhatsappBtn"), !!wa, whatsappUrl);
 
         trackWorkerAction(id, "profile_view", "worker_page");
 
@@ -1900,6 +2339,7 @@
 
         await loadPhotos(id);
         await loadReviews(id);
+        loadSimilarWorkers({ ...w, id });
 
         loading.style.display = "none";
         error.style.display = "none";
