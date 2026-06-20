@@ -1178,6 +1178,9 @@
     let allTrades = [];
     let allAreas = [];
     let ratingsByWorker = {};
+    let currentWorkersForRender = [];
+    let visibleWorkersLimit = 24;
+    const WORKERS_PAGE_SIZE = 24;
 
     function toggleMobileMenu() {
       const nav = document.getElementById("mobileNav");
@@ -1868,7 +1871,7 @@
       workersGrid.innerHTML = "";
 
       const data = await fetchJsonWithFallback([
-        "/api/workers",
+        "/api/workers?limit=1200",
         "/api/sanaieya",
         "/api/sanai3ya",
         "/api/craftsmen",
@@ -1912,38 +1915,15 @@
 
     async function loadRatingsForWorkers() {
       ratingsByWorker = {};
-
-      const requests = allWorkers.map(async worker => {
+      allWorkers.forEach(worker => {
         const id = getWorkerId(worker);
-
         if (!id) return;
-
-        try {
-          const response = await fetch("/api/workers/" + id + "/reviews/summary");
-
-          if (!response.ok) {
-            ratingsByWorker[id] = {
-              average: 0,
-              count: 0
-            };
-            return;
-          }
-
-          const summary = await response.json();
-
-          ratingsByWorker[id] = {
-            average: Number(summary.average) || 0,
-            count: Number(summary.count) || 0
-          };
-        } catch (error) {
-          ratingsByWorker[id] = {
-            average: 0,
-            count: 0
-          };
-        }
+        const signals = worker.smart_score_signals || worker.smartScoreSignals || {};
+        ratingsByWorker[id] = {
+          average: Number(signals.rating_average || worker.rating_average || worker.ratingAverage || 0) || 0,
+          count: Number(signals.review_count || worker.review_count || worker.reviewCount || 0) || 0
+        };
       });
-
-      await Promise.all(requests);
     }
 
     function getRatingSummary(workerId) {
@@ -2442,20 +2422,44 @@
       }, 700);
     }
 
+    function ensureLoadMoreButton() {
+      let btn = document.getElementById("loadMoreWorkersBtn");
+      const grid = document.getElementById("workersGrid");
+      if (!btn && grid) {
+        btn = document.createElement("button");
+        btn.id = "loadMoreWorkersBtn";
+        btn.className = "btn btn-secondary";
+        btn.style.cssText = "display:none;margin:18px auto 0;padding:12px 22px;border-radius:16px;font-weight:900";
+        btn.textContent = "تحميل المزيد";
+        btn.onclick = function () { visibleWorkersLimit += WORKERS_PAGE_SIZE; renderWorkers(currentWorkersForRender); };
+        grid.insertAdjacentElement("afterend", btn);
+      }
+      return btn;
+    }
+
     function renderWorkers(workers) {
       const workersGrid = document.getElementById("workersGrid");
       const emptyBox = document.getElementById("emptyBox");
+      const loadMoreBtn = ensureLoadMoreButton();
+      currentWorkersForRender = Array.isArray(workers) ? workers : [];
 
       workersGrid.innerHTML = "";
 
-      if (!workers.length) {
+      if (!currentWorkersForRender.length) {
         emptyBox.style.display = "block";
+        if(loadMoreBtn)loadMoreBtn.style.display="none";
         return;
       }
 
       emptyBox.style.display = "none";
+      const visibleWorkers = currentWorkersForRender.slice(0, visibleWorkersLimit);
+      if(loadMoreBtn){
+        loadMoreBtn.style.display = currentWorkersForRender.length > visibleWorkers.length ? "block" : "none";
+        loadMoreBtn.textContent = `تحميل المزيد (${visibleWorkers.length} من ${currentWorkersForRender.length})`;
+      }
 
-      workers.forEach(worker => {
+      const fragment = document.createDocumentFragment();
+      visibleWorkers.forEach(worker => {
         const name = getWorkerName(worker);
         const trade = getWorkerTrade(worker);
         const area = getWorkerArea(worker);
@@ -2486,7 +2490,7 @@
 
         card.innerHTML = `
           <div class="worker-image-wrap">
-            <img src="${image}" alt="${name}" class="worker-image" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+            <img loading="lazy" decoding="async" src="${image}" alt="${name}" class="worker-image" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
 
             ${featured ? `
               <div class="featured-badge">
@@ -2556,8 +2560,9 @@
           });
         }
 
-        workersGrid.appendChild(card);
+        fragment.appendChild(card);
       });
+      workersGrid.appendChild(fragment);
     }
 
 
@@ -2656,6 +2661,7 @@
       updateAreaIconsActiveState();
       updateWorkersHeading(selectedTradeRaw, selectedAreaRaw, sorted.length);
       trackCurrentDirectoryFilters(searchValue, selectedTradeRaw, selectedAreaRaw);
+      visibleWorkersLimit = WORKERS_PAGE_SIZE;
       renderWorkers(sorted);
     }
 
@@ -2673,6 +2679,7 @@
       updateTradeIconsActiveState();
       updateAreaIconsActiveState();
       updateWorkersHeading("", "", allWorkers.length);
+      visibleWorkersLimit = WORKERS_PAGE_SIZE;
       renderWorkers(allWorkers);
     }
 

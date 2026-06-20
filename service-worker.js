@@ -1,4 +1,4 @@
-const CACHE_NAME = "sanay3i-matrouh-v27";
+const CACHE_NAME = "sanay3i-matrouh-v28-performance";
 const OFFLINE_URL = "/offline.html";
 
 const STATIC_ASSETS = [

@@ -90,7 +90,16 @@ app.use("/api/admin", (req, res, next) => {
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
-app.use(express.static(STATIC_DIR));
+app.use(express.static(STATIC_DIR, {
+  etag: true,
+  maxAge: process.env.NODE_ENV === "production" ? "7d" : 0,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store");
+    if (/\.(css|js|png|jpg|jpeg|webp|svg|ico|json)$/i.test(filePath)) {
+      res.setHeader("Cache-Control", process.env.NODE_ENV === "production" ? "public, max-age=604800, immutable" : "no-cache");
+    }
+  }
+}));
 
 app.get("/style.css", (req, res) => {
   res.type("text/css");
@@ -996,11 +1005,62 @@ app.get("/trade/:trade", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.htm
 app.get("/area/:area", (req,res)=>res.sendFile(path.join(STATIC_DIR,"index.html")));
 
 // Workers
-app.get("/api/workers", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("approved",true).eq("active",true).or(`subscription_end.is.null,subscription_end.gte.${today()}`).limit(3000); if(error)return res.status(500).json({success:false,error:error.message}); const scored=await attachSmartScoresToWorkers(data||[]); res.json(scored); });
+// ===============================
+// Performance optimized public directory
+// ===============================
+const PUBLIC_WORKERS_CACHE = new Map();
+function perfCacheGet(key){
+  const x = PUBLIC_WORKERS_CACHE.get(key);
+  if(!x) return null;
+  if(Date.now() > x.expires){ PUBLIC_WORKERS_CACHE.delete(key); return null; }
+  return x.data;
+}
+function perfCacheSet(key, data, ttlMs){
+  PUBLIC_WORKERS_CACHE.set(key, { data, expires: Date.now() + ttlMs });
+}
+
+app.get("/api/workers", async (req,res)=>{
+  if(!ready(res))return;
+  const limit = Math.min(Math.max(Number(req.query.limit || 1200) || 1200, 1), 3000);
+  const cacheKey = `public-workers:${limit}:${today()}`;
+  const cached = perfCacheGet(cacheKey);
+  if(cached){
+    res.setHeader("X-Sanay3i-Cache", "hit");
+    return res.json(cached);
+  }
+  try{
+    const {data,error}=await supabase
+      .from("workers")
+      .select(PUBLIC_WORKER_COLUMNS)
+      .eq("approved",true)
+      .eq("active",true)
+      .or(`subscription_end.is.null,subscription_end.gte.${today()}`)
+      .order("featured", { ascending:false })
+      .order("created_at", { ascending:false })
+      .limit(limit);
+    if(error)throw error;
+    const scored=await attachSmartScoresToWorkers(data||[]);
+    perfCacheSet(cacheKey, scored, Number(process.env.PUBLIC_WORKERS_CACHE_MS || 60000));
+    res.setHeader("X-Sanay3i-Cache", "miss");
+    res.json(scored);
+  }catch(error){
+    res.status(500).json({success:false,error:error.message});
+  }
+});
 app.get("/api/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 app.get("/sanaieya", (req,res)=>{ req.url="/api/workers"; app._router.handle(req,res); });
 
-app.get("/api/admin/workers", requirePermission("workers:read"), async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select("*").order("id",{ascending:false}); if(error)return res.status(500).json({success:false,error:error.message}); res.json(data||[]); });
+app.get("/api/admin/workers", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  const limit = Math.min(Math.max(Number(req.query.limit || 1000) || 1000, 1), 5000);
+  const {data,error}=await supabase
+    .from("workers")
+    .select("*")
+    .order("id",{ascending:false})
+    .limit(limit);
+  if(error)return res.status(500).json({success:false,error:error.message});
+  res.json(data||[]);
+});
 app.get("/api/workers/all", requirePermission("workers:read"), (req,res)=>{ req.url="/api/admin/workers"; app._router.handle(req,res); });
 
 app.get("/api/admin/workers/:id/id-card/:side", requirePermission("workers:review"), async (req,res)=>{
