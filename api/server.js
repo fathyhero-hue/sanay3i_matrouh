@@ -1922,13 +1922,25 @@ app.get("/api/admin/whatsapp/config", requirePermission("whatsapp:send"), async 
 
 app.get("/api/admin/whatsapp/logs", requirePermission("whatsapp:send"), async (req, res) => {
   if (!ready(res)) return;
-  const limit = Math.min(200, Math.max(1, Number(req.query.limit || 50)));
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
+  const status = String(req.query.status || "").trim();
+  const workerId = String(req.query.worker_id || req.query.workerId || "").trim();
   try {
-    const { data, error } = await supabase.from("whatsapp_message_logs").select("*").order("created_at", { ascending: false }).limit(limit);
+    let q = supabase.from("whatsapp_message_logs").select("*").order("created_at", { ascending: false }).limit(limit);
+    if (status && status !== "all") q = q.eq("status", status);
+    if (workerId) q = q.eq("worker_id", workerId);
+    const { data, error } = await q;
     if (error) throw error;
-    res.json({ success: true, items: data || [] });
+    const items = data || [];
+    const totals = items.reduce((acc, row) => {
+      const key = row.status || "unknown";
+      acc[key] = (acc[key] || 0) + 1;
+      acc.total += 1;
+      return acc;
+    }, { total: 0, sent: 0, failed: 0, pending: 0 });
+    res.json({ success: true, items, totals });
   } catch (e) {
-    res.json({ success: true, items: [], warning: "جدول whatsapp_message_logs غير موجود أو غير جاهز. شغّل ملف SQL الخاص بواتساب أولًا." });
+    res.json({ success: true, items: [], totals: { total:0, sent:0, failed:0, pending:0 }, warning: "جدول whatsapp_message_logs غير موجود أو غير جاهز. شغّل ملف SQL الخاص بواتساب أولًا." });
   }
 });
 
@@ -1998,6 +2010,93 @@ app.post("/api/admin/whatsapp/send-worker", requirePermission("whatsapp:send"), 
     });
     res.status(e.status_code || 500).json({ success: false, error: e.message || "فشل إرسال رسالة واتساب", provider_response: e.provider_response || null });
   }
+});
+
+app.post("/api/admin/whatsapp/send-bulk", requirePermission("whatsapp:send"), async (req, res) => {
+  if (!ready(res)) return;
+  const rawItems = Array.isArray(req.body.items) ? req.body.items : [];
+  const mode = String(req.body.mode || "text").toLowerCase() === "template" ? "template" : "text";
+  const templateName = String(req.body.template_name || req.body.templateName || WHATSAPP_DEFAULT_TEMPLATE || "hello_world").trim();
+  const languageCode = String(req.body.language_code || req.body.languageCode || WHATSAPP_DEFAULT_LANGUAGE || "en_US").trim();
+  const messageType = String(req.body.message_type || req.body.messageType || "bulk_admin_message").trim().slice(0, 80);
+  const bulkLabel = String(req.body.bulk_label || req.body.bulkLabel || "إرسال جماعي").trim().slice(0, 120);
+  const bulkGroupId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+
+  if (!rawItems.length) return res.status(400).json({ success:false, error:"لا توجد أرقام صالحة للإرسال الجماعي" });
+  if (rawItems.length > 100) return res.status(400).json({ success:false, error:"الحد الأقصى للإرسال الجماعي في العملية الواحدة هو 100 صنايعي" });
+
+  const results = [];
+  let sentCount = 0;
+  let failedCount = 0;
+
+  for (const item of rawItems) {
+    const workerId = String(item.worker_id || item.workerId || "").trim();
+    const rawPhone = String(item.phone || "").trim();
+    const message = String(item.message || item.text || req.body.message || "").trim();
+    let worker = null;
+    try {
+      if (workerId) {
+        const { data } = await supabase.from("workers").select("id,name,full_name,phone,whatsapp,whatsapp_number").eq("id", workerId).single();
+        worker = data || null;
+      }
+      const phone = rawPhone || worker?.whatsapp || worker?.whatsapp_number || worker?.phone || "";
+      if (!phone) throw new Error("لا يوجد رقم واتساب صالح");
+      const sent = await sendWhatsAppCloudMessage({
+        to: phone,
+        message,
+        mode,
+        template_name: templateName,
+        language_code: languageCode
+      });
+      const providerMessageId = sent.response?.messages?.[0]?.id || null;
+      sentCount += 1;
+      await insertWhatsAppLog({
+        worker_id: workerId || null,
+        worker_name: item.worker_name || item.workerName || worker?.name || worker?.full_name || null,
+        phone: sent.recipient,
+        message_type: messageType,
+        message_text: mode === "template" ? `[template:${templateName}]` : message,
+        send_mode: mode,
+        template_name: mode === "template" ? templateName : null,
+        status: "sent",
+        provider_message_id: providerMessageId,
+        provider_response: sent.response,
+        sent_by: req.admin?.display_name || req.admin?.username || "الإدارة",
+        bulk_group_id: bulkGroupId,
+        bulk_label: bulkLabel
+      });
+      results.push({ worker_id: workerId || null, phone: sent.recipient, success:true, provider_message_id: providerMessageId });
+    } catch (e) {
+      failedCount += 1;
+      const normalizedPhone = normalizeWhatsAppRecipient(rawPhone || worker?.whatsapp || worker?.whatsapp_number || worker?.phone || "");
+      await insertWhatsAppLog({
+        worker_id: workerId || null,
+        worker_name: item.worker_name || item.workerName || worker?.name || worker?.full_name || null,
+        phone: normalizedPhone || rawPhone || "unknown",
+        message_type: messageType,
+        message_text: mode === "template" ? `[template:${templateName}]` : message,
+        send_mode: mode,
+        template_name: mode === "template" ? templateName : null,
+        status: "failed",
+        provider_response: e.provider_response || {},
+        error_message: e.message,
+        sent_by: req.admin?.display_name || req.admin?.username || "الإدارة",
+        bulk_group_id: bulkGroupId,
+        bulk_label: bulkLabel
+      });
+      results.push({ worker_id: workerId || null, phone: normalizedPhone || rawPhone || null, success:false, error:e.message || "فشل الإرسال" });
+    }
+    await new Promise(resolve => setTimeout(resolve, 120));
+  }
+
+  await logAdminActivity("whatsapp_bulk_send", {
+    entity_type: "whatsapp",
+    entity_id: bulkGroupId,
+    entity_name: bulkLabel,
+    details: { mode, template_name: mode === "template" ? templateName : null, total: rawItems.length, sent: sentCount, failed: failedCount }
+  });
+
+  res.json({ success:true, message:"انتهى الإرسال الجماعي", bulk_group_id: bulkGroupId, total: rawItems.length, sent: sentCount, failed: failedCount, results });
 });
 
 // ===============================
