@@ -118,6 +118,17 @@ app.get("/manifest.json", (req, res) => {
   res.sendFile(path.join(STATIC_DIR, "manifest.json"));
 });
 
+// ===============================
+// Homepage Matrouh banner image - explicit route for Vercel/API runtime
+// ===============================
+const MATROUH_HERO_BANNER_FILE = path.join(STATIC_DIR, "images", "matrouh-hero-banner.jpg");
+
+app.get(["/api/static/matrouh-hero-banner.jpg", "/images/matrouh-hero-banner.jpg", "/matrouh-hero-banner.jpg"], (req, res) => {
+  res.type("image/jpeg");
+  res.setHeader("Cache-Control", process.env.NODE_ENV === "production" ? "public, max-age=604800" : "no-cache");
+  res.sendFile(MATROUH_HERO_BANNER_FILE);
+});
+
 app.get("/service-worker.js", (req, res) => {
   res.type("application/javascript");
   res.setHeader("Service-Worker-Allowed", "/");
