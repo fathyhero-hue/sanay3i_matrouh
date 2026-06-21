@@ -1,4 +1,4 @@
-
+﻿
 /* NAVY_SPLASH_SCREEN_PATCH_ONLY: first paint / PWA launch background */
 html {
   background-color: #061A3D;
@@ -1811,3 +1811,4 @@ textarea {
     font-size: 9.5px !important;
   }
 }
+
