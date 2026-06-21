@@ -164,6 +164,7 @@ const WHATSAPP_BUSINESS_ACCOUNT_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID ||
 const WHATSAPP_API_VERSION = process.env.WHATSAPP_API_VERSION || "v25.0";
 const WHATSAPP_DEFAULT_TEMPLATE = process.env.WHATSAPP_DEFAULT_TEMPLATE || "hello_world";
 const WHATSAPP_DEFAULT_LANGUAGE = process.env.WHATSAPP_DEFAULT_LANGUAGE || "en_US";
+const WHATSAPP_WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || "";
 
 function whatsappConfigStatus() {
   const missing = [];
@@ -178,7 +179,8 @@ function whatsappConfigStatus() {
     phone_number_id: WHATSAPP_PHONE_NUMBER_ID || null,
     business_account_id: WHATSAPP_BUSINESS_ACCOUNT_ID || null,
     default_template: WHATSAPP_DEFAULT_TEMPLATE,
-    default_language: WHATSAPP_DEFAULT_LANGUAGE
+    default_language: WHATSAPP_DEFAULT_LANGUAGE,
+    webhook_verify_token_present: !!WHATSAPP_WEBHOOK_VERIFY_TOKEN
   };
 }
 
@@ -244,6 +246,197 @@ async function sendWhatsAppCloudMessage({ to, message, mode = "text", template_n
   }
   return { response: data, recipient, send_mode: sendMode, payload_type: payload.type };
 }
+
+
+// ===============================
+// WhatsApp Inbox / Webhook Helpers
+// ===============================
+function safeWaText(value, max = 4000) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function waUnixToIso(value) {
+  const n = Number(value || 0);
+  if (!n) return null;
+  try { return new Date(n * 1000).toISOString(); } catch (e) { return null; }
+}
+
+function whatsappIncomingText(message = {}) {
+  const type = String(message.type || "unknown").toLowerCase();
+  if (type === "text") return safeWaText(message.text?.body || "");
+  if (type === "button") return safeWaText(message.button?.text || message.button?.payload || "زر واتساب");
+  if (type === "interactive") {
+    const i = message.interactive || {};
+    return safeWaText(i.button_reply?.title || i.button_reply?.id || i.list_reply?.title || i.list_reply?.description || i.list_reply?.id || "رسالة تفاعلية");
+  }
+  if (type === "image") return safeWaText(message.image?.caption || "[صورة واردة]");
+  if (type === "document") return safeWaText(message.document?.caption || message.document?.filename || "[ملف وارد]");
+  if (type === "audio") return "[رسالة صوتية]";
+  if (type === "video") return safeWaText(message.video?.caption || "[فيديو وارد]");
+  if (type === "sticker") return "[ملصق وارد]";
+  if (type === "location") return "[موقع جغرافي وارد]";
+  if (type === "contacts") return "[جهات اتصال واردة]";
+  return `[رسالة واتساب واردة: ${type}]`;
+}
+
+function whatsappIncomingMedia(message = {}) {
+  const type = String(message.type || "").toLowerCase();
+  const obj = message[type] || null;
+  if (!obj || typeof obj !== "object") return {};
+  return {
+    media_id: obj.id || null,
+    media_mime_type: obj.mime_type || null,
+    media_sha256: obj.sha256 || null,
+    media_filename: obj.filename || null
+  };
+}
+
+async function findWorkerByIncomingWhatsAppPhone(phone) {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+    const wanted = normalizeWorkerPhone(phone) || normalizeWhatsAppRecipient(phone);
+    if (!wanted) return null;
+    const { data, error } = await supabase
+      .from("workers")
+      .select("id,registration_code,name,phone,whatsapp,trade,area,approved,active")
+      .order("id", { ascending: false })
+      .limit(5000);
+    if (error) return null;
+    return (data || []).find(w => workerPhoneKeysFromValues(w.phone, w.whatsapp).includes(wanted)) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function insertWhatsAppInboxMessage(row) {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return { skipped: true };
+    const clean = { ...row };
+    const { data: existing } = await supabase
+      .from("whatsapp_inbox_messages")
+      .select("id")
+      .eq("provider_message_id", clean.provider_message_id)
+      .maybeSingle();
+    if (existing?.id) return { duplicate: true, id: existing.id };
+    const { data, error } = await supabase
+      .from("whatsapp_inbox_messages")
+      .insert(clean)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { inserted: true, id: data?.id || null };
+  } catch (e) {
+    console.warn("WhatsApp inbox insert skipped:", e.message);
+    return { skipped: true, error: e.message };
+  }
+}
+
+async function processWhatsAppIncomingMessage(value = {}, message = {}, contact = {}) {
+  const from = normalizeWhatsAppRecipient(message.from || contact.wa_id || "");
+  const worker = await findWorkerByIncomingWhatsAppPhone(from);
+  const media = whatsappIncomingMedia(message);
+  const row = {
+    provider_message_id: String(message.id || ""),
+    phone_number_id: String(value.metadata?.phone_number_id || WHATSAPP_PHONE_NUMBER_ID || ""),
+    display_phone_number: String(value.metadata?.display_phone_number || ""),
+    from_number: from || String(message.from || contact.wa_id || ""),
+    wa_id: String(contact.wa_id || message.from || ""),
+    profile_name: safeWaText(contact.profile?.name || "", 160),
+    worker_id: worker?.id ? String(worker.id) : null,
+    worker_name: worker?.name || null,
+    message_type: String(message.type || "unknown").slice(0, 80),
+    message_text: whatsappIncomingText(message),
+    media_id: media.media_id,
+    media_mime_type: media.media_mime_type,
+    media_sha256: media.media_sha256,
+    media_filename: media.media_filename,
+    raw_payload: message,
+    contact_payload: contact || {},
+    worker_snapshot: worker ? {
+      id: worker.id,
+      registration_code: worker.registration_code || null,
+      name: worker.name || "",
+      phone: worker.phone || "",
+      whatsapp: worker.whatsapp || "",
+      trade: worker.trade || "",
+      area: worker.area || "",
+      approved: !!worker.approved,
+      active: !!worker.active
+    } : {},
+    status: "new",
+    received_at: waUnixToIso(message.timestamp) || new Date().toISOString()
+  };
+  if (!row.provider_message_id) row.provider_message_id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+  return insertWhatsAppInboxMessage(row);
+}
+
+async function handleWhatsAppWebhookPayload(body) {
+  const results = { messages: 0, statuses: 0, inserted: 0, duplicates: 0, skipped: 0 };
+  const entries = Array.isArray(body?.entry) ? body.entry : [];
+  for (const entry of entries) {
+    const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+    for (const change of changes) {
+      const value = change?.value || {};
+      const contactsByWaId = {};
+      (Array.isArray(value.contacts) ? value.contacts : []).forEach(c => {
+        if (c?.wa_id) contactsByWaId[String(c.wa_id)] = c;
+      });
+      const messages = Array.isArray(value.messages) ? value.messages : [];
+      for (const msg of messages) {
+        results.messages += 1;
+        const contact = contactsByWaId[String(msg.from || "")] || {};
+        const out = await processWhatsAppIncomingMessage(value, msg, contact);
+        if (out.inserted) results.inserted += 1;
+        else if (out.duplicate) results.duplicates += 1;
+        else results.skipped += 1;
+      }
+
+      const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+      for (const st of statuses) {
+        results.statuses += 1;
+        try {
+          const providerId = String(st.id || "");
+          if (!providerId) continue;
+          const update = { provider_response: st };
+          if (String(st.status || "").toLowerCase() === "failed") {
+            update.status = "failed";
+            update.error_message = st.errors?.[0]?.message || st.errors?.[0]?.title || "WhatsApp delivery failed";
+          }
+          await supabase.from("whatsapp_message_logs").update(update).eq("provider_message_id", providerId);
+        } catch (e) {}
+      }
+    }
+  }
+  return results;
+}
+
+function whatsappWebhookVerifyHandler(req, res) {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+  if (mode === "subscribe" && token && WHATSAPP_WEBHOOK_VERIFY_TOKEN && token === WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
+    return res.status(200).send(String(challenge || ""));
+  }
+  return res.status(403).send("Forbidden");
+}
+
+async function whatsappWebhookPostHandler(req, res) {
+  try {
+    const result = await handleWhatsAppWebhookPayload(req.body || {});
+    return res.status(200).json({ success: true, ...result });
+  } catch (e) {
+    console.error("WhatsApp webhook error:", e);
+    return res.status(200).json({ success: true, warning: e.message || "webhook processing skipped" });
+  }
+}
+
+// Callback URL examples:
+// https://your-domain.com/api/webhooks/whatsapp
+// https://your-domain.com/api/whatsapp/webhook
+app.get("/api/webhooks/whatsapp", whatsappWebhookVerifyHandler);
+app.post("/api/webhooks/whatsapp", whatsappWebhookPostHandler);
+app.get("/api/whatsapp/webhook", whatsappWebhookVerifyHandler);
+app.post("/api/whatsapp/webhook", whatsappWebhookPostHandler);
 
 
 // ===============================
@@ -2320,6 +2513,93 @@ app.post("/api/admin/whatsapp/send-bulk", requirePermission("whatsapp:send"), as
   });
 
   res.json({ success:true, message:"انتهى الإرسال الجماعي", bulk_group_id: bulkGroupId, total: rawItems.length, sent: sentCount, failed: failedCount, results });
+});
+
+
+app.get("/api/admin/whatsapp/inbox", requirePermission("whatsapp:send"), async (req, res) => {
+  if (!ready(res)) return;
+  const limit = Math.min(300, Math.max(1, Number(req.query.limit || 120)));
+  const status = String(req.query.status || "all").trim();
+  const workerId = String(req.query.worker_id || req.query.workerId || "").trim();
+  const qRaw = String(req.query.q || "").trim().toLowerCase();
+  try {
+    let query = supabase.from("whatsapp_inbox_messages").select("*").order("received_at", { ascending: false }).limit(limit);
+    if (status && status !== "all") query = query.eq("status", status);
+    if (workerId) query = query.eq("worker_id", workerId);
+    const { data, error } = await query;
+    if (error) throw error;
+    let items = data || [];
+    if (qRaw) {
+      items = items.filter(row => [row.profile_name, row.worker_name, row.from_number, row.wa_id, row.message_text, row.message_type]
+        .join(" ").toLowerCase().includes(qRaw));
+    }
+    const totals = items.reduce((acc, row) => {
+      acc.total += 1;
+      const st = row.status || "new";
+      acc[st] = (acc[st] || 0) + 1;
+      if (!row.read_at && st !== "archived") acc.unread += 1;
+      return acc;
+    }, { total: 0, new: 0, read: 0, archived: 0, unread: 0 });
+    return res.json({ success: true, items, totals });
+  } catch (e) {
+    return res.json({ success: true, items: [], totals: { total:0, new:0, read:0, archived:0, unread:0 }, warning: "جدول whatsapp_inbox_messages غير موجود أو غير جاهز. شغّل ملف SQL الخاص بصندوق وارد واتساب أولًا." });
+  }
+});
+
+app.put("/api/admin/whatsapp/inbox/:id/status", requirePermission("whatsapp:send"), async (req, res) => {
+  if (!ready(res)) return;
+  const msgId = String(req.params.id || "").trim();
+  const status = String(req.body?.status || "read").trim();
+  if (!msgId) return res.status(400).json({ success:false, error:"معرف الرسالة مطلوب" });
+  if (!["new", "read", "archived"].includes(status)) return res.status(400).json({ success:false, error:"حالة الوارد غير صحيحة" });
+  const update = { status };
+  if (status === "read" || status === "archived") update.read_at = new Date().toISOString();
+  if (status === "archived") update.archived_at = new Date().toISOString();
+  const { error } = await supabase.from("whatsapp_inbox_messages").update(update).eq("id", msgId);
+  if (error) return res.status(500).json({ success:false, error:error.message });
+  return res.json({ success:true, status });
+});
+
+app.post("/api/admin/whatsapp/inbox/:id/reply", requirePermission("whatsapp:send"), async (req, res) => {
+  if (!ready(res)) return;
+  const msgId = String(req.params.id || "").trim();
+  const message = String(req.body?.message || req.body?.text || "").trim();
+  const mode = String(req.body?.mode || "text").toLowerCase() === "template" ? "template" : "text";
+  const templateName = String(req.body?.template_name || req.body?.templateName || WHATSAPP_DEFAULT_TEMPLATE || "hello_world").trim();
+  const languageCode = String(req.body?.language_code || req.body?.languageCode || WHATSAPP_DEFAULT_LANGUAGE || "en_US").trim();
+  if (!msgId) return res.status(400).json({ success:false, error:"معرف الرسالة مطلوب" });
+  if (mode === "text" && !message) return res.status(400).json({ success:false, error:"اكتب نص الرد أولًا" });
+
+  try {
+    const { data: inbox, error: readError } = await supabase.from("whatsapp_inbox_messages").select("*").eq("id", msgId).single();
+    if (readError || !inbox) return res.status(404).json({ success:false, error:"الرسالة الواردة غير موجودة" });
+    const phone = inbox.from_number || inbox.wa_id;
+    const sent = await sendWhatsAppCloudMessage({ to: phone, message, mode, template_name: templateName, language_code: languageCode });
+    const providerMessageId = sent.response?.messages?.[0]?.id || null;
+    await insertWhatsAppLog({
+      worker_id: inbox.worker_id || null,
+      worker_name: inbox.worker_name || inbox.profile_name || null,
+      phone: sent.recipient,
+      message_type: "inbox_reply",
+      message_text: mode === "template" ? `[template:${templateName}]` : message,
+      send_mode: mode,
+      template_name: mode === "template" ? templateName : null,
+      status: "sent",
+      provider_message_id: providerMessageId,
+      provider_response: sent.response,
+      sent_by: req.admin?.display_name || req.admin?.username || "الإدارة"
+    });
+    await supabase.from("whatsapp_inbox_messages").update({ status:"read", read_at:new Date().toISOString(), replied_at:new Date().toISOString() }).eq("id", msgId);
+    await logAdminActivity("whatsapp_inbox_reply", {
+      entity_type: "whatsapp",
+      entity_id: msgId,
+      entity_name: inbox.worker_name || inbox.profile_name || sent.recipient,
+      details: { phone: sent.recipient, provider_message_id: providerMessageId }
+    });
+    return res.json({ success:true, message:"تم إرسال الرد", to: sent.recipient, provider_message_id: providerMessageId });
+  } catch (e) {
+    return res.status(e.status_code || 500).json({ success:false, error:e.message || "فشل إرسال الرد", provider_response:e.provider_response || null });
+  }
 });
 
 // ===============================
