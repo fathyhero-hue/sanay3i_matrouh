@@ -925,7 +925,7 @@ function adminWorkerQuickButton(w){
   const phone=adminActionsEscapeAttr(wphone(w)||"");
   const wa=adminActionsEscapeAttr(wwhatsapp(w)||wphone(w)||"");
   const common=`data-worker-id="${id}" data-worker-reg="${reg}" data-worker-phone="${phone}" data-worker-whatsapp="${wa}" onpointerdown="return window.adminWorkerCardActionDirectV7(event,this)" onclick="return window.adminWorkerCardActionDirectV7(event,this)"`;
-  return `<div class="admin-worker-actions-direct-v7"><div class="admin-worker-actions-direct-v7-head"><span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الصنايعي</span><small>Direct V7</small></div><div class="admin-worker-actions-direct-v7-grid"><button type="button" class="action-btn btn-dark" data-worker-action="edit" ${common}><i class="fa-solid fa-pen-to-square"></i> تعديل البيانات</button><button type="button" class="action-btn btn-blue" data-worker-action="identity" ${common}><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button><button type="button" class="action-btn btn-blue" data-worker-action="photos" ${common}><i class="fa-solid fa-images"></i> صور الأعمال</button><button type="button" class="action-btn btn-yellow" data-worker-action="renew" ${common}><i class="fa-solid fa-credit-card"></i> الاشتراك والتجديد</button><button type="button" class="action-btn btn-green" data-worker-action="whatsapp" ${common}><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button></div></div>`;
+  return `<div class="admin-worker-actions-direct-v7"><div class="admin-worker-actions-direct-v7-head"><span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الصنايعي</span><small>Direct V7</small></div><div class="admin-worker-actions-direct-v7-grid"><button type="button" class="action-btn btn-dark" data-worker-action="full" ${common}><i class="fa-solid fa-sliders"></i> تحكم شامل</button><button type="button" class="action-btn btn-dark" data-worker-action="edit" ${common}><i class="fa-solid fa-pen-to-square"></i> تعديل البيانات</button><button type="button" class="action-btn btn-blue" data-worker-action="identity" ${common}><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button><button type="button" class="action-btn btn-blue" data-worker-action="photos" ${common}><i class="fa-solid fa-images"></i> صور الأعمال</button><button type="button" class="action-btn btn-yellow" data-worker-action="renew" ${common}><i class="fa-solid fa-credit-card"></i> الاشتراك والتجديد</button><button type="button" class="action-btn btn-green" data-worker-action="whatsapp" ${common}><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button></div></div>`;
 }
 
 function renderWorkers(workers){
@@ -2026,7 +2026,108 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
   const cssInput = 'width:100%;border:1px solid #e5e7eb;outline:none;background:#f8fafc;border-radius:16px;padding:13px;font-weight:800;font-family:inherit;box-sizing:border-box;';
   const cssGrid = 'display:grid;grid-template-columns:1fr 1fr;gap:14px;';
   const cssBtn = 'border:0;border-radius:999px;padding:13px 20px;font-weight:900;cursor:pointer;font-family:inherit;';
-  function safeReload(){ try{ if(typeof loadAllData==='function') loadAllData(); else if(typeof loadWorkers==='function') loadWorkers().then(()=>{ if(typeof renderWorkers==='function') renderWorkers(allWorkers); }); }catch(_){} }
+  function renderFullControlPhotos(id){
+    const photos=photosByWorker[id]||[];
+    if(photosByWorker[id]===undefined) return '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:12px;color:#64748b;font-weight:900;">لم يتم تحميل صور الأعمال بعد.</div>';
+    if(!photos.length) return '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:12px;color:#64748b;font-weight:900;">لا توجد صور أعمال حاليًا.</div>';
+    return `<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">${photos.map(p=>`<div style="position:relative;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;background:#f8fafc;"><img src="${esc(imgPath(p.image))}" style="width:100%;height:105px;object-fit:cover;display:block;"><button type="button" onclick="window.adminFullControlDeletePhotoV8('${esc(p.id)}','${esc(id)}')" style="position:absolute;top:6px;left:6px;border:0;background:#fee2e2;color:#991b1b;border-radius:10px;width:32px;height:32px;font-weight:900;cursor:pointer;">×</button></div>`).join('')}</div>`;
+  }
+  window.adminFullControlDeletePhotoV8 = async function(photoId, workerId){
+    if(!confirm('حذف صورة العمل؟')) return;
+    try{
+      const r=await fetch(`/api/workers/photos/${encodeURIComponent(photoId)}`,{method:'DELETE',credentials:'include'});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok || d.success===false) throw new Error(d.error||'تعذر حذف الصورة');
+      toast('success','تم حذف صورة العمل');
+      await loadWorkerPhotos(workerId);
+      const box=document.getElementById('v8_full_photos_box');
+      if(box) box.innerHTML=renderFullControlPhotos(workerId);
+    }catch(ex){ toast('error',ex.message||'تعذر حذف الصورة'); }
+  };
+  function openFullControl(w){
+    const id=String(wid(w));
+    const sub=subInfo(w);
+    openForceModal('تحكم شامل في الصنايعي', `${workerSummary(w)}
+      <form id="forceFullControlFormV8" enctype="multipart/form-data">
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:16px;align-items:start;margin-bottom:16px;">
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;padding:10px;text-align:center;">
+            <img id="v8_full_profile_preview" src="${esc(wimg(w))}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'" style="width:128px;height:128px;object-fit:cover;border-radius:18px;border:1px solid #e5e7eb;background:#dbeafe;display:block;margin:auto;">
+            <span style="display:block;margin-top:8px;color:#64748b;font-weight:900;font-size:12px;">الصورة الشخصية الحالية</span>
+          </div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:14px;color:#1e3a8a;font-weight:900;line-height:1.8;">
+            من هنا تقدر تعدل كل بيانات الصنايعي، أرقام الاتصال والواتساب، الحرفة، المنطقة، حالة الظهور، صورة البروفايل، صور البطاقة، وصور الأعمال.
+          </div>
+        </div>
+        <div style="${cssGrid}">
+          <label style="${cssField}"><b>الاسم</b><input name="name" id="v8_full_name" value="${esc(wname(w))}" required style="${cssInput}"></label>
+          <label style="${cssField}"><b>رقم الاتصال</b><input name="phone" id="v8_full_phone" value="${esc(wphone(w))}" required style="${cssInput}"></label>
+          <label style="${cssField}"><b>رقم الواتساب</b><input name="whatsapp" id="v8_full_whatsapp" value="${esc(wwhatsapp(w))}" placeholder="اتركه فارغًا لو نفس رقم الاتصال" style="${cssInput}"></label>
+          <label style="${cssField}"><b>الحرفة</b><select name="trade" id="v8_full_trade" style="${cssInput}">${selectOptions(allTrades,wtrade(w))}</select></label>
+          <label style="${cssField}"><b>المنطقة</b><select name="area" id="v8_full_area" style="${cssInput}">${selectOptions(allAreas,warea(w))}</select></label>
+          <label style="${cssField}"><b>بداية الاشتراك</b><input type="date" name="subscription_start" id="v8_full_sub_start" value="${esc((sub.start||'').slice(0,10))}" style="${cssInput}"></label>
+          <label style="${cssField}"><b>نهاية الاشتراك</b><input type="date" name="subscription_end" id="v8_full_sub_end" value="${esc((sub.end||'').slice(0,10))}" style="${cssInput}"></label>
+          <label style="${cssField};grid-column:1/-1"><b>الوصف</b><textarea name="description" id="v8_full_description" style="${cssInput};min-height:120px">${esc(wdesc(w))}</textarea></label>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;">
+          <label style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;"><input type="checkbox" id="v8_full_approved" ${isApproved(w)?'checked':''}> موافق عليه / ظاهر</label>
+          <label style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;"><input type="checkbox" id="v8_full_active" ${isActive(w)?'checked':''}> نشط</label>
+          <label style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;"><input type="checkbox" id="v8_full_featured" ${isFeatured(w)?'checked':''}> مميز</label>
+        </div>
+        <div style="margin-top:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;padding:14px;display:grid;gap:12px;">
+          <h3 style="margin:0;color:#0f172a;font-size:18px;font-weight:900;"><i class="fa-solid fa-image"></i> الصور والملفات</h3>
+          <div style="${cssGrid}">
+            <label style="${cssField}"><b>تغيير الصورة الشخصية</b><input type="file" name="image" id="v8_full_image" accept="image/*" style="${cssInput}"></label>
+            <label style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;align-self:end;"><input type="checkbox" id="v8_full_remove_image"> حذف الصورة الشخصية الحالية واستخدام الافتراضية</label>
+            <label style="${cssField}"><b>استبدال وجه البطاقة</b><input type="file" name="idFront" id="v8_full_id_front" accept="image/*" style="${cssInput}"></label>
+            <label style="${cssField}"><b>استبدال ظهر البطاقة</b><input type="file" name="idBack" id="v8_full_id_back" accept="image/*" style="${cssInput}"></label>
+            <label style="${cssField};grid-column:1/-1"><b>إضافة صور أعمال جديدة</b><input type="file" name="workPhotos" id="v8_full_work_photos" accept="image/*" multiple style="${cssInput}"><span style="color:#64748b;font-size:12px;font-weight:800;">يمكن رفع حتى 5 صور في كل مرة.</span></label>
+          </div>
+          <div>
+            <strong style="display:block;margin-bottom:8px;color:#0f172a;">صور الأعمال الحالية</strong>
+            <div id="v8_full_photos_box">جاري تحميل صور الأعمال...</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
+          <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ كل التعديلات</button>
+        </div>
+      </form>`);
+    const imgInput=document.getElementById('v8_full_image');
+    if(imgInput){
+      imgInput.onchange=function(){ const f=this.files&&this.files[0]; if(f){ const url=URL.createObjectURL(f); const prev=document.getElementById('v8_full_profile_preview'); if(prev) prev.src=url; } };
+    }
+    loadWorkerPhotos(id).then(()=>{ const box=document.getElementById('v8_full_photos_box'); if(box) box.innerHTML=renderFullControlPhotos(id); }).catch(e=>{ const box=document.getElementById('v8_full_photos_box'); if(box) box.textContent=e.message||'تعذر تحميل الصور'; });
+    document.getElementById('forceFullControlFormV8').onsubmit=async function(e){
+      e.preventDefault();
+      const fd=new FormData();
+      fd.append('name',v8_full_name.value.trim());
+      fd.append('phone',v8_full_phone.value.trim());
+      fd.append('whatsapp',v8_full_whatsapp.value.trim());
+      fd.append('trade',v8_full_trade.value.trim());
+      fd.append('area',v8_full_area.value.trim());
+      fd.append('description',v8_full_description.value.trim());
+      fd.append('subscription_start',v8_full_sub_start.value||'');
+      fd.append('subscription_end',v8_full_sub_end.value||'');
+      fd.append('approved',v8_full_approved.checked?'true':'false');
+      fd.append('active',v8_full_active.checked?'true':'false');
+      fd.append('featured',v8_full_featured.checked?'true':'false');
+      if(v8_full_remove_image.checked) fd.append('remove_profile_image','true');
+      if(v8_full_image.files[0]) fd.append('image',v8_full_image.files[0]);
+      if(v8_full_id_front.files[0]) fd.append('idFront',v8_full_id_front.files[0]);
+      if(v8_full_id_back.files[0]) fd.append('idBack',v8_full_id_back.files[0]);
+      Array.from(v8_full_work_photos.files||[]).slice(0,5).forEach(f=>fd.append('workPhotos',f));
+      try{
+        const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
+        const r=await fetch(`/api/admin/workers/${id}/full-control`,{method:'PUT',credentials:'include',body:fd});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok || d.success===false) throw new Error(d.error||'فشل حفظ التحكم الشامل');
+        toast('success',`تم حفظ بيانات الصنايعي${d.addedPhotos?` وإضافة ${d.addedPhotos} صورة`:''}`);
+        closeForceModal();
+        safeReload();
+      }catch(ex){ toast('error',ex.message||'فشل حفظ التحكم الشامل'); }
+    };
+  }
+
   function openEdit(w){
     const id=String(wid(w));
     openForceModal('تعديل بيانات الصنايعي', `${workerSummary(w)}
@@ -2164,7 +2265,8 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
     const worker=resolveWorkerFromButton(btn);
     if(!worker){ toast('error','تعذر تحديد الصنايعي. اضغط تحديث البيانات ثم جرّب مرة أخرى.'); return false; }
     console.log('Force Modal V8 action', {action, id:wid(worker), name:wname(worker)});
-    if(action==='edit') openEdit(worker);
+    if(action==='full') openFullControl(worker);
+    else if(action==='edit') openEdit(worker);
     else if(action==='identity') openIdentity(worker);
     else if(action==='renew') openRenew(worker);
     else if(action==='whatsapp') openWhatsapp(worker);

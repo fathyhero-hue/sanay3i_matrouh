@@ -1791,6 +1791,96 @@ async function updateWorker(req,res){
   res.json({success:true});
 }
 app.put("/api/workers/:id", requirePermission("workers:update"), updateWorker); app.put("/api/sanaieya/:id", requirePermission("workers:update"), updateWorker);
+
+
+// ===============================
+// Admin Full Worker Control Patch
+// ===============================
+app.put("/api/admin/workers/:id/full-control", requirePermission("workers:update"), workerUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId=id(req);
+    const body=req.body||{};
+    const {data:before,error:readError}=await supabase.from("workers").select("*").eq("id",workerId).single();
+    if(readError||!before) return res.status(404).json({success:false,error:"الصنايعي غير موجود"});
+
+    const updates={};
+    const textFields=["name","phone","whatsapp","trade","area","description"];
+    textFields.forEach(k=>{
+      if(body[k]!==undefined) updates[k]=String(body[k]||"").trim();
+    });
+
+    ["approved","active","featured"].forEach(k=>{
+      if(body[k]!==undefined) updates[k]=bool(body[k]);
+    });
+
+    if(body.subscription_start!==undefined) updates.subscription_start=String(body.subscription_start||"").trim() || null;
+    if(body.subscription_end!==undefined) updates.subscription_end=String(body.subscription_end||"").trim() || null;
+
+    if(body.remove_profile_image!==undefined && bool(body.remove_profile_image)) updates.image="";
+    if(mainFile(req)) updates.image=await uploadImage(mainFile(req),"profiles");
+
+    const front=idFrontFile(req), back=idBackFile(req);
+    if(front){ updates.id_front_path=await uploadPrivateImage(front,"id-cards"); updates.id_submitted_at=new Date().toISOString(); }
+    if(back){ updates.id_back_path=await uploadPrivateImage(back,"id-cards"); updates.id_submitted_at=new Date().toISOString(); }
+    if(front || back){
+      updates.identity_status=body.identity_status ? normalizeIdentityStatus(body.identity_status) : "pending";
+      updates.identity_verified=false;
+      updates.identity_review_note=String(body.identity_review_note || "تم تحديث صور البطاقة من التحكم الشامل في لوحة الإدارة.").trim();
+      updates.identity_reviewed_at=null;
+    }
+
+    let updatedWorker=before;
+    if(Object.keys(updates).length){
+      const {data,error}=await supabase.from("workers").update(updates).eq("id",workerId).select("*").single();
+      if(error) throw error;
+      updatedWorker=data||before;
+    }
+
+    const files=workFiles(req);
+    let addedPhotos=0;
+    if(files.length){
+      const rows=[];
+      for(const f of files){ rows.push({worker_id:workerId,image:await uploadImage(f,"work-photos")}); }
+      const {error}=await supabase.from("worker_photos").insert(rows);
+      if(error) throw error;
+      addedPhotos=rows.length;
+    }
+
+    const beforeFields={};
+    const afterFields={};
+    Object.keys(updates).forEach(k=>{ beforeFields[k]=before ? before[k] : null; afterFields[k]=updatedWorker ? updatedWorker[k] : updates[k]; });
+    await logAdminActivity("worker_full_control_update",{
+      entity_type:"worker",
+      entity_id:workerId,
+      entity_name:updatedWorker?.name||before?.name||"صنايعي",
+      details:{fields:Object.keys(updates), added_work_photos:addedPhotos, updated_identity_docs:!!(front||back), profile_image_updated:!!mainFile(req), profile_image_removed:!!updates.image && !mainFile(req)},
+      before_data:beforeFields,
+      after_data:afterFields
+    });
+
+    res.json({success:true,worker:updatedWorker,addedPhotos});
+  }catch(e){
+    res.status(500).json({success:false,error:e.message||"تعذر حفظ التحكم الشامل"});
+  }
+});
+
+app.put("/api/admin/workers/:id/profile-photo", requirePermission("workers:update"), workerUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId=id(req);
+    const {data:before}=await supabase.from("workers").select("id,name,image").eq("id",workerId).single();
+    if(!before)return res.status(404).json({success:false,error:"الصنايعي غير موجود"});
+    const updates={};
+    if(req.body && bool(req.body.remove_profile_image)) updates.image="";
+    if(mainFile(req)) updates.image=await uploadImage(mainFile(req),"profiles");
+    if(updates.image===undefined)return res.status(400).json({success:false,error:"اختر صورة شخصية أو فعل حذف الصورة"});
+    const {data,error}=await supabase.from("workers").update(updates).eq("id",workerId).select("*").single();
+    if(error)throw error;
+    await logAdminActivity("worker_profile_photo_update",{entity_type:"worker",entity_id:workerId,entity_name:data?.name||before.name||"صنايعي",details:{removed:updates.image==="",uploaded:!!mainFile(req)},before_data:{image:before.image||""},after_data:{image:data?.image||""}});
+    res.json({success:true,worker:data});
+  }catch(e){res.status(500).json({success:false,error:e.message||"تعذر تحديث صورة الصنايعي"});}
+});
 async function setBool(req,res,col){
   if(!ready(res))return;
   const value=bool(req.body[col]);
