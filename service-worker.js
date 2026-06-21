@@ -1,5 +1,5 @@
-// Service Worker - no-cache admin fix V8
-const CACHE_NAME = 'sanay3i-no-admin-cache-v8';
+// Service Worker - no-cache admin fix V8 + navy splash + registration required actions patch
+const CACHE_NAME = 'sanay3i-no-admin-cache-v8-navy-registration-actions';
 self.addEventListener('install', event => { self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', event => {

@@ -73,6 +73,13 @@ const reportsRateLimit = createMemoryRateLimiter({
   message: "تم إرسال بلاغات كثيرة مؤقتًا. حاول مرة أخرى بعد قليل"
 });
 
+const registrationUpdateRateLimit = createMemoryRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: Number(process.env.REGISTRATION_UPDATE_RATE_LIMIT || 12),
+  keyFn: req => `registration-update:${clientIp(req)}`,
+  message: "تم إرسال تعديلات كثيرة مؤقتًا. حاول مرة أخرى بعد قليل"
+});
+
 const adminApiRateLimit = createMemoryRateLimiter({
   windowMs: 60 * 1000,
   max: Number(process.env.ADMIN_API_RATE_LIMIT || 240),
@@ -1122,6 +1129,33 @@ app.get("/api/workers/check-duplicate", async (req,res)=>{
 });
 
 function normalizeStatusLookup(raw){ return String(raw || "").trim().toUpperCase().replace(/\s+/g, ""); }
+function registrationReasonText(w){ return String(w && (w.identity_rejection_reason || w.identity_reason || w.rejection_reason) || "").trim(); }
+function hasAnyArabicWord(text, words){ const v=String(text||"").toLowerCase(); return words.some(word => v.includes(String(word).toLowerCase())); }
+function publicRequiredActionsForWorker(w, identityValue){
+  const identity = normalizeIdentityStatus(identityValue || (w && w.identity_status) || (bool(w && w.identity_verified) ? "verified" : "pending"));
+  const reason = registrationReasonText(w);
+  const actions = [];
+  const add = (key, label, text, icon) => { if(!actions.some(a => a.key === key)) actions.push({key,label,text,icon}); };
+  const mentionsId = hasAnyArabicWord(reason, ["بطاقة", "البطاقة", "الرقم القومي", "هوية", "وش البطاقة", "ظهر البطاقة", "صورة البطاقة"]);
+  const mentionsWork = hasAnyArabicWord(reason, ["صور اعمال", "صور أعمال", "اعمالك", "أعمالك", "شغلك", "صور من شغلك", "سابقة", "معرض الأعمال", "صور العمل"]);
+  const mentionsData = hasAnyArabicWord(reason, ["بيانات", "تليفون", "هاتف", "واتساب", "رقم", "مهنة", "حرفة", "منطقة", "عنوان", "اسم", "وصف", "استكمال"]);
+
+  if(identity === "needs_id_reupload" || mentionsId){
+    add("id_reupload", "إعادة رفع البطاقة", "ارفع صورة وجه وظهر البطاقة بوضوح من هنا.", "fa-id-card");
+  }
+  if(identity === "needs_data" || mentionsData){
+    if(!mentionsWork || mentionsData){
+      add("update_data", "تعديل أو استكمال البيانات", "عدّل رقم الهاتف أو الحرفة أو المنطقة أو أي بيانات طلبتها الإدارة.", "fa-pen-to-square");
+    }
+  }
+  if(mentionsWork){
+    add("work_photos", "رفع صور الأعمال", "ارفع صورًا واضحة من شغلك ليتم مراجعتها من الإدارة.", "fa-images");
+  }
+  if(identity === "needs_data" && !actions.length){
+    add("update_data", "تعديل أو استكمال البيانات", "استكمل البيانات المطلوبة ثم أرسلها للمراجعة.", "fa-pen-to-square");
+  }
+  return actions;
+}
 function publicStatusForWorker(w){
   const identity = normalizeIdentityStatus(w.identity_status || (bool(w.identity_verified) ? "verified" : "pending"));
   const approved = bool(w.approved);
@@ -1164,13 +1198,15 @@ function publicStatusForWorker(w){
     }
   };
   const out = map[key] || map.pending;
+  const reason = ["rejected","needs_data","needs_id_reupload"].includes(identity) ? registrationReasonText(w) : "";
   return {
     key,
     identity_status: identity,
     label: out.label,
     tone: out.tone,
     message: out.message,
-    reason: ["rejected","needs_data","needs_id_reupload"].includes(identity) ? String(w.identity_rejection_reason || "").trim() : ""
+    reason,
+    required_actions: publicRequiredActionsForWorker({...w, identity_rejection_reason: reason}, identity)
   };
 }
 
@@ -1228,6 +1264,133 @@ app.get("/api/registration-status", async (req,res)=>{
     });
   }catch(e){
     return res.status(500).json({success:false,error:e.message || "تعذر معرفة حالة الطلب"});
+  }
+});
+
+
+async function findRegistrationWorkerForPublicUpdate(raw, columns){
+  const lookup = String(raw || "").trim();
+  if(!lookup) return { error: "رقم الطلب أو الهاتف مطلوب" };
+  const selectColumns = columns || "id,registration_code,name,phone,whatsapp,trade,area,description,identity_status,identity_verified,identity_rejection_reason,created_at";
+  const normalizedLookup = normalizeStatusLookup(lookup);
+  let worker = null;
+  if(/^SN-\d{4}-\d{5}$/i.test(normalizedLookup)){
+    const byCode = await supabase.from("workers").select(selectColumns).eq("registration_code", normalizedLookup).limit(1);
+    if(byCode.error) return { error: byCode.error.message };
+    worker = (byCode.data || [])[0] || null;
+    if(!worker){
+      const match = normalizedLookup.match(/^SN-\d{4}-(\d{5})$/i);
+      const possibleId = match ? Number(match[1]) : 0;
+      if(possibleId){
+        const byId = await supabase.from("workers").select(selectColumns).eq("id", possibleId).limit(1);
+        if(byId.error) return { error: byId.error.message };
+        worker = (byId.data || [])[0] || null;
+      }
+    }
+  }else{
+    const wantedPhone = normalizeWorkerPhone(lookup);
+    if(!wantedPhone || wantedPhone.length < 10) return { error: "اكتب رقم طلب صحيح أو رقم هاتف صحيح" };
+    const list = await supabase.from("workers").select(selectColumns).order("id", { ascending:false }).limit(5000);
+    if(list.error) return { error: list.error.message };
+    worker = (list.data || []).find(w => workerPhoneKeysFromValues(w.phone, w.whatsapp).includes(wantedPhone)) || null;
+  }
+  if(!worker) return { error: "لم يتم العثور على طلب بهذا الرقم" };
+  return { worker };
+}
+function publicActionAllowed(worker, actionKey){
+  const keys = publicRequiredActionsForWorker(worker, worker.identity_status).map(a => a.key);
+  return keys.includes(actionKey);
+}
+function registrationPublicPendingUpdate(note){
+  return {
+    identity_status: "pending",
+    identity_verified: false,
+    identity_rejection_reason: "",
+    identity_review_note: String(note || "تم إرسال تحديث من الصنايعي عبر صفحة متابعة الطلب.").slice(0, 1000),
+    identity_reviewed_at: null
+  };
+}
+
+app.post("/api/registration-update-data", registrationUpdateRateLimit, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const b = req.body || {};
+    const found = await findRegistrationWorkerForPublicUpdate(b.lookup || b.q || b.code || b.phone_lookup);
+    if(found.error) return res.status(400).json({success:false,error:found.error});
+    const worker = found.worker;
+    if(!publicActionAllowed(worker, "update_data")) return res.status(403).json({success:false,error:"لا يوجد طلب تعديل بيانات مفتوح لهذا الطلب حاليًا"});
+    const updates = {};
+    ["name","phone","whatsapp","trade","area","description"].forEach(k => {
+      if(b[k] !== undefined){
+        const v = String(b[k] || "").trim();
+        if(v) updates[k] = v;
+      }
+    });
+    if(!Object.keys(updates).length) return res.status(400).json({success:false,error:"اكتب البيانات المطلوب تعديلها أولًا"});
+    if(updates.phone || updates.whatsapp){
+      const duplicate = await findDuplicateWorkerByPhone(updates.phone || worker.phone, updates.whatsapp || worker.whatsapp, worker.id);
+      if(duplicate){
+        return res.status(409).json({success:false,error:`هذا الرقم مسجل بالفعل باسم ${duplicate.name}. لا يمكن استخدام نفس رقم الهاتف أو الواتساب أكثر من مرة.`});
+      }
+    }
+    Object.assign(updates, registrationPublicPendingUpdate("أرسل الصنايعي تعديل بيانات من صفحة متابعة الطلب."));
+    const {error} = await supabase.from("workers").update(updates).eq("id", worker.id);
+    if(error) return res.status(500).json({success:false,error:error.message});
+    await logAdminActivity("worker_public_update", {entity_type:"worker", entity_id:worker.id, entity_name:worker.name || "صنايعي", details:{source:"status_page", action:"update_data", fields:Object.keys(updates).filter(k=>!["identity_status","identity_verified","identity_rejection_reason","identity_review_note","identity_reviewed_at"].includes(k))}});
+    return res.json({success:true,message:"تم إرسال تعديل البيانات للإدارة. ستتم المراجعة قريبًا."});
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message || "تعذر إرسال تعديل البيانات"});
+  }
+});
+
+app.post("/api/registration-reupload-id", registrationUpdateRateLimit, workerUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const found = await findRegistrationWorkerForPublicUpdate(req.body.lookup || req.body.q || req.body.code || req.body.phone_lookup);
+    if(found.error) return res.status(400).json({success:false,error:found.error});
+    const worker = found.worker;
+    if(!publicActionAllowed(worker, "id_reupload")) return res.status(403).json({success:false,error:"لا يوجد طلب إعادة رفع بطاقة مفتوح لهذا الطلب حاليًا"});
+    const frontFile = idFrontFile(req);
+    const backFile = idBackFile(req);
+    if(!frontFile || !backFile) return res.status(400).json({success:false,error:"ارفع صورة وجه البطاقة وظهر البطاقة معًا"});
+    const id_front_path = await uploadPrivateImage(frontFile, "id-cards");
+    const id_back_path = await uploadPrivateImage(backFile, "id-cards");
+    const updates = {
+      id_front_path,
+      id_back_path,
+      id_submitted_at: new Date().toISOString(),
+      ...registrationPublicPendingUpdate("أعاد الصنايعي رفع صورة البطاقة من صفحة متابعة الطلب.")
+    };
+    const {error} = await supabase.from("workers").update(updates).eq("id", worker.id);
+    if(error) return res.status(500).json({success:false,error:error.message});
+    await logAdminActivity("worker_public_update", {entity_type:"worker", entity_id:worker.id, entity_name:worker.name || "صنايعي", details:{source:"status_page", action:"id_reupload"}});
+    return res.json({success:true,message:"تم رفع صورة البطاقة الجديدة وإرسالها للمراجعة."});
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message || "تعذر إعادة رفع البطاقة"});
+  }
+});
+
+app.post("/api/registration-upload-work-photos", registrationUpdateRateLimit, workerUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const found = await findRegistrationWorkerForPublicUpdate(req.body.lookup || req.body.q || req.body.code || req.body.phone_lookup);
+    if(found.error) return res.status(400).json({success:false,error:found.error});
+    const worker = found.worker;
+    if(!publicActionAllowed(worker, "work_photos")) return res.status(403).json({success:false,error:"لا يوجد طلب رفع صور أعمال مفتوح لهذا الطلب حاليًا"});
+    const files = workFiles(req);
+    if(!files.length) return res.status(400).json({success:false,error:"ارفع صورة واحدة على الأقل من أعمالك"});
+    const photos = [];
+    for(const f of files){ photos.push({worker_id:worker.id,image:await uploadImage(f,"work-photos")}); }
+    if(photos.length){
+      const {error:pe} = await supabase.from("worker_photos").insert(photos);
+      if(pe) return res.status(500).json({success:false,error:pe.message});
+    }
+    const {error} = await supabase.from("workers").update(registrationPublicPendingUpdate("أرسل الصنايعي صور أعمال من صفحة متابعة الطلب.")).eq("id", worker.id);
+    if(error) return res.status(500).json({success:false,error:error.message});
+    await logAdminActivity("worker_public_update", {entity_type:"worker", entity_id:worker.id, entity_name:worker.name || "صنايعي", details:{source:"status_page", action:"work_photos", count:photos.length}});
+    return res.json({success:true,message:"تم رفع صور الأعمال وإرسالها للمراجعة."});
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message || "تعذر رفع صور الأعمال"});
   }
 });
 

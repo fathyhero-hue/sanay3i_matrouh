@@ -57,6 +57,8 @@
     .copy-row .code-big{direction:ltr;font-size:20px;font-weight:900;letter-spacing:.5px}.mini-btn{border:0;border-radius:999px;padding:10px 14px;font-family:inherit;font-weight:900;cursor:pointer;background:#0f172a;color:#fff;display:inline-flex;align-items:center;gap:7px}
     .next-action{margin-top:15px;border-radius:20px;padding:15px 16px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;font-weight:900;line-height:1.9}.next-action.warning{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.next-action.danger{background:#fef2f2;border-color:#fecaca;color:#991b1b}.next-action.success{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
     .action-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}.action-buttons .btn{box-shadow:none}.whatsapp-admin{background:#16a34a;color:#fff}.hidden{display:none!important}
+
+    .required-actions{margin-top:14px;display:grid;gap:10px}.required-actions-title{display:flex;align-items:center;gap:8px;font-weight:900;color:#0f172a}.required-action-card{border:1px solid #bfdbfe;background:#f8fbff;border-radius:18px;padding:12px;display:grid;gap:8px}.required-action-card strong{display:flex;align-items:center;gap:8px;color:#1d4ed8}.required-action-card p{margin:0;color:#475569;font-weight:800;line-height:1.8;font-size:13px}.required-action-card .mini-btn{background:#1d4ed8;width:max-content}.self-service-panel{display:none;margin-top:12px;border:1px solid #cbd5e1;background:#fff;border-radius:18px;padding:14px}.self-service-panel.show{display:block}.self-service-panel h5{margin:0 0 8px;font-size:16px;font-weight:900}.self-service-form{display:grid;gap:10px}.self-service-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.self-service-field label{font-size:12px;margin-bottom:6px}.self-service-field input,.self-service-field textarea{width:100%;border:1px solid var(--border);background:#f8fafc;border-radius:14px;padding:11px 12px;font-family:inherit;font-weight:800;outline:none}.self-service-field textarea{min-height:95px;resize:vertical}.upload-box{border:1px dashed #94a3b8;background:#f8fafc;border-radius:16px;padding:12px}.upload-box input{width:100%;font-family:inherit;font-weight:800}.self-service-help{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:14px;padding:10px;font-weight:800;line-height:1.7;font-size:12px}.action-success-note{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:14px;padding:10px;font-weight:900;line-height:1.7}
     .toast{position:fixed;left:18px;bottom:18px;background:#0f172a;color:#fff;border-radius:16px;padding:12px 15px;font-weight:900;box-shadow:var(--shadow);z-index:90;opacity:0;transform:translateY(12px);transition:.2s}.toast.show{opacity:1;transform:translateY(0)}
     @media(max-width:820px){.hero{grid-template-columns:1fr}.intro h2{font-size:30px}.brand h1{font-size:24px}.header-content{justify-content:center}.nav{justify-content:center}.meta{grid-template-columns:1fr}.progress-timeline{grid-template-columns:1fr}.status-head{flex-direction:column}.btn{width:100%}.copy-row{align-items:stretch}.mini-btn{justify-content:center}}
   
@@ -143,7 +145,12 @@
       .meta strong { font-size: 11px !important; }
       .next-action, .reason, .alert, .privacy-note { border-radius: 13px !important; padding: 10px !important; font-size: 10.5px !important; }
     }
+
+    @media(max-width:820px){.self-service-grid{grid-template-columns:1fr}.required-action-card .mini-btn{width:100%;justify-content:center}}
 </style>
+  <meta name="theme-color" content="#061A3D">
+  <meta name="background-color" content="#061A3D">
+  <meta name="msapplication-TileColor" content="#061A3D">
 </head>
 <body>
   <header class="site-header">
@@ -203,6 +210,7 @@
 
     // ضع رقم واتساب الإدارة بصيغة دولية بدون + لتفعيل زر واتساب مباشر، مثال: 201000000000
     const ADMIN_WHATSAPP_NUMBER = "";
+    let lastStatusData = null;
 
     function escapeHtml(value){
       return String(value || "").replace(/[&<>'"]/g, function(ch){
@@ -294,6 +302,27 @@
       }).join("") + '</div>';
     }
 
+    function actionIcon(key){
+      return ({id_reupload:"fa-id-card",update_data:"fa-pen-to-square",work_photos:"fa-images"})[key] || "fa-list-check";
+    }
+
+    function buildRequiredActions(req, st){
+      const actions = Array.isArray(st.required_actions) ? st.required_actions : [];
+      if(!actions.length) return "";
+      return '<div class="required-actions">'
+        + '<div class="required-actions-title"><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات مطلوبة من الإدارة</div>'
+        + actions.map(function(a){
+          const key = String(a.key || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/</g, "");
+          return '<div class="required-action-card">'
+            + '<strong><i class="fa-solid ' + escapeHtml(a.icon || actionIcon(a.key)) + '"></i>' + escapeHtml(a.label || "إجراء مطلوب") + '</strong>'
+            + '<p>' + escapeHtml(a.text || "استكمل الإجراء المطلوب ثم أرسله للمراجعة.") + '</p>'
+            + '<button type="button" class="mini-btn" onclick="openRequiredAction(\'' + key + '\')"><i class="fa-solid fa-arrow-left"></i> ابدأ الآن</button>'
+            + '</div>';
+        }).join("")
+        + '<div id="requiredActionPanel" class="self-service-panel"></div>'
+        + '</div>';
+    }
+
     function buildNextAction(req, st){
       const key = st.key || "pending";
       const adminMessage = buildAdminMessage(req, st);
@@ -317,13 +346,13 @@
         showContact = true;
       }else if(key === "needs_data"){
         tone = "warning";
-        title = "مطلوب تعديل بيانات";
-        text = "راجع ملاحظة الحالة، ثم تواصل مع الإدارة لاستكمال أو تعديل البيانات المطلوبة.";
+        title = "مطلوب استكمال إجراءات";
+        text = "الإدارة طلبت منك استكمال إجراء قبل الاعتماد. استخدم الأزرار الظاهرة بالأسفل لإرسال المطلوب مباشرة من هذه الصفحة.";
         showContact = true;
       }else if(key === "needs_id_reupload"){
         tone = "warning";
         title = "مطلوب إعادة رفع البطاقة";
-        text = "الإدارة تحتاج صورة بطاقة أوضح. تواصل مع الإدارة لإرسال المطلوب.";
+        text = "الإدارة تحتاج صورة بطاقة أوضح. ارفع وجه وظهر البطاقة من الزر الموجود بالأسفل.";
         showContact = true;
       }else if(key === "rejected"){
         tone = "danger";
@@ -343,7 +372,95 @@
           + '</div>'
         : '';
 
-      return '<div class="next-action ' + tone + '"><strong><i class="fa-solid fa-clipboard-check"></i> ' + escapeHtml(title) + '</strong><br>' + escapeHtml(text) + buttons + '</div>';
+      return '<div class="next-action ' + tone + '"><strong><i class="fa-solid fa-clipboard-check"></i> ' + escapeHtml(title) + '</strong><br>' + escapeHtml(text) + buttons + buildRequiredActions(req, st) + '</div>';
+    }
+
+    function currentLookupValue(){
+      const req = lastStatusData && lastStatusData.request ? lastStatusData.request : {};
+      return input.value.trim() || req.registration_code || "";
+    }
+
+    function openRequiredAction(action){
+      const panel = document.getElementById("requiredActionPanel");
+      if(!panel || !lastStatusData){ return; }
+      const req = lastStatusData.request || {};
+      const lookup = escapeHtml(currentLookupValue());
+      let html = "";
+      if(action === "id_reupload"){
+        html = '<h5><i class="fa-solid fa-id-card"></i> إعادة رفع صورة البطاقة</h5>'
+          + '<div class="self-service-help">ارفع صورة واضحة لوجه البطاقة وظهر البطاقة. لن تظهر الصور للعملاء، وتصل للإدارة فقط.</div>'
+          + '<form class="self-service-form" onsubmit="submitRequiredAction(event, \'id_reupload\')">'
+          + '<input type="hidden" name="lookup" value="' + lookup + '">'
+          + '<div class="upload-box"><label>وجه البطاقة</label><input type="file" name="idFront" accept="image/*" required></div>'
+          + '<div class="upload-box"><label>ظهر البطاقة</label><input type="file" name="idBack" accept="image/*" required></div>'
+          + '<button class="btn btn-primary full" type="submit"><i class="fa-solid fa-cloud-arrow-up"></i> إرسال البطاقة للمراجعة</button>'
+          + '</form>';
+      }else if(action === "work_photos"){
+        html = '<h5><i class="fa-solid fa-images"></i> رفع صور من أعمالك</h5>'
+          + '<div class="self-service-help">ارفع حتى 5 صور واضحة من شغلك. الصور سيتم مراجعتها قبل الظهور.</div>'
+          + '<form class="self-service-form" onsubmit="submitRequiredAction(event, \'work_photos\')">'
+          + '<input type="hidden" name="lookup" value="' + lookup + '">'
+          + '<div class="upload-box"><label>صور الأعمال</label><input type="file" name="workPhotos" accept="image/*" multiple required></div>'
+          + '<button class="btn btn-primary full" type="submit"><i class="fa-solid fa-cloud-arrow-up"></i> إرسال صور الأعمال</button>'
+          + '</form>';
+      }else{
+        html = '<h5><i class="fa-solid fa-pen-to-square"></i> تعديل أو استكمال البيانات</h5>'
+          + '<div class="self-service-help">اكتب البيانات المطلوب تعديلها فقط. لو رقم الهاتف أو الواتساب سليم اتركه فارغًا.</div>'
+          + '<form class="self-service-form" onsubmit="submitRequiredAction(event, \'update_data\')">'
+          + '<input type="hidden" name="lookup" value="' + lookup + '">'
+          + '<div class="self-service-grid">'
+          + '<div class="self-service-field"><label>الاسم</label><input name="name" value="' + escapeHtml(req.name || "") + '" placeholder="الاسم الكامل"></div>'
+          + '<div class="self-service-field"><label>رقم الهاتف الجديد</label><input name="phone" inputmode="tel" placeholder="اتركه فارغًا لو لا يوجد تغيير"></div>'
+          + '<div class="self-service-field"><label>رقم الواتساب الجديد</label><input name="whatsapp" inputmode="tel" placeholder="اتركه فارغًا لو نفس رقم الهاتف"></div>'
+          + '<div class="self-service-field"><label>الحرفة</label><input name="trade" value="' + escapeHtml(req.trade || "") + '" placeholder="مثال: سباك"></div>'
+          + '<div class="self-service-field"><label>المنطقة</label><input name="area" value="' + escapeHtml(req.area || "") + '" placeholder="مثال: علم الروم"></div>'
+          + '</div>'
+          + '<div class="self-service-field"><label>وصف أو ملاحظة للإدارة</label><textarea name="description" placeholder="اكتب أي بيانات طلبتها الإدارة أو وصف مختصر لشغلك"></textarea></div>'
+          + '<button class="btn btn-primary full" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال التعديل للمراجعة</button>'
+          + '</form>';
+      }
+      panel.innerHTML = html;
+      panel.classList.add("show");
+      panel.scrollIntoView({behavior:"smooth", block:"center"});
+    }
+
+    async function submitRequiredAction(e, action){
+      e.preventDefault();
+      const formEl = e.currentTarget;
+      const btn = formEl.querySelector('button[type="submit"]');
+      const old = btn ? btn.innerHTML : "";
+      const lookup = currentLookupValue();
+      if(!lookup){ showToast("رقم الطلب غير واضح. أعد البحث ثم حاول مرة أخرى."); return; }
+      let url = "/api/registration-update-data";
+      let options = { method:"POST" };
+      if(action === "id_reupload") url = "/api/registration-reupload-id";
+      if(action === "work_photos") url = "/api/registration-upload-work-photos";
+      if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...'; }
+      try{
+        if(action === "update_data"){
+          const fd = new FormData(formEl);
+          const body = {};
+          fd.forEach(function(value, key){ body[key] = value; });
+          body.lookup = lookup;
+          options.headers = {"Content-Type":"application/json"};
+          options.body = JSON.stringify(body);
+        }else{
+          const fd = new FormData(formEl);
+          fd.set("lookup", lookup);
+          options.body = fd;
+        }
+        const response = await fetch(url, options);
+        const data = await response.json().catch(function(){ return {}; });
+        if(!response.ok || !data.success){ throw new Error(data.error || "تعذر إرسال المطلوب"); }
+        const panel = document.getElementById("requiredActionPanel");
+        if(panel){ panel.innerHTML = '<div class="action-success-note"><i class="fa-solid fa-circle-check"></i> ' + escapeHtml(data.message || "تم إرسال المطلوب للمراجعة") + '</div>'; }
+        showToast(data.message || "تم إرسال المطلوب للمراجعة");
+        setTimeout(function(){ form.dispatchEvent(new Event("submit")); }, 900);
+      }catch(err){
+        showToast(err.message || "تعذر إرسال المطلوب");
+      }finally{
+        if(btn){ btn.disabled = false; btn.innerHTML = old; }
+      }
     }
 
     function showError(message){
@@ -352,6 +469,7 @@
     }
 
     function showStatus(data){
+      lastStatusData = data;
       const req = data.request || {};
       const st = data.status || {};
       const toneClass = "tone-" + (st.tone || "pending");

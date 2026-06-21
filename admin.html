@@ -275,11 +275,11 @@
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#1d4ed8">
-  <meta name="background-color" content="#f8fafc">
+  <meta name="theme-color" content="#061A3D">
+  <meta name="background-color" content="#061A3D">
   <meta name="application-name" content="صنايعي مطروح">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
@@ -293,6 +293,7 @@
 .backup-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}.backup-action-card{border:1px solid var(--border);background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow-sm)}.backup-action-card h4{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:6px}.backup-action-card p{font-size:12px;color:var(--muted);font-weight:800;min-height:34px}.backup-action-card button,.backup-action-card a{margin-top:10px;width:100%;justify-content:center}.backup-summary-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.backup-summary-item{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px}.backup-summary-item strong{display:block;color:var(--primary);font-size:18px}.backup-summary-item span{color:var(--muted);font-size:12px;font-weight:800}.reports-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}.report-card{border:1px solid var(--border);border-radius:18px;background:#fff;padding:16px;box-shadow:var(--shadow-sm);margin-bottom:12px}.report-card-header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.report-title{font-weight:950;color:var(--primary);font-size:17px}.report-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.report-message{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:12px;margin-top:12px;color:#334155;font-weight:800;line-height:1.8}.report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.report-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950}.report-new{background:#fef3c7;color:#92400e}.report-reviewing{background:#dbeafe;color:#1d4ed8}.report-resolved{background:#dcfce7;color:#166534}.report-rejected{background:#fee2e2;color:#991b1b}
 </style>
 
+  <meta name="msapplication-TileColor" content="#061A3D">
 </head>
 <body>
 <section class="admin-login-wrap" id="loginScreen"><div class="admin-login-card"><div class="login-icon"><i class="fa-solid fa-user-shield"></i></div><h1>لوحة إدارة صنايعي مطروح</h1><p>ادخل باسم مستخدم الإدارة، أو اتركه فارغًا للدخول بكلمة سر المدير الرئيسية.</p><form onsubmit="loginAdmin(event)"><div class="admin-password-box"><i class="fa-solid fa-user"></i><input type="text" id="adminUsername" placeholder="اسم المستخدم - اختياري" autocomplete="username" /></div><div class="admin-password-box"><i class="fa-solid fa-lock"></i><input type="password" id="adminPassword" placeholder="كلمة سر الإدارة" autocomplete="current-password" /></div><button class="admin-login-btn" type="submit"><i class="fa-solid fa-right-to-bracket"></i> دخول لوحة الإدارة</button><div class="login-error" id="loginError">كلمة السر غير صحيحة</div></form></div></section>
@@ -510,6 +511,46 @@
 
   <div class="wa-dashboard-grid">
     <div class="wa-tool-card">
+      <h4><i class="fa-solid fa-user-check"></i> إرسال فردي واستكمال إجراءات التسجيل</h4>
+      <p>ابحث عن الصنايعي بالاسم أو رقم الطلب أو الهاتف، واختر رسالة إجراء محددة مثل إعادة رفع البطاقة أو تعديل البيانات أو رفع صور الأعمال.</p>
+      <div class="wa-form-grid">
+        <label>بحث عن صنايعي</label>
+        <input id="waSingleSearch" placeholder="اكتب الاسم، رقم الطلب، الهاتف، الحرفة..." oninput="renderWaSingleWorkerOptions()">
+        <label>اختر الصنايعي</label>
+        <select id="waSingleWorkerSelect" onchange="previewWhatsappSingle()">
+          <option value="">ابدأ بالبحث أو اختر من القائمة</option>
+        </select>
+        <label>نوع الرسالة الفردية</label>
+        <select id="waSingleTemplateType" onchange="previewWhatsappSingle()">
+          <option value="registration_id_reupload">استكمال التسجيل: إعادة رفع البطاقة</option>
+          <option value="registration_update_data">استكمال التسجيل: تعديل أو استكمال بيانات</option>
+          <option value="registration_work_photos">استكمال التسجيل: رفع صور الأعمال</option>
+          <option value="identity_needs_id_reupload">تحقق البطاقة: إعادة رفع البطاقة</option>
+          <option value="identity_needs_data">تحقق البطاقة: تعديل بيانات</option>
+          <option value="need_data">استكمال أو تعديل بيانات عام</option>
+          <option value="approved">رسالة قبول وظهور في الدليل</option>
+          <option value="custom">رسالة مخصصة</option>
+        </select>
+        <label class="wa-sync-row" style="display:flex;align-items:center;gap:8px;font-weight:900;color:var(--primary)"><input id="waSingleSyncStatus" type="checkbox" checked style="width:auto"> تحديث حالة الطلب تلقائيًا ليظهر زر الإجراء للصنايعي في صفحة المتابعة</label>
+        <label>طريقة الإرسال التلقائي</label>
+        <select id="waSingleMode" onchange="previewWhatsappSingle()">
+          <option value="text">إرسال نص الرسالة الحالي عبر Cloud API</option>
+          <option value="template">إرسال Template رسمي من Meta</option>
+        </select>
+        <label>اسم Template عند اختيار Template</label>
+        <input id="waSingleTemplateName" value="hello_world" oninput="previewWhatsappSingle()">
+        <label>نص الرسالة</label>
+        <textarea id="waSingleMessageText" placeholder="اختر الصنايعي ونوع الرسالة لعرض النص هنا..."></textarea>
+        <div id="waSingleSummary" class="wa-preview">اختر صنايعي لعرض المعاينة.</div>
+        <div class="whatsapp-actions">
+          <button class="big-btn btn-dark" onclick="previewWhatsappSingle()"><i class="fa-solid fa-eye"></i> تجهيز الرسالة</button>
+          <button class="big-btn btn-blue" id="waSingleSendBtn" onclick="sendWhatsappSingle()"><i class="fa-solid fa-paper-plane"></i> إرسال فردي</button>
+          <button class="big-btn btn-whatsapp" onclick="openWhatsappSingleManual()"><i class="fa-brands fa-whatsapp"></i> فتح واتساب يدويًا</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wa-tool-card">
       <h4><i class="fa-solid fa-paper-plane"></i> إرسال جماعي</h4>
       <p>اختر شريحة الصنايعية ونوع الرسالة، ثم راجع المعاينة قبل الإرسال.</p>
       <div class="wa-form-grid">
@@ -530,6 +571,9 @@
         <select id="waBulkTemplateType" onchange="previewWhatsappBulk()">
           <option value="approved">رسالة قبول وظهور في الدليل</option>
           <option value="need_data">استكمال أو تعديل بيانات</option>
+          <option value="registration_id_reupload">استكمال التسجيل: إعادة رفع البطاقة</option>
+          <option value="registration_update_data">استكمال التسجيل: تعديل أو استكمال بيانات</option>
+          <option value="registration_work_photos">استكمال التسجيل: رفع صور الأعمال</option>
           <option value="identity_verified">تحقق البطاقة: قبول</option>
           <option value="identity_rejected">تحقق البطاقة: رفض</option>
           <option value="identity_needs_data">تحقق البطاقة: تعديل بيانات</option>
@@ -620,9 +664,9 @@
 
 <div class="modal-backdrop" id="editModal"><div class="modal-card"><div class="modal-head"><h3>تعديل بيانات الصنايعي</h3><button class="close-modal" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button></div><form onsubmit="submitEditWorker(event)"><input type="hidden" id="editId"><div class="edit-grid"><div class="edit-field"><label>الاسم</label><input id="editName" required></div><div class="edit-field"><label>رقم الاتصال</label><input id="editPhone" required></div><div class="edit-field"><label>رقم الواتساب</label><input id="editWhatsapp" placeholder="اتركه فارغًا لو نفس رقم الاتصال"></div><div class="edit-field"><label>الحرفة</label><select id="editTrade" required></select></div><div class="edit-field"><label>المنطقة</label><select id="editArea" required></select></div><div class="edit-field full"><label>الوصف</label><textarea id="editDescription"></textarea></div></div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeEditModal()">إلغاء</button><button type="submit" class="big-btn btn-dark">حفظ التعديل</button></div></form></div></div>
 
-<div class="modal-backdrop" id="identityReviewModal"><div class="modal-card"><div class="modal-head"><h3>مراجعة تحقق الصنايعي</h3><button class="close-modal" onclick="closeIdentityReviewModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="identity-summary"><strong id="identityReviewWorkerName">اسم الصنايعي</strong><span id="identityReviewWorkerInfo">بيانات التحقق</span></div><form onsubmit="submitIdentityReview(event)"><input type="hidden" id="identityReviewWorkerId"><div class="edit-grid"><div class="edit-field"><label>حالة التحقق</label><select id="identityReviewStatus" onchange="syncIdentityReviewHint()"><option value="pending">بانتظار المراجعة</option><option value="verified">تم التحقق والاعتماد</option><option value="rejected">مرفوض</option><option value="needs_data">يحتاج تعديل بيانات</option><option value="needs_id_reupload">إعادة رفع البطاقة</option></select></div><div class="edit-field"><label>سبب مختصر للصنايعي</label><input id="identityReviewReason" placeholder="مثال: صورة البطاقة غير واضحة"></div><div class="edit-field full"><label>ملاحظة إدارية داخلية</label><textarea id="identityReviewNote" placeholder="ملاحظة للإدارة فقط، لا تظهر للعملاء."></textarea></div></div><div class="verification-note" id="identityReviewHint">يمكن للإدارة اعتماد الصنايعي حتى لو لم يرفع وجه وظهر البطاقة. التسجيل الجديد ما زال يشترط رفع البطاقة.</div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeIdentityReviewModal()">إلغاء</button><button type="submit" class="big-btn btn-blue" id="identityReviewSaveOnly">حفظ فقط</button><button type="submit" class="big-btn btn-green" id="identityReviewSaveWhatsapp">حفظ وفتح واتساب</button></div></form></div></div>
+<div class="modal-backdrop" id="identityReviewModal"><div class="modal-card"><div class="modal-head"><h3>مراجعة تحقق الصنايعي</h3><button class="close-modal" onclick="closeIdentityReviewModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="identity-summary"><strong id="identityReviewWorkerName">اسم الصنايعي</strong><span id="identityReviewWorkerInfo">بيانات التحقق</span></div><form onsubmit="submitIdentityReview(event)"><input type="hidden" id="identityReviewWorkerId"><div class="edit-grid"><div class="edit-field"><label>حالة التحقق</label><select id="identityReviewStatus" onchange="syncIdentityReviewHint()"><option value="pending">بانتظار المراجعة</option><option value="verified">تم التحقق والاعتماد</option><option value="rejected">مرفوض</option><option value="needs_data">يحتاج تعديل بيانات</option><option value="needs_id_reupload">إعادة رفع البطاقة</option></select></div><div class="edit-field"><label>إجراء سريع يظهر للصنايعي</label><select id="identityReviewQuickAction" onchange="applyIdentityQuickAction()"><option value="">بدون إجراء سريع</option><option value="id_reupload">إعادة رفع البطاقة</option><option value="update_data">تعديل رقم/مهنة/بيانات</option><option value="work_photos">رفع صور من الأعمال</option></select></div><div class="edit-field"><label>سبب مختصر للصنايعي</label><input id="identityReviewReason" placeholder="مثال: صورة البطاقة غير واضحة"></div><div class="edit-field full"><label>ملاحظة إدارية داخلية</label><textarea id="identityReviewNote" placeholder="ملاحظة للإدارة فقط، لا تظهر للعملاء."></textarea></div></div><div class="verification-note" id="identityReviewHint">يمكن للإدارة اعتماد الصنايعي حتى لو لم يرفع وجه وظهر البطاقة. التسجيل الجديد ما زال يشترط رفع البطاقة.</div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeIdentityReviewModal()">إلغاء</button><button type="submit" class="big-btn btn-blue" id="identityReviewSaveOnly">حفظ فقط</button><button type="submit" class="big-btn btn-green" id="identityReviewSaveWhatsapp">حفظ وفتح واتساب</button></div></form></div></div>
 
-<div class="modal-backdrop" id="whatsappModal"><div class="modal-card"><div class="modal-head"><h3>رسائل واتساب</h3><button class="close-modal" onclick="closeWhatsAppModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="whatsapp-summary"><strong id="whatsappWorkerName">اسم الصنايعي</strong><span id="whatsappWorkerPhone">رقم الواتساب: غير متاح</span></div><div class="whatsapp-template-grid"><label style="font-weight:900;color:var(--primary)">نوع الرسالة</label><select id="whatsappTemplateType" onchange="updateWhatsAppTemplate()"><option value="approved">رسالة قبول وظهور في الدليل</option><option value="need_data">استكمال أو تعديل بيانات</option><option value="identity_verified">تحقق البطاقة: قبول</option><option value="identity_rejected">تحقق البطاقة: رفض</option><option value="identity_needs_data">تحقق البطاقة: تعديل بيانات</option><option value="identity_needs_id_reupload">تحقق البطاقة: إعادة رفع البطاقة</option><option value="subscription_soon">قرب انتهاء الاشتراك</option><option value="subscription_expired">انتهاء الاشتراك</option><option value="renewed">تأكيد تجديد الاشتراك</option><option value="custom">رسالة مخصصة</option></select><label style="font-weight:900;color:var(--primary)">طريقة الإرسال التلقائي</label><select id="whatsappCloudMode"><option value="text">إرسال نص الرسالة الحالي عبر Cloud API</option><option value="template">إرسال قالب اختبار/رسمي عبر Cloud API</option></select><label style="font-weight:900;color:var(--primary)">اسم القالب عند اختيار Template</label><input id="whatsappCloudTemplateName" value="hello_world" placeholder="hello_world" style="width:100%;border:1px solid var(--border);outline:none;background:var(--bg);border-radius:16px;padding:13px;font-weight:800"><label style="font-weight:900;color:var(--primary)">نص الرسالة</label><textarea id="whatsappMessageText" placeholder="اكتب أو عدّل نص الرسالة هنا..."></textarea></div><div class="whatsapp-hint"><i class="fa-solid fa-circle-info"></i> الإرسال التلقائي يستخدم WhatsApp Cloud API. إرسال نص حر قد يحتاج أن يرد المستلم أولًا خلال نافذة المحادثة، أما الرسائل البادئة للصنايعية فتحتاج Template معتمد. زر فتح واتساب اليدوي ما زال متاحًا كخطة بديلة.</div><div class="whatsapp-actions"><button type="button" class="big-btn btn-blue" id="whatsappCloudSendBtn" onclick="sendWorkerWhatsAppApi()"><i class="fa-solid fa-paper-plane"></i> إرسال تلقائي</button><button type="button" class="big-btn btn-whatsapp" onclick="openWorkerWhatsApp()"><i class="fa-brands fa-whatsapp"></i> فتح واتساب يدويًا</button><button type="button" class="big-btn btn-copy" onclick="copyWhatsAppMessage()"><i class="fa-solid fa-copy"></i> نسخ الرسالة</button><button type="button" class="big-btn btn-red" onclick="closeWhatsAppModal()">إغلاق</button></div></div></div>
+<div class="modal-backdrop" id="whatsappModal"><div class="modal-card"><div class="modal-head"><h3>رسائل واتساب</h3><button class="close-modal" onclick="closeWhatsAppModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="whatsapp-summary"><strong id="whatsappWorkerName">اسم الصنايعي</strong><span id="whatsappWorkerPhone">رقم الواتساب: غير متاح</span></div><div class="whatsapp-template-grid"><label style="font-weight:900;color:var(--primary)">نوع الرسالة</label><select id="whatsappTemplateType" onchange="updateWhatsAppTemplate()"><option value="approved">رسالة قبول وظهور في الدليل</option><option value="need_data">استكمال أو تعديل بيانات</option><option value="registration_id_reupload">استكمال التسجيل: إعادة رفع البطاقة</option><option value="registration_update_data">استكمال التسجيل: تعديل أو استكمال بيانات</option><option value="registration_work_photos">استكمال التسجيل: رفع صور الأعمال</option><option value="identity_verified">تحقق البطاقة: قبول</option><option value="identity_rejected">تحقق البطاقة: رفض</option><option value="identity_needs_data">تحقق البطاقة: تعديل بيانات</option><option value="identity_needs_id_reupload">تحقق البطاقة: إعادة رفع البطاقة</option><option value="subscription_soon">قرب انتهاء الاشتراك</option><option value="subscription_expired">انتهاء الاشتراك</option><option value="renewed">تأكيد تجديد الاشتراك</option><option value="custom">رسالة مخصصة</option></select><label style="font-weight:900;color:var(--primary)">طريقة الإرسال التلقائي</label><select id="whatsappCloudMode"><option value="text">إرسال نص الرسالة الحالي عبر Cloud API</option><option value="template">إرسال قالب اختبار/رسمي عبر Cloud API</option></select><label style="font-weight:900;color:var(--primary)">اسم القالب عند اختيار Template</label><input id="whatsappCloudTemplateName" value="hello_world" placeholder="hello_world" style="width:100%;border:1px solid var(--border);outline:none;background:var(--bg);border-radius:16px;padding:13px;font-weight:800"><label style="font-weight:900;color:var(--primary)">نص الرسالة</label><textarea id="whatsappMessageText" placeholder="اكتب أو عدّل نص الرسالة هنا..."></textarea></div><div class="whatsapp-hint"><i class="fa-solid fa-circle-info"></i> الإرسال التلقائي يستخدم WhatsApp Cloud API. إرسال نص حر قد يحتاج أن يرد المستلم أولًا خلال نافذة المحادثة، أما الرسائل البادئة للصنايعية فتحتاج Template معتمد. زر فتح واتساب اليدوي ما زال متاحًا كخطة بديلة.</div><div class="whatsapp-actions"><button type="button" class="big-btn btn-blue" id="whatsappCloudSendBtn" onclick="sendWorkerWhatsAppApi()"><i class="fa-solid fa-paper-plane"></i> إرسال تلقائي</button><button type="button" class="big-btn btn-whatsapp" onclick="openWorkerWhatsApp()"><i class="fa-brands fa-whatsapp"></i> فتح واتساب يدويًا</button><button type="button" class="big-btn btn-copy" onclick="copyWhatsAppMessage()"><i class="fa-solid fa-copy"></i> نسخ الرسالة</button><button type="button" class="big-btn btn-red" onclick="closeWhatsAppModal()">إغلاق</button></div></div></div>
 <div class="modal-backdrop" id="renewModal"><div class="modal-card"><div class="modal-head"><h3>تجديد الاشتراك وتسجيل الدفع</h3><button class="close-modal" onclick="closeRenewModal()"><i class="fa-solid fa-xmark"></i></button></div><div class="renew-summary"><strong id="renewWorkerName">اسم الصنايعي</strong><span id="renewCurrentEnd">نهاية الاشتراك الحالية: غير محدد</span></div><form onsubmit="submitRenewWorker(event)"><input type="hidden" id="renewWorkerId"><div class="edit-grid"><div class="edit-field"><label>الباقة</label><select id="renewPlan" onchange="updateRenewPlanDefaults()"><option value="month">شهر - 100 جنيه</option><option value="half">نصف سنة - 600 جنيه</option><option value="year">سنة - 1200 جنيه</option><option value="custom">مخصص</option></select></div><div class="edit-field"><label>عدد الشهور</label><input id="renewMonths" type="number" min="1" max="60" required></div><div class="edit-field"><label>المبلغ المدفوع</label><input id="renewAmount" type="number" min="0" step="1" required></div><div class="edit-field"><label>طريقة الدفع</label><select id="renewPaymentMethod"><option value="cash">كاش</option><option value="vodafone_cash">فودافون كاش</option><option value="instapay">إنستاباي</option><option value="bank_transfer">تحويل بنكي</option><option value="free">مجاني / هدية</option><option value="other">أخرى</option></select></div><div class="edit-field"><label>حالة الدفع</label><select id="renewPaymentStatus"><option value="paid">مدفوع</option><option value="pending">منتظر الدفع</option><option value="partial">مدفوع جزئيًا</option></select></div><div class="edit-field full"><label>ملاحظات الدفع</label><textarea id="renewNote" placeholder="مثال: تم الدفع فودافون كاش، رقم العملية، ملاحظة إدارية..."></textarea></div></div><div id="renewWarning"></div><div class="modal-actions"><button type="button" class="big-btn btn-red" onclick="closeRenewModal()">إلغاء</button><button type="submit" class="big-btn btn-dark">حفظ التجديد</button></div></form><div style="margin-top:18px"><h3 style="font-size:18px;color:var(--primary);font-weight:900">سجل التجديدات</h3><div id="subscriptionHistory" class="subscription-history-list"><div class="subscription-history-empty">جاري تحميل سجل التجديدات...</div></div></div></div></div>
 <div class="message-toast" id="toast"></div>
 
@@ -638,7 +682,7 @@ function showDashboard(){document.getElementById("loginScreen").style.display="n
 function showLogin(){document.getElementById("dashboard").classList.remove("show");document.getElementById("loginScreen").style.display="flex"}
 async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST",credentials:"include"})}catch(e){} location.reload()}
 async function checkLogin(){try{const r=await fetch("/api/admin/me",{credentials:"include"});const d=await r.json();if(d.authenticated){currentAdmin=d.admin||null;showDashboard()}else showLogin()}catch(e){showLogin()}}
-function switchTab(t,b){if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}if(t==="reports"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض البلاغات");return}if(t==="whatsapp"&&!can("whatsapp:send")){toast("error","ليس لديك صلاحية رسائل واتساب");return}document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews'){loadReviewsAdmin().then(()=>{__adminLoaded.reviews=true;renderReviews()})}if(t==='reports'){loadReports()}if(t==='analytics'){loadAnalytics()}if(t==='users'){loadAdminUsers()}if(t==='backups'){loadBackupSummary()}if(t==='whatsapp'){previewWhatsappBulk();loadWhatsappLogs()}}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
+function switchTab(t,b){if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}if(t==="reports"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض البلاغات");return}if(t==="whatsapp"&&!can("whatsapp:send")){toast("error","ليس لديك صلاحية رسائل واتساب");return}document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active"));document.getElementById(t+"Section").classList.add("active");if(t==='reviews'){loadReviewsAdmin().then(()=>{__adminLoaded.reviews=true;renderReviews()})}if(t==='reports'){loadReports()}if(t==='analytics'){loadAnalytics()}if(t==='users'){loadAdminUsers()}if(t==='backups'){loadBackupSummary()}if(t==='whatsapp'){renderWaSingleWorkerOptions();previewWhatsappSingle();previewWhatsappBulk();loadWhatsappLogs()}}function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
 async function fetchJson(urls){for(const u of urls){try{const r=await fetch(u,{credentials:"include"});if(r.status===401){showLogin();return []}if(r.ok)return await r.json()}catch(e){}}return []}function arr(d){if(Array.isArray(d))return d;for(const k of["data","workers","sanaieya","trades","crafts","areas","items"])if(d&&Array.isArray(d[k]))return d[k];return[]}function itemName(i){if(typeof i==="string")return i;return i.name||i.title||i.trade||i.craft||i.area||i.location||""}function itemId(i){if(typeof i==="string")return i;return i.id||i._id||i.name||i.title||""}
 async function loadAllData(){
   applyPermissionUI();
@@ -695,10 +739,12 @@ function identityReason(w){return w.identity_rejection_reason||w.identity_reason
 function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
 function renderIdentityDocsAdmin(w){const id=wid(w),docsOk=hasIdentityDocs(w),status=identityStatusValue(w),reason=identityReason(w),note=identityNote(w);return `<div class="subscription-box"><strong><i class="fa-solid fa-id-card"></i> مستندات التحقق</strong><div class="status-row"><span class="status-badge ${docsOk?'status-green':'status-red'}">${docsOk?'تم رفع وجه وظهر البطاقة':'البطاقة غير مكتملة'}</span><span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span></div>${reason?`<div class="verification-note"><strong>السبب:</strong> ${reason}</div>`:""}${note?`<span class="verification-small">ملاحظة إدارية: ${note}</span>`:""}<div class="card-actions">${w.id_front_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','front')"><i class="fa-solid fa-address-card"></i> عرض وجه البطاقة</button>`:''}${w.id_back_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','back')"><i class="fa-solid fa-id-card-clip"></i> عرض ظهر البطاقة</button>`:''}<button class="action-btn btn-dark" onclick="openIdentityReviewModal('${id}')"><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button></div></div>`}
 async function openIdentityDoc(id,side){try{const r=await fetch(`/api/admin/workers/${id}/id-card/${side}`,{credentials:"include"});const data=await r.json();if(r.status===401){showLogin();return}if(!r.ok||!data.success)throw new Error(data.error||"تعذر فتح صورة البطاقة");window.open(data.url,"_blank","noopener");}catch(e){toast("error",e.message||"تعذر فتح صورة البطاقة")}}
-function openIdentityReviewModal(id){const w=allWorkers.find(x=>String(wid(x))===String(id));if(!w)return;document.getElementById("identityReviewWorkerId").value=id;document.getElementById("identityReviewWorkerName").textContent=wname(w);document.getElementById("identityReviewWorkerInfo").textContent=`${wtrade(w)} - ${warea(w)} - ${wphone(w)||"لا يوجد رقم"}`;document.getElementById("identityReviewStatus").value=identityStatusValue(w);document.getElementById("identityReviewReason").value=identityReason(w);document.getElementById("identityReviewNote").value=identityNote(w);document.getElementById("identityReviewModal").classList.add("show");syncIdentityReviewHint()}
+function openIdentityReviewModal(id){const w=allWorkers.find(x=>String(wid(x))===String(id));if(!w)return;document.getElementById("identityReviewWorkerId").value=id;document.getElementById("identityReviewWorkerName").textContent=wname(w);document.getElementById("identityReviewWorkerInfo").textContent=`${wtrade(w)} - ${warea(w)} - ${wphone(w)||"لا يوجد رقم"}`;document.getElementById("identityReviewStatus").value=identityStatusValue(w);document.getElementById("identityReviewReason").value=identityReason(w);document.getElementById("identityReviewNote").value=identityNote(w);if(document.getElementById("identityReviewQuickAction"))document.getElementById("identityReviewQuickAction").value="";document.getElementById("identityReviewModal").classList.add("show");syncIdentityReviewHint()}
 function closeIdentityReviewModal(){document.getElementById("identityReviewModal").classList.remove("show")}
 function syncIdentityReviewHint(){const s=document.getElementById("identityReviewStatus").value;const hints={pending:"اترك الطلب بانتظار المراجعة إذا لم يتم اتخاذ قرار نهائي بعد.",verified:"سيتم اعتماد الصنايعي وظهوره للعملاء. يمكن استخدام هذا القرار كاستثناء إداري حتى لو البطاقة غير مرفوعة.",rejected:"سيتم إلغاء الموافقة على الصنايعي، ولن يظهر للعملاء.",needs_data:"سيتم اعتباره يحتاج تعديل بيانات قبل الاعتماد.",needs_id_reupload:"سيتم اعتباره يحتاج إعادة رفع البطاقة أو صورة أوضح."};document.getElementById("identityReviewHint").textContent=hints[s]||hints.pending}
-function buildIdentityReviewMessage(status,w,reason,note){const name=wname(w),trade=wtrade(w),area=warea(w),why=reason?`\nالسبب: ${reason}`:"";const texts={verified:`السلام عليكم أستاذ/ ${name}\n\nتمت مراجعة بياناتك وصورة البطاقة الشخصية في تطبيق صنايعي مطروح، وتم اعتماد حسابك بنجاح.\n\nالحرفة: ${trade}\nالمنطقة: ${area}\n\nبالتوفيق إن شاء الله.`,rejected:`السلام عليكم أستاذ/ ${name}\n\nبعد مراجعة طلب التسجيل في تطبيق صنايعي مطروح، نعتذر عن قبول الطلب في الوقت الحالي.${why}\n\nيمكنك التواصل مع الإدارة لو حابب توضح أو تعدل البيانات.`,needs_data:`السلام عليكم أستاذ/ ${name}\n\nتمت مراجعة طلبك في تطبيق صنايعي مطروح، ونحتاج تعديل أو استكمال بعض البيانات قبل الاعتماد.${why}\n\nمن فضلك راجع البيانات المطلوبة وتواصل مع الإدارة.`,needs_id_reupload:`السلام عليكم أستاذ/ ${name}\n\nتمت مراجعة صورة البطاقة الشخصية، ونحتاج إعادة رفع صورة أوضح للبطاقة وجه وظهر قبل اعتماد الحساب.${why}\n\nبرجاء إرسال صورة واضحة للبطاقة حتى نكمل المراجعة.`,pending:`السلام عليكم أستاذ/ ${name}\n\nطلب تسجيلك في تطبيق صنايعي مطروح ما زال تحت المراجعة، وسيتم إبلاغك بعد انتهاء التحقق من البيانات.`};return texts[status]||texts.pending}
+function applyIdentityQuickAction(){const a=document.getElementById("identityReviewQuickAction")?.value||"";const status=document.getElementById("identityReviewStatus"),reason=document.getElementById("identityReviewReason");if(!status||!reason)return;if(a==="id_reupload"){status.value="needs_id_reupload";reason.value="مطلوب إعادة رفع صورة البطاقة وجه وظهر بوضوح";}else if(a==="update_data"){status.value="needs_data";reason.value="مطلوب تعديل أو استكمال البيانات المطلوبة مثل رقم الهاتف أو الحرفة أو المنطقة";}else if(a==="work_photos"){status.value="needs_data";reason.value="مطلوب رفع صور أعمال واضحة من شغلك";}syncIdentityReviewHint()}
+function buildIdentityReviewMessage(status,w,reason,note){const name=wname(w),trade=wtrade(w),area=warea(w),why=reason?`\nالسبب: ${reason}`:"",statusLink=registrationStatusLink(w);const texts={verified:`السلام عليكم أستاذ/ ${name}\n\nتمت مراجعة بياناتك وصورة البطاقة الشخصية في تطبيق صنايعي مطروح، وتم اعتماد حسابك بنجاح.\n\nالحرفة: ${trade}\nالمنطقة: ${area}\n\nبالتوفيق إن شاء الله.`,rejected:`السلام عليكم أستاذ/ ${name}\n\nبعد مراجعة طلب التسجيل في تطبيق صنايعي مطروح، نعتذر عن قبول الطلب في الوقت الحالي.${why}\n\nيمكنك التواصل مع الإدارة لو حابب توضح أو تعدل البيانات.`,needs_data:`السلام عليكم أستاذ/ ${name}\n\nتمت مراجعة طلبك في تطبيق صنايعي مطروح، ونحتاج تعديل أو استكمال بعض البيانات قبل الاعتماد.${why}\n\nيمكنك متابعة الطلب وإرسال التعديل من هنا:\n${statusLink}\n\nبعد إرسال التعديل سيتم مراجعة الطلب مرة أخرى.`,needs_id_reupload:`السلام عليكم أستاذ/ ${name}\n\nتمت مراجعة صورة البطاقة الشخصية، ونحتاج إعادة رفع صورة أوضح للبطاقة وجه وظهر قبل اعتماد الحساب.${why}\n\nيمكنك متابعة الطلب وإعادة رفع البطاقة من هنا:\n${statusLink}\n\nبعد الرفع سيتم مراجعة الطلب مرة أخرى.`,pending:`السلام عليكم أستاذ/ ${name}\n\nطلب تسجيلك في تطبيق صنايعي مطروح ما زال تحت المراجعة، وسيتم إبلاغك بعد انتهاء التحقق من البيانات.`};return texts[status]||texts.pending}
+
 async function submitIdentityReview(e){e.preventDefault();const openWhatsapp=document.activeElement&&document.activeElement.id==="identityReviewSaveWhatsapp";const id=document.getElementById("identityReviewWorkerId").value;const status=document.getElementById("identityReviewStatus").value;const reason=document.getElementById("identityReviewReason").value.trim();const note=document.getElementById("identityReviewNote").value.trim();const worker=allWorkers.find(x=>String(wid(x))===String(id));try{const r=await fetch(`/api/admin/workers/${id}/identity-review`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({identity_status:status,reason,note})});const d=await r.json().catch(()=>({}));if(r.status===401){showLogin();return}if(!r.ok||!d.success)throw new Error(d.error||"لم يتم حفظ قرار التحقق");closeIdentityReviewModal();toast("success","تم حفظ قرار التحقق");await loadAllData();if(openWhatsapp&&worker){openDirectWorkerWhatsApp(worker,buildIdentityReviewMessage(status,worker,reason,note))}}catch(ex){toast("error",ex.message||"لم يتم حفظ قرار التحقق")}}
 function openDirectWorkerWhatsApp(w,msg){const phone=wwhatsapp(w)||wphone(w);const num=adminWhatsAppNumber(phone);if(!num){toast("error","لا يوجد رقم واتساب صالح لهذا الصنايعي");return}window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank")}
 function buildRatingMaps(){
@@ -945,7 +991,11 @@ function convertAdminArabicNumbers(value){const map={"٠":"0","١":"1","٢":"2",
 function adminWhatsAppNumber(phone){let d=convertAdminArabicNumbers(phone||"").replace(/[^\d]/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0")&&d.length===11)d="20"+d.slice(1);if(!d.startsWith("20")&&d.length===10&&(/^(10|11|12|15)/.test(d)))d="20"+d;return d}
 function getWorkerForWhatsApp(){return allWorkers.find(x=>String(wid(x))===String(currentWhatsAppWorkerId))||null}
 function workerDisplayLink(id){return window.location.origin+"/worker/"+id}
-function buildWhatsAppTemplate(type,w){const id=wid(w),name=wname(w),trade=wtrade(w),area=warea(w),sub=subInfo(w),end=formatDate(sub.end),link=workerDisplayLink(id);const texts={approved:`السلام عليكم أستاذ/ ${name}
+function registrationStatusLink(w){return window.location.origin+"/status?code="+encodeURIComponent(registrationCodeText(w))}
+function buildWhatsAppTemplate(type,w){
+  const id=wid(w),name=wname(w),trade=wtrade(w),area=warea(w),sub=subInfo(w),end=formatDate(sub.end),link=workerDisplayLink(id),statusLink=registrationStatusLink(w);
+  const texts={
+    approved:`السلام عليكم أستاذ/ ${name}
 
 تمت الموافقة على بياناتك في تطبيق صنايعي مطروح، وملفك أصبح ظاهرًا للعملاء داخل الدليل.
 
@@ -953,32 +1003,74 @@ function buildWhatsAppTemplate(type,w){const id=wid(w),name=wname(w),trade=wtrad
 المنطقة: ${area}
 رابط صفحتك: ${link}
 
-بالتوفيق إن شاء الله.`,need_data:`السلام عليكم أستاذ/ ${name}
+بالتوفيق إن شاء الله.`,
+    need_data:`السلام عليكم أستاذ/ ${name}
 
 تم استلام طلب التسجيل في تطبيق صنايعي مطروح، لكن نحتاج استكمال أو تعديل بعض البيانات قبل الموافقة.
 
-من فضلك تواصل مع الإدارة لاستكمال البيانات المطلوبة.`,identity_verified:buildIdentityReviewMessage("verified",w,"",""),identity_rejected:buildIdentityReviewMessage("rejected",w,identityReason(w),identityNote(w)),identity_needs_data:buildIdentityReviewMessage("needs_data",w,identityReason(w),identityNote(w)),identity_needs_id_reupload:buildIdentityReviewMessage("needs_id_reupload",w,identityReason(w),identityNote(w)),subscription_soon:`السلام عليكم أستاذ/ ${name}
+يمكنك متابعة الطلب وإرسال المطلوب من هنا:
+${statusLink}
+
+من فضلك استكمل البيانات المطلوبة حتى نكمل المراجعة.`,
+    registration_id_reupload:`السلام عليكم أستاذ/ ${name}
+
+إدارة تطبيق صنايعي مطروح تحتاج منك إعادة رفع صورة البطاقة الشخصية بوضوح وجه وظهر لإكمال مراجعة طلب التسجيل.
+
+رقم الطلب: ${registrationCodeText(w)}
+رابط المتابعة ورفع البطاقة:
+${statusLink}
+
+بعد الرفع سيتم مراجعة الطلب مرة أخرى.`,
+    registration_update_data:`السلام عليكم أستاذ/ ${name}
+
+إدارة تطبيق صنايعي مطروح تحتاج منك تعديل أو استكمال بعض بيانات التسجيل مثل رقم الهاتف أو الحرفة أو المنطقة أو الوصف.
+
+رقم الطلب: ${registrationCodeText(w)}
+رابط المتابعة وتعديل البيانات:
+${statusLink}
+
+بعد إرسال التعديل سيتم مراجعة الطلب مرة أخرى.`,
+    registration_work_photos:`السلام عليكم أستاذ/ ${name}
+
+إدارة تطبيق صنايعي مطروح تحتاج منك رفع صور واضحة من أعمالك السابقة قبل اعتماد الطلب.
+
+رقم الطلب: ${registrationCodeText(w)}
+رابط المتابعة ورفع صور الأعمال:
+${statusLink}
+
+بعد الرفع سيتم مراجعة الصور وإكمال الطلب.`,
+    identity_verified:buildIdentityReviewMessage("verified",w,"",""),
+    identity_rejected:buildIdentityReviewMessage("rejected",w,identityReason(w),identityNote(w)),
+    identity_needs_data:buildIdentityReviewMessage("needs_data",w,identityReason(w),identityNote(w)),
+    identity_needs_id_reupload:buildIdentityReviewMessage("needs_id_reupload",w,identityReason(w),identityNote(w)),
+    subscription_soon:`السلام عليكم أستاذ/ ${name}
 
 تنبيه من إدارة تطبيق صنايعي مطروح: اشتراكك قرب ينتهي.
 
 نهاية الاشتراك الحالية: ${end}
 
-للاستمرار في الظهور للعملاء داخل الدليل، يرجى تجديد الاشتراك.`,subscription_expired:`السلام عليكم أستاذ/ ${name}
+للاستمرار في الظهور للعملاء داخل الدليل، يرجى تجديد الاشتراك.`,
+    subscription_expired:`السلام عليكم أستاذ/ ${name}
 
 تنبيه من إدارة تطبيق صنايعي مطروح: اشتراكك انتهى.
 
 تاريخ نهاية الاشتراك: ${end}
 
-يرجى التجديد لإعادة تفعيل ظهورك داخل الدليل.`,renewed:`السلام عليكم أستاذ/ ${name}
+يرجى التجديد لإعادة تفعيل ظهورك داخل الدليل.`,
+    renewed:`السلام عليكم أستاذ/ ${name}
 
 تم تجديد اشتراكك في تطبيق صنايعي مطروح بنجاح.
 
 نهاية الاشتراك الجديدة: ${end}
 رابط صفحتك: ${link}
 
-نتمنى لك التوفيق.`,custom:`السلام عليكم أستاذ/ ${name}
+نتمنى لك التوفيق.`,
+    custom:`السلام عليكم أستاذ/ ${name}
 
-`};return texts[type]||texts.custom}
+`
+  };
+  return texts[type]||texts.custom;
+}
 function openWhatsAppModal(id){const w=allWorkers.find(x=>String(wid(x))===String(id));if(!w)return;currentWhatsAppWorkerId=id;const phone=wwhatsapp(w)||wphone(w);document.getElementById("whatsappWorkerName").textContent=wname(w);document.getElementById("whatsappWorkerPhone").textContent="رقم الواتساب: "+(phone||"غير متاح");document.getElementById("whatsappTemplateType").value="approved";document.getElementById("whatsappModal").classList.add("show");updateWhatsAppTemplate()}
 function closeWhatsAppModal(){document.getElementById("whatsappModal").classList.remove("show")}
 function updateWhatsAppTemplate(){const w=getWorkerForWhatsApp();if(!w)return;const type=document.getElementById("whatsappTemplateType").value;if(type==="custom"&&!document.getElementById("whatsappMessageText").value.trim()){document.getElementById("whatsappMessageText").value=buildWhatsAppTemplate(type,w);return}document.getElementById("whatsappMessageText").value=buildWhatsAppTemplate(type,w)}
@@ -1010,6 +1102,94 @@ async function sendWorkerWhatsAppApi(){
   }
 }
 
+
+function waSingleWorkerMatches(w, q){
+  const text=[wname(w),registrationCodeText(w),wphone(w),wwhatsapp(w),wtrade(w),warea(w)].join(" ").toLowerCase();
+  return !q || text.includes(String(q||"").toLowerCase());
+}
+function renderWaSingleWorkerOptions(){
+  const select=document.getElementById("waSingleWorkerSelect");
+  if(!select)return;
+  const q=(document.getElementById("waSingleSearch")?.value||"").trim();
+  const workers=allWorkers.filter(w=>waSingleWorkerMatches(w,q)).slice(0,80);
+  const current=select.value;
+  select.innerHTML='<option value="">اختر الصنايعي</option>'+workers.map(w=>`<option value="${wid(w)}">${waEscape(registrationCodeText(w))} - ${waEscape(wname(w))} - ${waEscape(wphone(w)||wwhatsapp(w)||"بدون رقم")}</option>`).join("");
+  if(current && workers.some(w=>String(wid(w))===String(current)))select.value=current;
+}
+function getWaSingleWorker(){
+  const id=document.getElementById("waSingleWorkerSelect")?.value||"";
+  return allWorkers.find(w=>String(wid(w))===String(id))||null;
+}
+function previewWhatsappSingle(){
+  const summary=document.getElementById("waSingleSummary");
+  const textEl=document.getElementById("waSingleMessageText");
+  if(!summary||!textEl)return;
+  const w=getWaSingleWorker();
+  if(!w){summary.textContent="اختر صنايعي لعرض المعاينة.";return;}
+  const type=document.getElementById("waSingleTemplateType")?.value||"registration_id_reupload";
+  if(type!=="custom" || !textEl.value.trim()) textEl.value=buildWhatsAppTemplate(type,w);
+  const phone=wwhatsapp(w)||wphone(w);
+  const valid=adminWhatsAppNumber(phone);
+  summary.textContent=`الصنايعي: ${wname(w)}\nرقم الطلب: ${registrationCodeText(w)}\nالهاتف/واتساب: ${phone||"غير متاح"}\nرابط الحالة: ${registrationStatusLink(w)}\nحالة الرقم: ${valid?"صالح للإرسال":"لا يوجد رقم صالح"}`;
+}
+async function syncWaSingleRequiredAction(w,type){
+  if(!document.getElementById("waSingleSyncStatus")?.checked)return true;
+  const map={
+    registration_id_reupload:{identity_status:"needs_id_reupload",reason:"مطلوب إعادة رفع صورة البطاقة وجه وظهر بوضوح"},
+    registration_update_data:{identity_status:"needs_data",reason:"مطلوب تعديل أو استكمال البيانات المطلوبة مثل رقم الهاتف أو الحرفة أو المنطقة"},
+    registration_work_photos:{identity_status:"needs_data",reason:"مطلوب رفع صور أعمال واضحة من شغلك"},
+    identity_needs_id_reupload:{identity_status:"needs_id_reupload",reason:"مطلوب إعادة رفع صورة البطاقة وجه وظهر بوضوح"},
+    identity_needs_data:{identity_status:"needs_data",reason:"مطلوب تعديل أو استكمال البيانات المطلوبة"},
+    need_data:{identity_status:"needs_data",reason:"مطلوب استكمال أو تعديل بعض البيانات قبل الاعتماد"}
+  };
+  const payload=map[type];
+  if(!payload)return true;
+  try{
+    const r=await fetch(`/api/admin/workers/${wid(w)}/identity-review`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,note:"تم تحديد الإجراء من تبويب رسائل واتساب الفردية."})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"لم يتم تحديث حالة الطلب");
+    await loadAllData();
+    return true;
+  }catch(e){
+    toast("error",e.message||"لم يتم تحديث حالة الطلب، سيتم محاولة إرسال واتساب فقط");
+    return false;
+  }
+}
+
+async function sendWhatsappSingle(){
+  if(!can("whatsapp:send")){toast("error","ليس لديك صلاحية إرسال واتساب");return}
+  const w=getWaSingleWorker();
+  if(!w){toast("error","اختر الصنايعي أولًا");return}
+  const phone=wwhatsapp(w)||wphone(w);
+  const msg=(document.getElementById("waSingleMessageText")?.value||"").trim();
+  const mode=document.getElementById("waSingleMode")?.value||"text";
+  const templateName=(document.getElementById("waSingleTemplateName")?.value||"hello_world").trim();
+  const type=document.getElementById("waSingleTemplateType")?.value||"admin_message";
+  if(!adminWhatsAppNumber(phone)){toast("error","لا يوجد رقم واتساب صالح لهذا الصنايعي");return}
+  if(mode!=="template"&&!msg){toast("error","اكتب نص الرسالة أولًا");return}
+  if(mode==="template"&&!templateName){toast("error","اكتب اسم Template");return}
+  await syncWaSingleRequiredAction(w,type);
+  const btn=document.getElementById("waSingleSendBtn"),old=btn?btn.innerHTML:"";
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...'}
+  try{
+    const r=await fetch("/api/admin/whatsapp/send-worker",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({worker_id:String(wid(w)),phone,message:msg,mode,template_name:templateName,message_type:type})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"فشل إرسال واتساب");
+    toast("success","تم إرسال الرسالة الفردية");
+    loadWhatsappLogs();
+  }catch(e){toast("error",e.message||"فشل إرسال واتساب")}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=old}}
+}
+async function openWhatsappSingleManual(){
+  const w=getWaSingleWorker();
+  if(!w){toast("error","اختر الصنايعي أولًا");return}
+  const num=adminWhatsAppNumber(wwhatsapp(w)||wphone(w));
+  const msg=(document.getElementById("waSingleMessageText")?.value||"").trim();
+  const type=document.getElementById("waSingleTemplateType")?.value||"admin_message";
+  if(!num){toast("error","لا يوجد رقم واتساب صالح");return}
+  await syncWaSingleRequiredAction(w,type);
+  window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank");
+}
 
 function waEscape(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]||c))}
 function waDate(v){try{const d=new Date(v);return isNaN(d.getTime())?"غير محدد":d.toLocaleString("ar-EG")}catch(e){return"غير محدد"}}
