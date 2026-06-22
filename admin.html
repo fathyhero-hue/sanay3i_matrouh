@@ -1926,10 +1926,8 @@ async function loadAnalytics(){
   };
 
   // Final fallback: capture clicks if inline handlers are blocked by browser/cache.
-  document.addEventListener("pointerdown", function(ev){
-    const btn = ev.target && ev.target.closest ? ev.target.closest("[data-worker-action]") : null;
-    if(btn) window.adminWorkerCardActionDirectV7(ev, btn);
-  }, true);
+  // Stability hotfix: use click only. Pointerdown + click used to fire the same action twice,
+  // which caused duplicated modals and page lock after admin edits.
   document.addEventListener("click", function(ev){
     const btn = ev.target && ev.target.closest ? ev.target.closest("[data-worker-action]") : null;
     if(btn) window.adminWorkerCardActionDirectV7(ev, btn);
@@ -1954,6 +1952,8 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
 
 // Admin Worker Actions Force Modal V8 - independent modals, no dependency on old modal CSS
 (function(){
+  let v8LastActionKey = '';
+  let v8LastActionTime = 0;
   function digits(v){ return String(v || '').replace(/\D/g, ''); }
   function esc(v){ return String(v ?? '').replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function getList(){ try { return Array.isArray(window.allWorkers) ? window.allWorkers : (Array.isArray(allWorkers) ? allWorkers : []); } catch(_) { return []; } }
@@ -1995,7 +1995,7 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
     });
     return out;
   }
-  function closeForceModal(){ const old=document.getElementById('adminActionForceModalV8'); if(old) old.remove(); }
+  function closeForceModal(){ const old=document.getElementById('adminActionForceModalV8'); if(old) old.remove(); document.body.style.overflow=''; document.documentElement.style.overflow=''; }
   window.closeAdminActionForceModalV8 = closeForceModal;
   function openForceModal(title, bodyHtml){
     closeForceModal();
@@ -2014,7 +2014,8 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
     wrap.addEventListener('mousedown', function(e){ if(e.target===wrap) closeForceModal(); });
     document.body.appendChild(wrap);
     document.body.style.overflow='hidden';
-    wrap.addEventListener('remove',()=>{document.body.style.overflow='';});
+    document.documentElement.style.overflow='hidden';
+    // DOM remove events do not fire on remove(); reset is handled inside closeForceModal().
   }
   function workerSummary(w){
     return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;padding:14px;margin-bottom:16px;">
@@ -2264,6 +2265,11 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
     const action=btn.dataset.workerAction;
     const worker=resolveWorkerFromButton(btn);
     if(!worker){ toast('error','تعذر تحديد الصنايعي. اضغط تحديث البيانات ثم جرّب مرة أخرى.'); return false; }
+    const actionKey = String(action || '') + ':' + String(wid(worker) || '');
+    const now = Date.now();
+    if(actionKey === v8LastActionKey && now - v8LastActionTime < 900) return false;
+    v8LastActionKey = actionKey;
+    v8LastActionTime = now;
     console.log('Force Modal V8 action', {action, id:wid(worker), name:wname(worker)});
     if(action==='full') openFullControl(worker);
     else if(action==='edit') openEdit(worker);
@@ -2275,6 +2281,36 @@ window.testAdminWorkerActions=function(token){return openWorkerActionsModal(toke
   };
   window.testForceWorkerActionV8=function(action){ const btn=document.querySelector(`[data-worker-action="${action||'edit'}"]`); return window.adminWorkerCardActionDirectV7({preventDefault(){},stopPropagation(){}},btn); };
 })();
+
+// Admin stability hotfix: prevent stuck page after closing modals and block duplicate form submits.
+(function(){
+  function unlockAdminPage(){
+    if(!document.getElementById('adminActionForceModalV8')){
+      document.body.style.overflow='';
+      document.documentElement.style.overflow='';
+    }
+  }
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && typeof window.closeAdminActionForceModalV8 === 'function'){
+      window.closeAdminActionForceModalV8();
+      setTimeout(unlockAdminPage, 30);
+    }
+  }, true);
+  document.addEventListener('click', function(){ setTimeout(unlockAdminPage, 80); }, true);
+  document.addEventListener('submit', function(e){
+    const form = e.target;
+    if(!form || !form.id || !/^force.*FormV8$/.test(form.id)) return;
+    if(form.dataset.submitting === '1'){ e.preventDefault(); e.stopPropagation(); return false; }
+    form.dataset.submitting = '1';
+    const btn = form.querySelector('button[type="submit"]');
+    if(btn){ btn.dataset.oldText = btn.textContent; btn.disabled = true; btn.textContent = 'جاري الحفظ...'; }
+    setTimeout(function(){
+      form.dataset.submitting = '';
+      if(btn){ btn.disabled = false; if(btn.dataset.oldText) btn.textContent = btn.dataset.oldText; }
+    }, 3500);
+  }, true);
+})();
+
 
 checkLogin();
 </script>
