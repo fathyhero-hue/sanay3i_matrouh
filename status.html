@@ -45,6 +45,17 @@
     .alert{border-radius:20px;padding:15px 16px;font-weight:900;line-height:1.8}.alert.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.alert.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}.loading{display:none;margin-top:14px;color:#1d4ed8;font-weight:900}.loading.show{display:block}
     .privacy-note{margin-top:18px;background:rgba(255,255,255,.65);border:1px solid rgba(226,232,240,.95);border-radius:22px;padding:16px;color:#475569;font-weight:800;line-height:1.9}.privacy-note i{color:#1d4ed8;margin-left:6px}
 
+    .worker-chat-widget{margin-top:15px;border:1px solid #bfdbfe;background:#f8fbff;border-radius:22px;overflow:hidden;box-shadow:var(--soft)}
+    .worker-chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 16px;background:linear-gradient(135deg,#061A3D,#123a7a);color:#fff}
+    .worker-chat-head strong{display:flex;align-items:center;gap:8px;font-size:16px}.worker-chat-head span{font-weight:900;font-size:13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:7px 10px}
+    .worker-chat-body{padding:14px}.worker-chat-open{width:100%;background:#0f172a;color:#fff}
+    .worker-chat-panel{display:none;margin-top:12px}.worker-chat-panel.show{display:block}
+    .worker-chat-messages{height:310px;overflow:auto;border:1px solid var(--border);background:#fff;border-radius:18px;padding:12px;display:grid;gap:10px;align-content:start}
+    .chat-msg{max-width:86%;border-radius:18px;padding:10px 12px;font-weight:800;line-height:1.8;white-space:pre-wrap;box-shadow:0 8px 20px rgba(15,23,42,.06)}
+    .chat-msg.admin{justify-self:start;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}.chat-msg.worker{justify-self:end;background:#dcfce7;border:1px solid #bbf7d0;color:#166534}.chat-msg small{display:block;color:#64748b;font-weight:900;margin-top:5px;font-size:11px}.chat-msg img{max-width:180px;border-radius:14px;margin-top:8px;display:block}
+    .worker-chat-form{display:grid;gap:8px;margin-top:10px}.worker-chat-form textarea{width:100%;min-height:90px;border:1px solid var(--border);background:#fff;border-radius:16px;padding:12px;font-family:inherit;font-weight:800;resize:vertical}.worker-chat-form input{font-family:inherit;font-weight:800}.worker-chat-form .row{display:flex;gap:8px;flex-wrap:wrap}.worker-chat-form .row .btn{box-shadow:none}
+
+
     .progress-timeline{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative}
     .progress-step{background:#f8fafc;border:1px solid var(--border);border-radius:20px;padding:14px;position:relative;overflow:hidden;min-height:118px}
     .progress-step::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:#cbd5e1}
@@ -323,6 +334,69 @@
         + '</div>';
     }
 
+    let workerChatTimer = null;
+    function buildWorkerChatWidget(req, st, chat){
+      const unread = Number(chat && chat.unread_count || 0);
+      const badge = unread ? '<span><i class="fa-solid fa-bell"></i> ' + unread + ' رسالة جديدة</span>' : '<span><i class="fa-solid fa-comments"></i> محادثة مباشرة</span>';
+      return '<div class="worker-chat-widget" id="workerChatWidget">'
+        + '<div class="worker-chat-head"><strong><i class="fa-solid fa-headset"></i> محادثة مع الإدارة</strong>' + badge + '</div>'
+        + '<div class="worker-chat-body">'
+        + '<p style="margin:0 0 10px;color:#475569;font-weight:800;line-height:1.8">افتح المحادثة لإرسال رسالة للإدارة ومتابعة الردود داخل التطبيق.</p>'
+        + '<button type="button" class="btn worker-chat-open" onclick="openWorkerChat()"><i class="fa-solid fa-message"></i> فتح المحادثة</button>'
+        + '<div class="worker-chat-panel" id="workerChatPanel">'
+        + '<div class="worker-chat-messages" id="workerChatMessages"><div class="alert info">جاري تحميل المحادثة...</div></div>'
+        + '<form class="worker-chat-form" onsubmit="sendWorkerChatMessage(event)">'
+        + '<textarea id="workerChatInput" placeholder="اكتب رسالتك للإدارة هنا..."></textarea>'
+        + '<input type="file" id="workerChatAttachment" accept="image/*">'
+        + '<div class="row"><button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> إرسال</button><button type="button" class="btn btn-light" onclick="loadWorkerChatMessages(false)"><i class="fa-solid fa-rotate"></i> تحديث</button></div>'
+        + '</form></div></div></div>';
+    }
+    function chatTime(v){try{return new Date(v).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'});}catch(e){return ''}}
+    function renderWorkerChatMessages(messages){
+      const box=document.getElementById('workerChatMessages'); if(!box)return;
+      if(!messages || !messages.length){box.innerHTML='<div class="alert info"><i class="fa-solid fa-comments"></i> لا توجد رسائل حتى الآن. ابدأ المحادثة مع الإدارة.</div>';return;}
+      box.innerHTML=messages.map(function(m){
+        const cls=m.sender_type==='admin'?'admin':'worker';
+        const who=m.sender_type==='admin'?'الإدارة':'أنت';
+        const img=m.attachment_url?'<img src="'+escapeHtml(m.attachment_url)+'" alt="مرفق">':'';
+        return '<div class="chat-msg '+cls+'"><b>'+who+'</b><br>'+escapeHtml(m.message_text||'')+img+'<small>'+escapeHtml(chatTime(m.created_at))+'</small></div>';
+      }).join('');
+      box.scrollTop=box.scrollHeight;
+    }
+    async function loadWorkerChatMessages(markRead){
+      const lookup=currentLookupValue(); if(!lookup)return;
+      const box=document.getElementById('workerChatMessages'); if(box)box.innerHTML='<div class="alert info">جاري تحميل المحادثة...</div>';
+      try{
+        const r=await fetch('/api/worker-chat/messages?lookup='+encodeURIComponent(lookup)+'&mark_read='+(markRead===false?'false':'true'));
+        const d=await r.json().catch(function(){return {}});
+        if(!r.ok||!d.success)throw new Error(d.error||'تعذر تحميل المحادثة');
+        renderWorkerChatMessages(d.messages||[]);
+      }catch(e){ if(box)box.innerHTML='<div class="alert error">'+escapeHtml(e.message||'تعذر تحميل المحادثة')+'</div>'; }
+    }
+    function openWorkerChat(){
+      const panel=document.getElementById('workerChatPanel'); if(!panel)return;
+      panel.classList.add('show');
+      loadWorkerChatMessages(true);
+      if(workerChatTimer)clearInterval(workerChatTimer);
+      workerChatTimer=setInterval(function(){ if(document.getElementById('workerChatPanel')?.classList.contains('show')) loadWorkerChatMessages(false); },15000);
+      panel.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    async function sendWorkerChatMessage(e){
+      e.preventDefault();
+      const lookup=currentLookupValue(); const input=document.getElementById('workerChatInput'); const file=document.getElementById('workerChatAttachment');
+      const msg=(input&&input.value||'').trim();
+      if(!msg && !(file&&file.files&&file.files[0])){showToast('اكتب رسالة أو ارفع صورة');return;}
+      const btn=e.currentTarget.querySelector('button[type="submit"]'); const old=btn?btn.innerHTML:'';
+      if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
+      try{
+        const fd=new FormData(); fd.set('lookup',lookup); fd.set('message',msg); if(file&&file.files&&file.files[0])fd.set('attachment',file.files[0]);
+        const r=await fetch('/api/worker-chat/messages',{method:'POST',body:fd}); const d=await r.json().catch(function(){return {}});
+        if(!r.ok||!d.success)throw new Error(d.error||'تعذر إرسال الرسالة');
+        if(input)input.value=''; if(file)file.value=''; showToast(d.message||'تم إرسال الرسالة'); loadWorkerChatMessages(true);
+      }catch(err){showToast(err.message||'تعذر إرسال الرسالة');}
+      finally{if(btn){btn.disabled=false;btn.innerHTML=old;}}
+    }
+
     function buildNextAction(req, st){
       const key = st.key || "pending";
       const adminMessage = buildAdminMessage(req, st);
@@ -483,6 +557,7 @@
         + '<p class="status-message">' + escapeHtml(st.message || "") + '</p>'
         + reason
         + buildNextAction(req, st)
+        + buildWorkerChatWidget(req, st, data.chat || {})
         + '<div class="meta"><div><small>تاريخ التسجيل</small><strong>' + escapeHtml(formatDate(req.created_at)) + '</strong></div><div><small>الحرفة</small><strong>' + escapeHtml(req.trade || "-") + '</strong></div><div><small>المنطقة</small><strong>' + escapeHtml(req.area || "-") + '</strong></div></div>'
         + '</div>';
     }

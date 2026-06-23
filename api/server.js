@@ -849,6 +849,8 @@ const upload = multer({
   fileFilter: secureImageFileFilter
 });
 const workerUpload = upload.fields([{ name: "image", maxCount: 1 }, { name: "workPhotos", maxCount: 5 }, { name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]);
+const chatUpload = upload.fields([{ name: "attachment", maxCount: 1 }]);
+function chatAttachmentFile(req){ return req.files && req.files.attachment && req.files.attachment[0] ? req.files.attachment[0] : null; }
 
 function ready(res){ if(!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY){ res.status(500).json({success:false,error:"Supabase environment variables are missing"}); return false;} return true; }
 function today(){ return new Date().toISOString().split("T")[0]; }
@@ -1414,6 +1416,35 @@ function publicStatusForWorker(w){
   };
 }
 
+
+async function workerChatUnreadForWorker(workerId){
+  try{
+    const {count,error}=await supabase
+      .from("worker_messages")
+      .select("id",{count:"exact",head:true})
+      .eq("worker_id",workerId)
+      .eq("sender_type","admin")
+      .eq("is_read",false);
+    if(error) return 0;
+    return count || 0;
+  }catch(e){ return 0; }
+}
+
+async function workerChatUnreadForAdmin(){
+  try{
+    const {count,error}=await supabase
+      .from("worker_messages")
+      .select("id",{count:"exact",head:true})
+      .eq("sender_type","worker")
+      .eq("is_read",false);
+    if(error) return 0;
+    return count || 0;
+  }catch(e){ return 0; }
+}
+
+function normalizeChatMessage(value){
+  return String(value || "").replace(/\r\n/g,"\n").trim().slice(0,1500);
+}
 app.get("/api/registration-status", async (req,res)=>{
   if(!ready(res))return;
   try{
@@ -1454,6 +1485,7 @@ app.get("/api/registration-status", async (req,res)=>{
 
     const status = publicStatusForWorker(worker);
     const registrationCode = worker.registration_code || makeRegistrationCode(worker.id, worker.created_at);
+    const chatUnread = await workerChatUnreadForWorker(worker.id);
     return res.json({
       success:true,
       found:true,
@@ -1464,7 +1496,8 @@ app.get("/api/registration-status", async (req,res)=>{
         area: worker.area || "",
         created_at: worker.created_at || ""
       },
-      status
+      status,
+      chat:{enabled:true,unread_count:chatUnread}
     });
   }catch(e){
     return res.status(500).json({success:false,error:e.message || "تعذر معرفة حالة الطلب"});
@@ -1596,6 +1629,313 @@ app.post("/api/registration-upload-work-photos", registrationUpdateRateLimit, wo
   }catch(e){
     return res.status(500).json({success:false,error:e.message || "تعذر رفع صور الأعمال"});
   }
+});
+
+
+// ===============================
+// Internal Worker/Admin Chat + In-App Notifications
+// ===============================
+async function publicChatWorker(raw){
+  return findRegistrationWorkerForPublicUpdate(raw, "id,registration_code,name,phone,whatsapp,trade,area,created_at");
+}
+function publicMessageRow(row){
+  return {
+    id: row.id,
+    worker_id: row.worker_id,
+    sender_type: row.sender_type,
+    sender_name: row.sender_name || (row.sender_type === "admin" ? "إدارة صنايعي مطروح" : "الصنايعي"),
+    message_text: row.message_text || "",
+    attachment_url: row.attachment_url || "",
+    attachment_type: row.attachment_type || "",
+    is_read: !!row.is_read,
+    created_at: row.created_at
+  };
+}
+
+app.get("/api/worker-chat/messages", async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const found = await publicChatWorker(req.query.lookup || req.query.code || req.query.q || req.query.phone);
+    if(found.error) return res.status(400).json({success:false,error:found.error});
+    const worker = found.worker;
+    if(String(req.query.mark_read || "true") !== "false"){
+      await supabase.from("worker_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("worker_id",worker.id).eq("sender_type","admin").eq("is_read",false);
+    }
+    const {data,error}=await supabase
+      .from("worker_messages")
+      .select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at")
+      .eq("worker_id",worker.id)
+      .order("created_at",{ascending:true})
+      .limit(250);
+    if(error) return res.status(500).json({success:false,error:"جدول محادثات التطبيق غير جاهز. شغّل ملف SQL الخاص بالشات أولًا."});
+    return res.json({success:true,worker:{id:worker.id,registration_code:worker.registration_code||makeRegistrationCode(worker.id,worker.created_at),name:worker.name||"صنايعي"},messages:(data||[]).map(publicMessageRow),unread_count:await workerChatUnreadForWorker(worker.id)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر تحميل المحادثة"}); }
+});
+
+app.post("/api/worker-chat/messages", registrationUpdateRateLimit, chatUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const found = await publicChatWorker(req.body.lookup || req.body.code || req.body.q || req.body.phone);
+    if(found.error) return res.status(400).json({success:false,error:found.error});
+    const worker = found.worker;
+    const message = normalizeChatMessage(req.body.message || req.body.message_text || req.body.text);
+    const attachment = chatAttachmentFile(req);
+    if(!message && !attachment) return res.status(400).json({success:false,error:"اكتب رسالة أو ارفع صورة"});
+    let attachment_url = "";
+    let attachment_type = "";
+    if(attachment){
+      attachment_url = await uploadImage(attachment,"chat-attachments");
+      attachment_type = "image";
+    }
+    const {data,error}=await supabase.from("worker_messages").insert({
+      worker_id: worker.id,
+      sender_type: "worker",
+      sender_name: worker.name || "صنايعي",
+      message_text: message,
+      attachment_url,
+      attachment_type,
+      is_read: false
+    }).select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at").single();
+    if(error) return res.status(500).json({success:false,error:"جدول محادثات التطبيق غير جاهز. شغّل ملف SQL الخاص بالشات أولًا."});
+    await logAdminActivity("worker_chat_message",{entity_type:"worker",entity_id:worker.id,entity_name:worker.name||"صنايعي",details:{source:"status_page",has_attachment:!!attachment_url}});
+    return res.json({success:true,message:"تم إرسال رسالتك للإدارة",row:publicMessageRow(data)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر إرسال الرسالة"}); }
+});
+
+
+// ===============================
+// Worker owner verified chat from public worker page
+// يظهر زر المحادثة فقط بعد تحقق الصنايعي برقم الهاتف المسجل
+// ===============================
+const OWNER_CHAT_TOKEN_TTL_MS = Number(process.env.WORKER_OWNER_CHAT_TOKEN_TTL_MS || 24 * 60 * 60 * 1000);
+function ownerChatSecret(){
+  return String(process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || process.env.SESSION_SECRET || "sanay3i-owner-chat-local-secret");
+}
+function b64url(input){
+  return Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function b64urlJson(obj){
+  return b64url(JSON.stringify(obj));
+}
+function fromB64url(value){
+  let v = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  while(v.length % 4) v += "=";
+  return Buffer.from(v, "base64").toString("utf8");
+}
+function safeEqualString(a,b){
+  const aa = Buffer.from(String(a || ""));
+  const bb = Buffer.from(String(b || ""));
+  if(aa.length !== bb.length) return false;
+  return crypto.timingSafeEqual(aa, bb);
+}
+function createWorkerOwnerChatToken(workerId, phoneKey){
+  const payload = {
+    purpose: "worker-owner-chat",
+    worker_id: Number(workerId),
+    phone_key: String(phoneKey || ""),
+    exp: Date.now() + OWNER_CHAT_TOKEN_TTL_MS
+  };
+  const body = b64urlJson(payload);
+  const sig = crypto.createHmac("sha256", ownerChatSecret()).update(body).digest("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return `${body}.${sig}`;
+}
+function verifyWorkerOwnerChatToken(token, expectedWorkerId){
+  try{
+    const parts = String(token || "").split(".");
+    if(parts.length !== 2) return null;
+    const [body, sig] = parts;
+    const expected = crypto.createHmac("sha256", ownerChatSecret()).update(body).digest("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    if(!safeEqualString(sig, expected)) return null;
+    const payload = JSON.parse(fromB64url(body));
+    if(payload.purpose !== "worker-owner-chat") return null;
+    if(!payload.exp || Date.now() > Number(payload.exp)) return null;
+    if(expectedWorkerId && Number(payload.worker_id) !== Number(expectedWorkerId)) return null;
+    return payload;
+  }catch(e){ return null; }
+}
+function ownerChatTokenFromReq(req){
+  const auth = String(req.headers.authorization || "");
+  if(auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  return String(req.body?.owner_token || req.body?.token || req.query?.owner_token || req.query?.token || "").trim();
+}
+async function getWorkerForOwnerChat(workerId){
+  const wid = Number(workerId || 0);
+  if(!wid) return { error: "رقم الصنايعي غير صحيح" };
+  const {data,error}=await supabase
+    .from("workers")
+    .select("id,registration_code,name,phone,whatsapp,trade,area,created_at")
+    .eq("id",wid)
+    .limit(1)
+    .single();
+  if(error || !data) return { error: "الصنايعي غير موجود" };
+  return { worker:data };
+}
+function workerPublicChatIdentity(worker){
+  return {
+    id: worker.id,
+    registration_code: worker.registration_code || makeRegistrationCode(worker.id, worker.created_at),
+    name: worker.name || "صنايعي",
+    trade: worker.trade || "",
+    area: worker.area || ""
+  };
+}
+app.post("/api/worker-owner-chat/verify", registrationUpdateRateLimit, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId = req.body.worker_id || req.body.id;
+    const phone = String(req.body.phone || req.body.whatsapp || "").trim();
+    if(!workerId) return res.status(400).json({success:false,error:"رقم الصنايعي مطلوب"});
+    const normalized = normalizeWorkerPhone(phone);
+    if(!normalized || normalized.length < 10) return res.status(400).json({success:false,error:"اكتب رقم الهاتف المسجل بشكل صحيح"});
+    const found = await getWorkerForOwnerChat(workerId);
+    if(found.error) return res.status(404).json({success:false,error:found.error});
+    const worker = found.worker;
+    const keys = workerPhoneKeysFromValues(worker.phone, worker.whatsapp);
+    if(!keys.includes(normalized)){
+      await logAdminActivity("worker_owner_chat_failed_verify",{entity_type:"worker",entity_id:worker.id,entity_name:worker.name||"صنايعي",details:{source:"worker_page",phone_tail:normalized.slice(-4)}});
+      return res.status(403).json({success:false,error:"رقم الهاتف غير مطابق للرقم المسجل لهذا الصنايعي"});
+    }
+    const token = createWorkerOwnerChatToken(worker.id, normalized);
+    const unread = await workerChatUnreadForWorker(worker.id);
+    return res.json({success:true,token,expires_in_ms:OWNER_CHAT_TOKEN_TTL_MS,worker:workerPublicChatIdentity(worker),unread_count:unread});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر التحقق من رقم الهاتف"}); }
+});
+app.get("/api/worker-owner-chat/messages", async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId = Number(req.query.worker_id || req.query.id || 0);
+    const payload = verifyWorkerOwnerChatToken(ownerChatTokenFromReq(req), workerId);
+    if(!payload) return res.status(403).json({success:false,error:"انتهت جلسة التحقق. اكتب رقم الهاتف المسجل مرة أخرى."});
+    const found = await getWorkerForOwnerChat(workerId);
+    if(found.error) return res.status(404).json({success:false,error:found.error});
+    const worker = found.worker;
+    if(String(req.query.mark_read || "true") !== "false"){
+      await supabase.from("worker_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("worker_id",worker.id).eq("sender_type","admin").eq("is_read",false);
+    }
+    const {data,error}=await supabase
+      .from("worker_messages")
+      .select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at")
+      .eq("worker_id",worker.id)
+      .order("created_at",{ascending:true})
+      .limit(250);
+    if(error) return res.status(500).json({success:false,error:"جدول محادثات التطبيق غير جاهز. شغّل ملف SQL الخاص بالشات أولًا."});
+    return res.json({success:true,worker:workerPublicChatIdentity(worker),messages:(data||[]).map(publicMessageRow),unread_count:await workerChatUnreadForWorker(worker.id)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر تحميل محادثة الصنايعي"}); }
+});
+app.post("/api/worker-owner-chat/messages", registrationUpdateRateLimit, chatUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId = Number(req.body.worker_id || req.body.id || 0);
+    const payload = verifyWorkerOwnerChatToken(ownerChatTokenFromReq(req), workerId);
+    if(!payload) return res.status(403).json({success:false,error:"انتهت جلسة التحقق. اكتب رقم الهاتف المسجل مرة أخرى."});
+    const found = await getWorkerForOwnerChat(workerId);
+    if(found.error) return res.status(404).json({success:false,error:found.error});
+    const worker = found.worker;
+    const message = normalizeChatMessage(req.body.message || req.body.message_text || req.body.text);
+    const attachment = chatAttachmentFile(req);
+    if(!message && !attachment) return res.status(400).json({success:false,error:"اكتب رسالة أو ارفع صورة"});
+    let attachment_url = "";
+    let attachment_type = "";
+    if(attachment){
+      attachment_url = await uploadImage(attachment,"chat-attachments");
+      attachment_type = "image";
+    }
+    const {data,error}=await supabase.from("worker_messages").insert({
+      worker_id: worker.id,
+      sender_type: "worker",
+      sender_name: worker.name || "صنايعي",
+      message_text: message,
+      attachment_url,
+      attachment_type,
+      is_read: false
+    }).select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at").single();
+    if(error) return res.status(500).json({success:false,error:"جدول محادثات التطبيق غير جاهز. شغّل ملف SQL الخاص بالشات أولًا."});
+    await logAdminActivity("worker_owner_chat_message",{entity_type:"worker",entity_id:worker.id,entity_name:worker.name||"صنايعي",details:{source:"worker_page",has_attachment:!!attachment_url}});
+    return res.json({success:true,message:"تم إرسال رسالتك للإدارة",row:publicMessageRow(data)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر إرسال الرسالة"}); }
+});
+
+app.get("/api/admin/worker-chat/unread-count", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  return res.json({success:true,unread_count:await workerChatUnreadForAdmin()});
+});
+
+app.get("/api/admin/worker-chat/threads", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const {data:messages,error}=await supabase
+      .from("worker_messages")
+      .select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at")
+      .order("created_at",{ascending:false})
+      .limit(1500);
+    if(error) return res.status(500).json({success:false,error:"جدول محادثات التطبيق غير جاهز. شغّل ملف SQL الخاص بالشات أولًا."});
+    const workerIds = Array.from(new Set((messages||[]).map(m=>m.worker_id).filter(Boolean)));
+    let workers=[];
+    if(workerIds.length){
+      const wr=await supabase.from("workers").select("id,registration_code,name,phone,whatsapp,trade,area,created_at").in("id",workerIds);
+      if(!wr.error) workers = wr.data || [];
+    }
+    const wmap = new Map(workers.map(w=>[String(w.id),w]));
+    const map = new Map();
+    for(const msg of (messages||[])){
+      const key=String(msg.worker_id);
+      if(!map.has(key)){
+        const w=wmap.get(key)||{id:msg.worker_id,name:"صنايعي",registration_code:"",phone:"",whatsapp:"",trade:"",area:""};
+        map.set(key,{worker:w,latest:msg,unread_count:0,total:0});
+      }
+      const item=map.get(key);
+      item.total += 1;
+      if(msg.sender_type === "worker" && !msg.is_read) item.unread_count += 1;
+    }
+    const threads=Array.from(map.values()).map(item=>({
+      worker:{
+        id:item.worker.id,
+        registration_code:item.worker.registration_code || makeRegistrationCode(item.worker.id,item.worker.created_at),
+        name:item.worker.name||"صنايعي",
+        phone:item.worker.phone||"",
+        whatsapp:item.worker.whatsapp||"",
+        trade:item.worker.trade||"",
+        area:item.worker.area||""
+      },
+      latest: publicMessageRow(item.latest),
+      unread_count:item.unread_count,
+      total:item.total
+    })).sort((a,b)=>new Date(b.latest.created_at)-new Date(a.latest.created_at));
+    return res.json({success:true,threads,unread_count:threads.reduce((s,t)=>s+(t.unread_count||0),0)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر تحميل المحادثات"}); }
+});
+
+app.get("/api/admin/worker-chat/threads/:id/messages", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId=id(req);
+    const {data:worker,error:we}=await supabase.from("workers").select("id,registration_code,name,phone,whatsapp,trade,area,created_at").eq("id",workerId).single();
+    if(we||!worker) return res.status(404).json({success:false,error:"الصنايعي غير موجود"});
+    await supabase.from("worker_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("worker_id",workerId).eq("sender_type","worker").eq("is_read",false);
+    const {data,error}=await supabase.from("worker_messages").select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at").eq("worker_id",workerId).order("created_at",{ascending:true}).limit(250);
+    if(error) return res.status(500).json({success:false,error:error.message});
+    return res.json({success:true,worker:{...worker,registration_code:worker.registration_code||makeRegistrationCode(worker.id,worker.created_at)},messages:(data||[]).map(publicMessageRow)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر تحميل المحادثة"}); }
+});
+
+app.post("/api/admin/worker-chat/threads/:id/messages", requirePermission("workers:update"), chatUpload, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const workerId=id(req);
+    const {data:worker,error:we}=await supabase.from("workers").select("id,name,registration_code,created_at").eq("id",workerId).single();
+    if(we||!worker) return res.status(404).json({success:false,error:"الصنايعي غير موجود"});
+    const message=normalizeChatMessage(req.body.message || req.body.message_text || req.body.text);
+    const attachment=chatAttachmentFile(req);
+    if(!message && !attachment) return res.status(400).json({success:false,error:"اكتب رسالة أو ارفع صورة"});
+    let attachment_url="";
+    let attachment_type="";
+    if(attachment){ attachment_url=await uploadImage(attachment,"chat-attachments"); attachment_type="image"; }
+    const senderName=(req.admin && (req.admin.display_name || req.admin.username)) || "إدارة صنايعي مطروح";
+    const {data,error}=await supabase.from("worker_messages").insert({worker_id:workerId,sender_type:"admin",sender_name:senderName,message_text:message,attachment_url,attachment_type,is_read:false}).select("id,worker_id,sender_type,sender_name,message_text,attachment_url,attachment_type,is_read,created_at").single();
+    if(error) return res.status(500).json({success:false,error:error.message});
+    await logAdminActivity("admin_chat_reply",{entity_type:"worker",entity_id:workerId,entity_name:worker.name||"صنايعي",details:{has_attachment:!!attachment_url}});
+    return res.json({success:true,message:"تم إرسال الرد داخل التطبيق",row:publicMessageRow(data)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر إرسال الرد"}); }
 });
 
 app.get("/api/workers/:id", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("id",id(req)).single(); if(error||!data)return res.status(404).json({success:false,error:"الصنايعي غير موجود"}); const scored=await attachSmartScoresToWorkers([data]); res.json(scored[0]||data); });

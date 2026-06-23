@@ -1214,6 +1214,231 @@
       .mobile-sticky-contact a i { font-size: 13px !important; }
     }
 
+
+    /* Worker owner verified in-app chat */
+    .owner-chat-card {
+      margin-top: 14px;
+      background: linear-gradient(180deg, #f8fafc, #ffffff);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      border-radius: 22px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+    .owner-chat-intro {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .owner-chat-intro i {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #061A3D, #1d4ed8);
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 12px 22px rgba(29, 78, 216, 0.22);
+    }
+    .owner-chat-intro strong {
+      display: block;
+      color: #061A3D;
+      font-size: 14px;
+      font-weight: 950;
+      margin-bottom: 3px;
+    }
+    .owner-chat-intro span {
+      display: block;
+      color: #64748b;
+      font-size: 11.5px;
+      font-weight: 800;
+      line-height: 1.75;
+    }
+    .owner-chat-open-btn,
+    .owner-chat-verify-btn,
+    .owner-chat-send-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-weight: 950;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .owner-chat-open-btn {
+      background: #061A3D;
+      color: #fff;
+    }
+    .owner-chat-open-btn:hover { background: #0b2a66; transform: translateY(-1px); }
+    .owner-chat-verify-box,
+    .owner-chat-panel {
+      display: none;
+      margin-top: 12px;
+    }
+    .owner-chat-verify-box.show,
+    .owner-chat-panel.show { display: block; }
+    .owner-chat-verify-box input,
+    .owner-chat-compose textarea {
+      width: 100%;
+      border: 1px solid #dbe3ef;
+      border-radius: 16px;
+      padding: 12px 13px;
+      font-family: inherit;
+      font-weight: 850;
+      outline: none;
+      background: #fff;
+      color: #0f172a;
+    }
+    .owner-chat-verify-box input:focus,
+    .owner-chat-compose textarea:focus {
+      border-color: #1d4ed8;
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, .10);
+    }
+    .owner-chat-verify-btn {
+      margin-top: 8px;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: #fff;
+    }
+    .owner-chat-note,
+    .owner-chat-status {
+      margin-top: 8px;
+      color: #64748b;
+      font-size: 11.5px;
+      line-height: 1.7;
+      font-weight: 800;
+    }
+    .owner-chat-status.error { color: #b91c1c; }
+    .owner-chat-status.success { color: #166534; }
+    .owner-chat-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .owner-chat-toolbar strong {
+      color: #061A3D;
+      font-size: 13px;
+      font-weight: 950;
+    }
+    .owner-chat-badge {
+      display: none;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 950;
+      align-items: center;
+      justify-content: center;
+      padding: 0 7px;
+    }
+    .owner-chat-badge.show { display: inline-flex; }
+    .owner-chat-refresh,
+    .owner-chat-logout {
+      border: 0;
+      background: #eef2ff;
+      color: #1d4ed8;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 950;
+      cursor: pointer;
+    }
+    .owner-chat-logout { background: #fff1f2; color: #be123c; }
+    .owner-chat-messages {
+      max-height: 280px;
+      overflow-y: auto;
+      display: grid;
+      gap: 9px;
+      padding: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+    }
+    .owner-chat-empty {
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 850;
+      padding: 18px 8px;
+      line-height: 1.8;
+    }
+    .owner-chat-msg {
+      max-width: 86%;
+      border-radius: 17px;
+      padding: 10px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.8;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    }
+    .owner-chat-msg.admin {
+      justify-self: start;
+      background: #fff;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+    .owner-chat-msg.worker {
+      justify-self: end;
+      background: linear-gradient(135deg, #061A3D, #1d4ed8);
+      color: #fff;
+    }
+    .owner-chat-msg small {
+      display: block;
+      opacity: .72;
+      font-size: 10px;
+      margin-bottom: 3px;
+      font-weight: 950;
+    }
+    .owner-chat-msg a {
+      display: inline-flex;
+      margin-top: 6px;
+      color: inherit;
+      text-decoration: underline;
+      font-weight: 950;
+    }
+    .owner-chat-compose {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .owner-chat-compose textarea {
+      min-height: 78px;
+      resize: vertical;
+    }
+    .owner-chat-file {
+      display: grid;
+      gap: 5px;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 850;
+    }
+    .owner-chat-file input {
+      width: 100%;
+      font-size: 11px;
+    }
+    .owner-chat-send-btn {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
+    }
+    .owner-chat-send-btn:disabled,
+    .owner-chat-verify-btn:disabled {
+      opacity: .62;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+
 </style>
 
   <!-- PWA -->
@@ -1515,6 +1740,57 @@
               <div class="contact-tip">
                 <i class="fa-solid fa-circle-info"></i>
                 <span>اتفق على السعر والتفاصيل قبل بداية الشغل. لو الرقم غير صحيح أو البيانات محتاجة مراجعة، استخدم زر البلاغ.</span>
+              </div>
+
+
+              <div class="owner-chat-card" id="ownerChatCard">
+                <div class="owner-chat-intro">
+                  <i class="fa-solid fa-user-shield"></i>
+                  <div>
+                    <strong>خاص بالصنايعي</strong>
+                    <span>لو أنت صاحب هذا الحساب، تحقق برقم الهاتف المسجل لفتح رسائل الإدارة داخل التطبيق.</span>
+                  </div>
+                </div>
+                <button type="button" class="owner-chat-open-btn" id="ownerChatOpenBtn">
+                  <i class="fa-solid fa-comments"></i>
+                  دخول الصنايعي / مراسلة الإدارة
+                  <span class="owner-chat-badge" id="ownerChatBadge">0</span>
+                </button>
+
+                <div class="owner-chat-verify-box" id="ownerChatVerifyBox">
+                  <input type="tel" id="ownerPhoneInput" inputmode="tel" autocomplete="tel" placeholder="اكتب رقم الهاتف المسجل في الإدارة">
+                  <button type="button" class="owner-chat-verify-btn" id="ownerVerifyBtn">
+                    <i class="fa-solid fa-shield-check"></i>
+                    تحقق وافتح المحادثة
+                  </button>
+                  <div class="owner-chat-note">هذا الجزء لا يظهر رسائل الإدارة إلا بعد مطابقة رقم الهاتف المسجل لهذا الصنايعي.</div>
+                  <div class="owner-chat-status" id="ownerChatStatus"></div>
+                </div>
+
+                <div class="owner-chat-panel" id="ownerChatPanel">
+                  <div class="owner-chat-toolbar">
+                    <strong><i class="fa-solid fa-message"></i> محادثة الإدارة</strong>
+                    <div>
+                      <button type="button" class="owner-chat-refresh" id="ownerChatRefreshBtn">تحديث</button>
+                      <button type="button" class="owner-chat-logout" id="ownerChatLogoutBtn">خروج</button>
+                    </div>
+                  </div>
+                  <div class="owner-chat-messages" id="ownerChatMessages">
+                    <div class="owner-chat-empty">جاري تحميل المحادثة...</div>
+                  </div>
+                  <form class="owner-chat-compose" id="ownerChatForm">
+                    <textarea id="ownerChatText" placeholder="اكتب رسالتك للإدارة..."></textarea>
+                    <label class="owner-chat-file">
+                      صورة اختيارية
+                      <input type="file" id="ownerChatAttachment" accept="image/*">
+                    </label>
+                    <button type="submit" class="owner-chat-send-btn" id="ownerChatSendBtn">
+                      <i class="fa-solid fa-paper-plane"></i>
+                      إرسال للإدارة
+                    </button>
+                    <div class="owner-chat-status" id="ownerChatSendStatus"></div>
+                  </form>
+                </div>
               </div>
 
               <a href="/" class="details-back">
@@ -2217,6 +2493,271 @@
       }
     }
 
+
+    // ===============================
+    // Owner verified in-app chat
+    // ===============================
+    let ownerChatState = {
+      workerId: "",
+      workerName: "",
+      token: "",
+      timer: null,
+      ready: false
+    };
+
+    function ownerChatStorageKey(workerId) {
+      return "sanay3i_owner_chat_token_" + String(workerId || "");
+    }
+
+    function ownerChatEls() {
+      return {
+        openBtn: document.getElementById("ownerChatOpenBtn"),
+        badge: document.getElementById("ownerChatBadge"),
+        verifyBox: document.getElementById("ownerChatVerifyBox"),
+        phoneInput: document.getElementById("ownerPhoneInput"),
+        verifyBtn: document.getElementById("ownerVerifyBtn"),
+        status: document.getElementById("ownerChatStatus"),
+        panel: document.getElementById("ownerChatPanel"),
+        messages: document.getElementById("ownerChatMessages"),
+        form: document.getElementById("ownerChatForm"),
+        text: document.getElementById("ownerChatText"),
+        file: document.getElementById("ownerChatAttachment"),
+        sendBtn: document.getElementById("ownerChatSendBtn"),
+        sendStatus: document.getElementById("ownerChatSendStatus"),
+        refreshBtn: document.getElementById("ownerChatRefreshBtn"),
+        logoutBtn: document.getElementById("ownerChatLogoutBtn")
+      };
+    }
+
+    function ownerChatStatus(type, text) {
+      const el = ownerChatEls().status;
+      if (!el) return;
+      el.className = "owner-chat-status " + (type || "");
+      el.textContent = text || "";
+    }
+
+    function ownerChatSendStatus(type, text) {
+      const el = ownerChatEls().sendStatus;
+      if (!el) return;
+      el.className = "owner-chat-status " + (type || "");
+      el.textContent = text || "";
+    }
+
+    function ownerChatSetBadge(count) {
+      const badge = ownerChatEls().badge;
+      if (!badge) return;
+      const n = Number(count || 0);
+      badge.textContent = n > 99 ? "+99" : String(n);
+      badge.classList.toggle("show", n > 0);
+    }
+
+    function ownerChatShowVerify() {
+      const els = ownerChatEls();
+      if (els.verifyBox) els.verifyBox.classList.toggle("show");
+      if (els.panel) els.panel.classList.remove("show");
+    }
+
+    function ownerChatShowPanel() {
+      const els = ownerChatEls();
+      if (els.verifyBox) els.verifyBox.classList.remove("show");
+      if (els.panel) els.panel.classList.add("show");
+    }
+
+    function ownerChatLogout() {
+      if (ownerChatState.timer) clearInterval(ownerChatState.timer);
+      ownerChatState.token = "";
+      ownerChatState.ready = false;
+      try { localStorage.removeItem(ownerChatStorageKey(ownerChatState.workerId)); } catch (e) {}
+      const els = ownerChatEls();
+      if (els.panel) els.panel.classList.remove("show");
+      if (els.verifyBox) els.verifyBox.classList.add("show");
+      if (els.messages) els.messages.innerHTML = '<div class="owner-chat-empty">اكتب رقم الهاتف المسجل لفتح المحادثة.</div>';
+      ownerChatSetBadge(0);
+      ownerChatStatus("", "تم تسجيل الخروج من محادثة الصنايعي على هذا الجهاز.");
+    }
+
+    function ownerChatFormatTime(value) {
+      try {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "";
+        return d.toLocaleString("ar-EG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+      } catch (e) { return ""; }
+    }
+
+    function ownerChatRender(messages) {
+      const box = ownerChatEls().messages;
+      if (!box) return;
+      box.innerHTML = "";
+      if (!Array.isArray(messages) || !messages.length) {
+        box.innerHTML = '<div class="owner-chat-empty">لا توجد رسائل بعد. يمكنك إرسال رسالة للإدارة من هنا.</div>';
+        return;
+      }
+      messages.forEach(function (m) {
+        const item = document.createElement("div");
+        item.className = "owner-chat-msg " + (m.sender_type === "admin" ? "admin" : "worker");
+
+        const meta = document.createElement("small");
+        meta.textContent = (m.sender_type === "admin" ? "الإدارة" : "أنت") + " • " + ownerChatFormatTime(m.created_at);
+        item.appendChild(meta);
+
+        if (m.message_text) {
+          const text = document.createElement("div");
+          text.textContent = m.message_text;
+          item.appendChild(text);
+        }
+        if (m.attachment_url) {
+          const link = document.createElement("a");
+          link.href = m.attachment_url;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = "عرض المرفق";
+          item.appendChild(link);
+        }
+        box.appendChild(item);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function ownerChatLoadMessages(silent) {
+      if (!ownerChatState.workerId || !ownerChatState.token) return;
+      const els = ownerChatEls();
+      if (!silent && els.messages) els.messages.innerHTML = '<div class="owner-chat-empty">جاري تحميل المحادثة...</div>';
+      try {
+        const r = await fetch("/api/worker-owner-chat/messages?worker_id=" + encodeURIComponent(ownerChatState.workerId), {
+          headers: { "Authorization": "Bearer " + ownerChatState.token }
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || "تعذر تحميل المحادثة");
+        ownerChatRender(d.messages || []);
+        ownerChatSetBadge(d.unread_count || 0);
+        ownerChatSendStatus("", "");
+        ownerChatStatus("success", "تم فتح المحادثة. يمكنك مراسلة الإدارة من هنا.");
+        ownerChatShowPanel();
+        if (ownerChatState.timer) clearInterval(ownerChatState.timer);
+        ownerChatState.timer = setInterval(function () { ownerChatLoadMessages(true); }, 15000);
+      } catch (e) {
+        if (!silent) ownerChatStatus("error", e.message || "تعذر تحميل المحادثة");
+        try { localStorage.removeItem(ownerChatStorageKey(ownerChatState.workerId)); } catch (err) {}
+        ownerChatState.token = "";
+        if (!silent) {
+          if (els.panel) els.panel.classList.remove("show");
+          if (els.verifyBox) els.verifyBox.classList.add("show");
+        }
+      }
+    }
+
+    async function ownerChatVerifyPhone() {
+      const els = ownerChatEls();
+      const phone = (els.phoneInput && els.phoneInput.value || "").trim();
+      if (!phone) return ownerChatStatus("error", "اكتب رقم الهاتف المسجل في الإدارة أولًا");
+      if (els.verifyBtn) {
+        els.verifyBtn.disabled = true;
+        els.verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+      }
+      ownerChatStatus("", "جاري مطابقة الرقم...");
+      try {
+        const r = await fetch("/api/worker-owner-chat/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ worker_id: ownerChatState.workerId, phone: phone })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || "فشل التحقق من الرقم");
+        ownerChatState.token = d.token;
+        ownerChatState.ready = true;
+        try { localStorage.setItem(ownerChatStorageKey(ownerChatState.workerId), d.token); } catch (e) {}
+        ownerChatSetBadge(d.unread_count || 0);
+        ownerChatStatus("success", "تم التحقق بنجاح. جاري فتح المحادثة...");
+        await ownerChatLoadMessages(false);
+      } catch (e) {
+        ownerChatStatus("error", e.message || "رقم الهاتف غير مطابق");
+      } finally {
+        if (els.verifyBtn) {
+          els.verifyBtn.disabled = false;
+          els.verifyBtn.innerHTML = '<i class="fa-solid fa-shield-check"></i> تحقق وافتح المحادثة';
+        }
+      }
+    }
+
+    async function ownerChatSendMessage(e) {
+      e.preventDefault();
+      if (!ownerChatState.workerId || !ownerChatState.token) return ownerChatSendStatus("error", "تحقق برقم الهاتف أولًا");
+      const els = ownerChatEls();
+      const text = (els.text && els.text.value || "").trim();
+      const file = els.file && els.file.files && els.file.files[0];
+      if (!text && !file) return ownerChatSendStatus("error", "اكتب رسالة أو ارفع صورة");
+      if (els.sendBtn) {
+        els.sendBtn.disabled = true;
+        els.sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+      }
+      ownerChatSendStatus("", "جاري إرسال الرسالة...");
+      try {
+        const fd = new FormData();
+        fd.append("worker_id", ownerChatState.workerId);
+        fd.append("owner_token", ownerChatState.token);
+        fd.append("message", text);
+        if (file) fd.append("attachment", file);
+        const r = await fetch("/api/worker-owner-chat/messages", { method: "POST", body: fd });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال الرسالة");
+        if (els.text) els.text.value = "";
+        if (els.file) els.file.value = "";
+        ownerChatSendStatus("success", "تم إرسال رسالتك للإدارة");
+        await ownerChatLoadMessages(true);
+      } catch (e) {
+        ownerChatSendStatus("error", e.message || "تعذر إرسال الرسالة");
+      } finally {
+        if (els.sendBtn) {
+          els.sendBtn.disabled = false;
+          els.sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> إرسال للإدارة';
+        }
+      }
+    }
+
+    function initOwnerChatForWorker(workerId, workerName) {
+      ownerChatState.workerId = String(workerId || "");
+      ownerChatState.workerName = workerName || "صنايعي";
+      const els = ownerChatEls();
+      if (!els.openBtn || !ownerChatState.workerId) return;
+      if (els.openBtn.dataset.ready !== "1") {
+        els.openBtn.dataset.ready = "1";
+        els.openBtn.addEventListener("click", ownerChatShowVerify);
+      }
+      if (els.verifyBtn && els.verifyBtn.dataset.ready !== "1") {
+        els.verifyBtn.dataset.ready = "1";
+        els.verifyBtn.addEventListener("click", ownerChatVerifyPhone);
+      }
+      if (els.phoneInput && els.phoneInput.dataset.ready !== "1") {
+        els.phoneInput.dataset.ready = "1";
+        els.phoneInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            ownerChatVerifyPhone();
+          }
+        });
+      }
+      if (els.form && els.form.dataset.ready !== "1") {
+        els.form.dataset.ready = "1";
+        els.form.addEventListener("submit", ownerChatSendMessage);
+      }
+      if (els.refreshBtn && els.refreshBtn.dataset.ready !== "1") {
+        els.refreshBtn.dataset.ready = "1";
+        els.refreshBtn.addEventListener("click", function(){ ownerChatLoadMessages(false); });
+      }
+      if (els.logoutBtn && els.logoutBtn.dataset.ready !== "1") {
+        els.logoutBtn.dataset.ready = "1";
+        els.logoutBtn.addEventListener("click", ownerChatLogout);
+      }
+      try {
+        const saved = localStorage.getItem(ownerChatStorageKey(ownerChatState.workerId));
+        if (saved) {
+          ownerChatState.token = saved;
+          ownerChatShowPanel();
+          ownerChatLoadMessages(false);
+        }
+      } catch (e) {}
+    }
+
     async function loadWorker() {
       const id = idFromUrl();
 
@@ -2271,6 +2812,7 @@
         }
 
         currentReportWorker = { id: id, name: name };
+        initOwnerChatForWorker(id, name);
         ["reportBtn", "mobileReportBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {

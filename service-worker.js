@@ -1,5 +1,5 @@
-// Service Worker - no-cache admin fix V8 + navy splash + registration required actions + whatsapp inbox webhook + professional home header + Matrouh hero image patch + admin full worker control
-const CACHE_NAME = 'sanay3i-no-admin-cache-v8-admin-full-control-admin-stability-20260622';
+// Service Worker - no-cache admin fix V8 + navy splash + registration required actions + whatsapp inbox webhook + professional home header + Matrouh hero image patch + admin full worker control + owner phone verified chat
+const CACHE_NAME = 'sanay3i-no-admin-cache-v8-owner-phone-chat-20260622';
 self.addEventListener('install', event => { self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', event => {
