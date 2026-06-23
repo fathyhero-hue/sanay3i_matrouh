@@ -2383,7 +2383,9 @@
 <script>
 (function(){
   const CUSTOMER_SUPPORT_PHONE = "+201222264993";
-  let supportTimer = null;
+  let supportWs = null;
+  let supportWsReconnectTimer = null;
+  let supportFallbackTimer = null;
   function q(id){ return document.getElementById(id); }
   function esc(v){ return String(v ?? "").replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c] || c)); }
   function when(v){ try { return new Date(v).toLocaleString("ar-EG", {dateStyle:"short", timeStyle:"short"}); } catch(e){ return ""; } }
@@ -2391,10 +2393,64 @@
   function setSupportState(s){ localStorage.setItem("sanay3i_support_chat", JSON.stringify(s || {})); }
   function setError(msg){ const el=q("supportError"); if(!el) return; el.textContent = msg || ""; el.classList.toggle("show", !!msg); }
   function authHeaders(){ const s=supportState(); return s.token ? {"Authorization":"Bearer " + s.token} : {}; }
+  function supportRealtimeUrl(){ return (location.protocol === "https:" ? "wss://" : "ws://") + location.host; }
+  function supportRealtimeIsOpen(){ return typeof WebSocket !== "undefined" && supportWs && supportWs.readyState === WebSocket.OPEN; }
+  function supportRealtimeOpenState(){ return typeof WebSocket !== "undefined" && supportWs && (supportWs.readyState === WebSocket.OPEN || supportWs.readyState === WebSocket.CONNECTING); }
+  function supportPanelIsOpen(){
+    const panel=q("supportChatPanel"), conv=q("supportConversationBox");
+    return !!(panel && panel.classList.contains("show") && conv && conv.style.display !== "none");
+  }
+  function stopSupportFallback(){ if(supportFallbackTimer){ clearTimeout(supportFallbackTimer); supportFallbackTimer=null; } }
+  function startSupportFallback(){
+    stopSupportFallback();
+    const s=supportState();
+    if(!s.conversation_id || !s.token || !supportPanelIsOpen()) return;
+    supportFallbackTimer=setTimeout(async function(){
+      if(supportRealtimeIsOpen() || !supportPanelIsOpen()){ stopSupportFallback(); return; }
+      try{ await window.supportLoadMessages(false, true); }catch(e){}
+      startSupportFallback();
+    }, 5000);
+  }
+  function ensureSupportRealtime(){
+    const s=supportState();
+    if(!s.conversation_id || !s.token || typeof WebSocket === "undefined"){ startSupportFallback(); return; }
+    if(supportRealtimeOpenState()){ if(supportRealtimeIsOpen()) stopSupportFallback(); return; }
+    try{
+      supportWs = new WebSocket(supportRealtimeUrl());
+      supportWs.onopen = function(){
+        stopSupportFallback();
+        try{ supportWs.send(JSON.stringify({type:"subscribe", scope:"support_chat", conversation_id:Number(supportState().conversation_id || 0)})); }catch(e){}
+      };
+      supportWs.onmessage = function(evt){
+        let msg=null;
+        try{ msg=JSON.parse(evt.data); }catch(e){ return; }
+        if(!msg || msg.type !== "support_chat") return;
+        const data=msg.data || {};
+        const current=supportState();
+        if(Number(data.conversation_id || 0) !== Number(current.conversation_id || 0)) return;
+        if(data.event === "admin_message" || data.event === "thread_update"){
+          const panel=q("supportChatPanel");
+          if(panel && panel.classList.contains("show")) window.supportLoadMessages(false, true);
+          else {
+            const dot=document.querySelector(".support-float-btn .support-dot");
+            if(dot) dot.style.background = "#f59e0b";
+          }
+        }
+      };
+      supportWs.onclose = function(){
+        supportWs = null;
+        startSupportFallback();
+        clearTimeout(supportWsReconnectTimer);
+        supportWsReconnectTimer = setTimeout(ensureSupportRealtime, 5000);
+      };
+      supportWs.onerror = function(){ try{ supportWs.close(); }catch(e){} };
+      setTimeout(function(){ if(!supportRealtimeIsOpen()) startSupportFallback(); }, 2500);
+    }catch(e){ startSupportFallback(); }
+  }
   window.supportOpenSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.add("show"); document.body.style.overflow="hidden"; const s=supportState(); if(s.phone && q("supportCustomerPhone")) q("supportCustomerPhone").value=s.phone; };
-  window.supportCloseSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.remove("show"); document.body.style.overflow=""; };
+  window.supportCloseSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.remove("show"); document.body.style.overflow=""; stopSupportFallback(); };
   window.supportBackdropClick = function(e){ if(e && e.target && e.target.id === "supportBackdrop") window.supportCloseSheet(); };
-  window.supportOpenChatPanel = function(){ const p=q("supportChatPanel"); if(p) p.classList.add("show"); setError(""); const s=supportState(); if(s.conversation_id && s.token){ q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block"; supportLoadMessages(); } };
+  window.supportOpenChatPanel = function(){ const p=q("supportChatPanel"); if(p) p.classList.add("show"); setError(""); const s=supportState(); if(s.conversation_id && s.token){ q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block"; supportLoadMessages(); ensureSupportRealtime(); startSupportFallback(); } };
   window.supportStartChat = async function(){
     setError("");
     const phone=String(q("supportCustomerPhone")?.value||"").trim();
@@ -2407,9 +2463,11 @@
       setSupportState({token:d.token,conversation_id:d.conversation.id,phone:d.conversation.phone || phone,name:d.conversation.customer_name || name});
       q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block";
       supportLoadMessages();
+      ensureSupportRealtime();
+      startSupportFallback();
     }catch(err){ setError(err.message || "تعذر بدء المحادثة"); }
   };
-  window.supportLoadMessages = async function(markRead){
+  window.supportLoadMessages = async function(markRead, fromRealtime){
     const s=supportState(); if(!s.conversation_id || !s.token) return;
     try{
       const r=await fetch("/api/support-chat/messages?conversation_id="+encodeURIComponent(s.conversation_id)+"&mark_read="+(markRead===false?"false":"true"),{headers:authHeaders()});
@@ -2421,8 +2479,8 @@
         box.innerHTML=list.length ? list.map(m=>`<div class="support-msg ${m.sender_type==='admin'?'admin':'customer'}"><b>${m.sender_type==='admin'?'خدمة العملاء':'أنت'}</b><br>${esc(m.message_text||'')}<small>${esc(when(m.created_at))}</small></div>`).join("") : '<div class="support-note">اكتب رسالتك وسيتم الرد عليك من الإدارة.</div>';
         box.scrollTop=box.scrollHeight;
       }
-      if(supportTimer) clearInterval(supportTimer);
-      supportTimer=setInterval(()=>{ const panel=q("supportChatPanel"); if(panel && panel.classList.contains("show")) window.supportLoadMessages(false); },15000);
+      ensureSupportRealtime();
+      if(!supportRealtimeIsOpen()) startSupportFallback();
     }catch(err){ setError(err.message || "تعذر تحميل المحادثة"); }
   };
   window.supportSendMessage = async function(e){
@@ -2441,6 +2499,7 @@
     finally{ if(btn){btn.disabled=false;btn.innerHTML=old;} }
   };
   window.addEventListener("keydown", function(e){ if(e.key === "Escape") window.supportCloseSheet(); });
+  window.addEventListener("beforeunload", function(){ stopSupportFallback(); try{ if(supportWs) supportWs.close(); }catch(e){} });
 })();
 </script>
 

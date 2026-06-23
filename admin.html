@@ -2504,8 +2504,6 @@ async function loadAdminSupportMessages(conversationId){
     document.getElementById('adminSupportForm').style.display='grid';
     renderAdminSupportMessages(d.messages||[]);
     await loadAdminSupportThreads();
-    if(adminSupportTimer)clearInterval(adminSupportTimer);
-    adminSupportTimer=setInterval(()=>{ if(document.getElementById('supportSection')?.classList.contains('active') && adminSupportCurrentId) loadAdminSupportMessages(adminSupportCurrentId); },20000);
   }catch(e){ if(box)box.innerHTML='<div class="chat-empty">'+chatAdminEsc(e.message||'تعذر تحميل المحادثة')+'</div>'; }
 }
 async function sendAdminSupportMessage(e){
@@ -2525,7 +2523,6 @@ async function sendAdminSupportMessage(e){
   }catch(err){toast('error',err.message||'تعذر إرسال الرد')}
   finally{if(btn){btn.disabled=false;btn.innerHTML=old;}}
 }
-setInterval(updateAdminSupportBadge,45000);
 setTimeout(updateAdminSupportBadge,2800);
 
 setInterval(updateAdminChatBadge,45000);
@@ -2547,21 +2544,58 @@ checkLogin();
 
 
 <script>
-const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+let adminSupportWs = null;
+let adminSupportFallbackTimer = null;
+function adminSupportWsOpen(){ return typeof WebSocket !== "undefined" && adminSupportWs && adminSupportWs.readyState === WebSocket.OPEN; }
+function adminSupportStartFallback(){
+  if(adminSupportFallbackTimer) clearTimeout(adminSupportFallbackTimer);
+  adminSupportFallbackTimer = setTimeout(async function(){
+    try{
+      await updateAdminSupportBadge();
+      if(document.getElementById('supportSection')?.classList.contains('active')){
+        if(adminSupportCurrentId) await loadAdminSupportMessages(adminSupportCurrentId);
+        else await loadAdminSupportThreads();
+      }
+    }catch(e){}
+    if(!adminSupportWsOpen()) adminSupportStartFallback();
+  }, 5000);
+}
+try{
+  adminSupportWs = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  adminSupportWs.onopen = () => {
+    if(adminSupportFallbackTimer){ clearTimeout(adminSupportFallbackTimer); adminSupportFallbackTimer=null; }
+    try { adminSupportWs.send(JSON.stringify({type:"subscribe", scope:"admin_support_chat"})); } catch(e) {}
+  };
+  adminSupportWs.onclose = () => { adminSupportStartFallback(); };
+  adminSupportWs.onerror = () => { try{ adminSupportWs.close(); }catch(e){} };
+  setTimeout(function(){ if(!adminSupportWsOpen()) adminSupportStartFallback(); },2500);
+  adminSupportWs.onmessage = async (msg) => {
+    let res = null;
+    try { res = JSON.parse(msg.data); } catch(e) { return; }
 
-ws.onmessage = async (msg) => {
-  const res = JSON.parse(msg.data);
+    if(res.type === "stats"){
+      if(document.getElementById("total")) document.getElementById("total").innerText = res.data.total;
+      if(document.getElementById("pending")) document.getElementById("pending").innerText = res.data.pending;
+      if(document.getElementById("approved")) document.getElementById("approved").innerText = res.data.approved;
+    }
 
-  if(res.type === "stats"){
-    if(document.getElementById("total")) document.getElementById("total").innerText = res.data.total;
-    if(document.getElementById("pending")) document.getElementById("pending").innerText = res.data.pending;
-    if(document.getElementById("approved")) document.getElementById("approved").innerText = res.data.approved;
-  }
+    if(res.type === "support_chat"){
+      const data = res.data || {};
+      try { await updateAdminSupportBadge(); } catch(e) {}
+      if(document.getElementById('supportSection')?.classList.contains('active')){
+        if(adminSupportCurrentId && Number(data.conversation_id || 0) === Number(adminSupportCurrentId)){
+          await loadAdminSupportMessages(adminSupportCurrentId);
+        }else{
+          await loadAdminSupportThreads();
+        }
+      }
+    }
 
-  if(res.type === "init"){
-    console.log("Realtime connected");
-  }
-};
+    if(res.type === "init"){
+      console.log("Realtime connected");
+    }
+  };
+}catch(e){ adminSupportStartFallback(); }
 </script>
 </body>
 

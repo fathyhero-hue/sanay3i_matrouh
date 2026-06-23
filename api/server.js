@@ -2009,6 +2009,23 @@ async function supportUnreadForCustomer(conversationId){
   }catch(e){ return 0; }
 }
 
+function broadcastSupportChat(event, conversationId, extra = {}){
+  try{
+    const cid = Number(conversationId || 0);
+    if(!cid || !wss) return;
+    const payload = JSON.stringify({
+      type: "support_chat",
+      data: Object.assign({event:String(event || "update"), conversation_id:cid, at:new Date().toISOString()}, extra || {})
+    });
+    wss.clients.forEach(client => {
+      if(!client || client.readyState !== 1) return;
+      const scope = String(client._sanay3iScope || "");
+      if(scope === "admin_support_chat") return client.send(payload);
+      if(scope === "support_chat" && Number(client._supportConversationId || 0) === cid) return client.send(payload);
+    });
+  }catch(e){}
+}
+
 app.post("/api/support-chat/start", registrationUpdateRateLimit, async (req,res)=>{
   if(!ready(res))return;
   try{
@@ -2025,7 +2042,8 @@ app.post("/api/support-chat/start", registrationUpdateRateLimit, async (req,res)
       const inserted = await supabase.from("support_chat_conversations").insert({phone:phoneRaw || phoneKey, phone_key:phoneKey, customer_name:customerName || "عميل", status:"open", last_message_at:new Date().toISOString()}).select("id,phone,phone_key,customer_name,status,last_message_at,created_at").single();
       if(inserted.error) return res.status(500).json({success:false,error:"تعذر بدء محادثة خدمة العملاء"});
       conv = inserted.data;
-      await supabase.from("support_chat_messages").insert({conversation_id:conv.id,sender_type:"customer",sender_name:customerName||"عميل",message_text:"بدأ العميل محادثة جديدة مع خدمة العملاء.",is_read:false});
+      const startMsg = await supabase.from("support_chat_messages").insert({conversation_id:conv.id,sender_type:"customer",sender_name:customerName||"عميل",message_text:"بدأ العميل محادثة جديدة مع خدمة العملاء.",is_read:false}).select("id").single();
+      broadcastSupportChat("new_conversation", conv.id, {message_id:startMsg.data?.id || null});
     }else if(customerName && customerName !== conv.customer_name){
       await supabase.from("support_chat_conversations").update({customer_name:customerName}).eq("id",conv.id);
       conv.customer_name = customerName;
@@ -2045,6 +2063,7 @@ app.get("/api/support-chat/messages", async (req,res)=>{
     if(convRes.error || !convRes.data) return res.status(404).json({success:false,error:"المحادثة غير موجودة"});
     if(String(req.query.mark_read || "true") !== "false"){
       await supabase.from("support_chat_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("conversation_id",conversationId).eq("sender_type","admin").eq("is_read",false);
+      broadcastSupportChat("customer_read", conversationId);
     }
     const {data,error}=await supabase.from("support_chat_messages").select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").eq("conversation_id",conversationId).order("created_at",{ascending:true}).limit(250);
     if(error) return res.status(500).json({success:false,error:"تعذر تحميل رسائل خدمة العملاء"});
@@ -2066,6 +2085,7 @@ app.post("/api/support-chat/messages", registrationUpdateRateLimit, async (req,r
     const {data,error}=await supabase.from("support_chat_messages").insert({conversation_id:conversationId,sender_type:"customer",sender_name:senderName,message_text:message,is_read:false}).select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").single();
     if(error) return res.status(500).json({success:false,error:"تعذر إرسال الرسالة"});
     await supabase.from("support_chat_conversations").update({last_message_at:new Date().toISOString()}).eq("id",conversationId);
+    broadcastSupportChat("customer_message", conversationId, {message_id:data.id,row:supportPublicMessage(data)});
     return res.json({success:true,message:"تم إرسال رسالتك لخدمة العملاء",row:supportPublicMessage(data)});
   }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر إرسال الرسالة"}); }
 });
@@ -2106,6 +2126,7 @@ app.get("/api/admin/support-chat/threads/:id/messages", requirePermission("worke
     const convRes = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status,last_message_at,created_at").eq("id",conversationId).single();
     if(convRes.error || !convRes.data) return res.status(404).json({success:false,error:"المحادثة غير موجودة"});
     await supabase.from("support_chat_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("conversation_id",conversationId).eq("sender_type","customer").eq("is_read",false);
+    broadcastSupportChat("admin_read", conversationId);
     const {data,error}=await supabase.from("support_chat_messages").select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").eq("conversation_id",conversationId).order("created_at",{ascending:true}).limit(250);
     if(error) return res.status(500).json({success:false,error:error.message});
     return res.json({success:true,conversation:supportPublicConversation(convRes.data),messages:(data||[]).map(supportPublicMessage)});
@@ -2125,6 +2146,7 @@ app.post("/api/admin/support-chat/threads/:id/messages", requirePermission("work
     if(error) return res.status(500).json({success:false,error:error.message});
     await supabase.from("support_chat_conversations").update({last_message_at:new Date().toISOString()}).eq("id",conversationId);
     await logAdminActivity("support_chat_reply",{entity_type:"support_chat",entity_id:conversationId,entity_name:convRes.data.phone||"عميل",details:{source:"admin_panel"}});
+    broadcastSupportChat("admin_message", conversationId, {message_id:data.id,row:supportPublicMessage(data)});
     return res.json({success:true,message:"تم إرسال رد خدمة العملاء",row:supportPublicMessage(data)});
   }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر إرسال الرد"}); }
 });
@@ -3923,6 +3945,8 @@ let WebSocket = null;
 try { WebSocket = require("ws"); } catch(e) { WebSocket = null; }
 
 const server = http.createServer(app);
+// Expose the same HTTP server to local server.js so WebSocket upgrades use the real listening server.
+app.__sanay3iHttpServer = server;
 const wss = WebSocket ? new WebSocket.Server({ server }) : null;
 
 // store last stats in memory
@@ -3956,6 +3980,23 @@ async function refreshLiveStats() {
 
 // websocket connection
 if (wss) wss.on("connection", (ws) => {
+  ws._sanay3iScope = "";
+  ws._supportConversationId = 0;
+  ws.on("message", (raw) => {
+    try{
+      const msg = JSON.parse(String(raw || ""));
+      if(msg.type === "subscribe"){
+        const scope = String(msg.scope || "").trim();
+        if(scope === "admin_support_chat"){
+          ws._sanay3iScope = "admin_support_chat";
+          ws._supportConversationId = 0;
+        }else if(scope === "support_chat"){
+          ws._sanay3iScope = "support_chat";
+          ws._supportConversationId = Number(msg.conversation_id || 0);
+        }
+      }
+    }catch(e){}
+  });
   ws.send(JSON.stringify({ type:"init", data: LIVE_STATS }));
 });
 
