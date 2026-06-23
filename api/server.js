@@ -1938,6 +1938,197 @@ app.post("/api/admin/worker-chat/threads/:id/messages", requirePermission("worke
   }catch(e){ return res.status(500).json({success:false,error:e.message||"تعذر إرسال الرد"}); }
 });
 
+
+
+// ===============================
+// Customer Support Floating Chat
+// شات خدمة العملاء العام داخل التطبيق
+// ===============================
+const SUPPORT_CHAT_TOKEN_TTL_MS = Number(process.env.SUPPORT_CHAT_TOKEN_TTL_MS || 7 * 24 * 60 * 60 * 1000);
+function supportChatSecret(){
+  return String(process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || process.env.SESSION_SECRET || "sanay3i-support-chat-local-secret");
+}
+function createSupportChatToken(conversationId, phoneKey){
+  const payload = { purpose:"customer-support-chat", conversation_id:Number(conversationId), phone_key:String(phoneKey||""), exp:Date.now()+SUPPORT_CHAT_TOKEN_TTL_MS };
+  const body = b64urlJson(payload);
+  const sig = crypto.createHmac("sha256", supportChatSecret()).update(body).digest("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return `${body}.${sig}`;
+}
+function verifySupportChatToken(token, expectedConversationId){
+  try{
+    const parts = String(token||"").split(".");
+    if(parts.length !== 2) return null;
+    const [body,sig] = parts;
+    const expected = crypto.createHmac("sha256", supportChatSecret()).update(body).digest("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    if(!safeEqualString(sig, expected)) return null;
+    const payload = JSON.parse(fromB64url(body));
+    if(payload.purpose !== "customer-support-chat") return null;
+    if(!payload.exp || Date.now() > Number(payload.exp)) return null;
+    if(expectedConversationId && Number(payload.conversation_id) !== Number(expectedConversationId)) return null;
+    return payload;
+  }catch(e){ return null; }
+}
+function supportTokenFromReq(req){
+  const auth = String(req.headers.authorization || "");
+  if(auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  return String(req.body?.support_token || req.body?.token || req.query?.support_token || req.query?.token || "").trim();
+}
+function supportPublicConversation(row){
+  return {
+    id: row.id,
+    phone: row.phone || "",
+    customer_name: row.customer_name || "عميل",
+    status: row.status || "open",
+    last_message_at: row.last_message_at || row.created_at,
+    created_at: row.created_at
+  };
+}
+function supportPublicMessage(row){
+  return {
+    id: row.id,
+    conversation_id: row.conversation_id,
+    sender_type: row.sender_type,
+    sender_name: row.sender_name || (row.sender_type === "admin" ? "خدمة العملاء" : "عميل"),
+    message_text: row.message_text || "",
+    is_read: !!row.is_read,
+    created_at: row.created_at
+  };
+}
+async function supportUnreadForAdmin(){
+  try{
+    const {count,error}=await supabase.from("support_chat_messages").select("id",{count:"exact",head:true}).eq("sender_type","customer").eq("is_read",false);
+    if(error) return 0;
+    return count || 0;
+  }catch(e){ return 0; }
+}
+async function supportUnreadForCustomer(conversationId){
+  try{
+    const {count,error}=await supabase.from("support_chat_messages").select("id",{count:"exact",head:true}).eq("conversation_id",conversationId).eq("sender_type","admin").eq("is_read",false);
+    if(error) return 0;
+    return count || 0;
+  }catch(e){ return 0; }
+}
+
+app.post("/api/support-chat/start", registrationUpdateRateLimit, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const phoneRaw = String(req.body?.phone || req.body?.mobile || "").trim();
+    const phoneKey = normalizeWorkerPhone(phoneRaw);
+    const customerName = String(req.body?.name || req.body?.customer_name || "").trim().slice(0,80);
+    if(!phoneKey || phoneKey.length < 10) return res.status(400).json({success:false,error:"اكتب رقم هاتف صحيح لبدء المحادثة"});
+
+    let conv = null;
+    const existing = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status,last_message_at,created_at").eq("phone_key",phoneKey).eq("status","open").order("last_message_at",{ascending:false}).limit(1);
+    if(existing.error) return res.status(500).json({success:false,error:"جدول خدمة العملاء غير جاهز. شغّل ملف SQL الخاص بخدمة العملاء أولًا."});
+    conv = (existing.data || [])[0] || null;
+    if(!conv){
+      const inserted = await supabase.from("support_chat_conversations").insert({phone:phoneRaw || phoneKey, phone_key:phoneKey, customer_name:customerName || "عميل", status:"open", last_message_at:new Date().toISOString()}).select("id,phone,phone_key,customer_name,status,last_message_at,created_at").single();
+      if(inserted.error) return res.status(500).json({success:false,error:"تعذر بدء محادثة خدمة العملاء"});
+      conv = inserted.data;
+      await supabase.from("support_chat_messages").insert({conversation_id:conv.id,sender_type:"customer",sender_name:customerName||"عميل",message_text:"بدأ العميل محادثة جديدة مع خدمة العملاء.",is_read:false});
+    }else if(customerName && customerName !== conv.customer_name){
+      await supabase.from("support_chat_conversations").update({customer_name:customerName}).eq("id",conv.id);
+      conv.customer_name = customerName;
+    }
+    const token = createSupportChatToken(conv.id, phoneKey);
+    return res.json({success:true,token,conversation:supportPublicConversation(conv),unread_count:await supportUnreadForCustomer(conv.id)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر بدء المحادثة"}); }
+});
+
+app.get("/api/support-chat/messages", async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const conversationId = Number(req.query.conversation_id || req.query.id || 0);
+    const payload = verifySupportChatToken(supportTokenFromReq(req), conversationId);
+    if(!payload) return res.status(403).json({success:false,error:"انتهت جلسة المحادثة. اكتب رقم الهاتف مرة أخرى."});
+    const convRes = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status,last_message_at,created_at").eq("id",conversationId).single();
+    if(convRes.error || !convRes.data) return res.status(404).json({success:false,error:"المحادثة غير موجودة"});
+    if(String(req.query.mark_read || "true") !== "false"){
+      await supabase.from("support_chat_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("conversation_id",conversationId).eq("sender_type","admin").eq("is_read",false);
+    }
+    const {data,error}=await supabase.from("support_chat_messages").select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").eq("conversation_id",conversationId).order("created_at",{ascending:true}).limit(250);
+    if(error) return res.status(500).json({success:false,error:"تعذر تحميل رسائل خدمة العملاء"});
+    return res.json({success:true,conversation:supportPublicConversation(convRes.data),messages:(data||[]).map(supportPublicMessage),unread_count:await supportUnreadForCustomer(conversationId)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر تحميل المحادثة"}); }
+});
+
+app.post("/api/support-chat/messages", registrationUpdateRateLimit, async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const conversationId = Number(req.body?.conversation_id || req.body?.id || 0);
+    const payload = verifySupportChatToken(supportTokenFromReq(req), conversationId);
+    if(!payload) return res.status(403).json({success:false,error:"انتهت جلسة المحادثة. اكتب رقم الهاتف مرة أخرى."});
+    const message = normalizeChatMessage(req.body?.message || req.body?.message_text || req.body?.text);
+    if(!message) return res.status(400).json({success:false,error:"اكتب رسالتك أولًا"});
+    const convRes = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status").eq("id",conversationId).single();
+    if(convRes.error || !convRes.data) return res.status(404).json({success:false,error:"المحادثة غير موجودة"});
+    const senderName = convRes.data.customer_name || "عميل";
+    const {data,error}=await supabase.from("support_chat_messages").insert({conversation_id:conversationId,sender_type:"customer",sender_name:senderName,message_text:message,is_read:false}).select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").single();
+    if(error) return res.status(500).json({success:false,error:"تعذر إرسال الرسالة"});
+    await supabase.from("support_chat_conversations").update({last_message_at:new Date().toISOString()}).eq("id",conversationId);
+    return res.json({success:true,message:"تم إرسال رسالتك لخدمة العملاء",row:supportPublicMessage(data)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر إرسال الرسالة"}); }
+});
+
+app.get("/api/admin/support-chat/unread-count", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  return res.json({success:true,unread_count:await supportUnreadForAdmin()});
+});
+
+app.get("/api/admin/support-chat/threads", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const convRes = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status,last_message_at,created_at").order("last_message_at",{ascending:false}).limit(300);
+    if(convRes.error) return res.status(500).json({success:false,error:"جدول خدمة العملاء غير جاهز. شغّل ملف SQL الخاص بخدمة العملاء أولًا."});
+    const convs = convRes.data || [];
+    const ids = convs.map(c=>c.id);
+    let messages=[];
+    if(ids.length){
+      const msgRes = await supabase.from("support_chat_messages").select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").in("conversation_id",ids).order("created_at",{ascending:false}).limit(1200);
+      if(!msgRes.error) messages = msgRes.data || [];
+    }
+    const msgByConv = new Map();
+    const unreadByConv = new Map();
+    for(const m of messages){
+      const key=String(m.conversation_id);
+      if(!msgByConv.has(key)) msgByConv.set(key,m);
+      if(m.sender_type === "customer" && !m.is_read) unreadByConv.set(key,(unreadByConv.get(key)||0)+1);
+    }
+    const threads = convs.map(c=>({conversation:supportPublicConversation(c),latest:supportPublicMessage(msgByConv.get(String(c.id)) || {conversation_id:c.id,sender_type:"customer",message_text:"",created_at:c.created_at}),unread_count:unreadByConv.get(String(c.id))||0}));
+    return res.json({success:true,threads,unread_count:threads.reduce((s,t)=>s+(t.unread_count||0),0)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر تحميل محادثات خدمة العملاء"}); }
+});
+
+app.get("/api/admin/support-chat/threads/:id/messages", requirePermission("workers:read"), async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const conversationId = id(req);
+    const convRes = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status,last_message_at,created_at").eq("id",conversationId).single();
+    if(convRes.error || !convRes.data) return res.status(404).json({success:false,error:"المحادثة غير موجودة"});
+    await supabase.from("support_chat_messages").update({is_read:true,read_at:new Date().toISOString()}).eq("conversation_id",conversationId).eq("sender_type","customer").eq("is_read",false);
+    const {data,error}=await supabase.from("support_chat_messages").select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").eq("conversation_id",conversationId).order("created_at",{ascending:true}).limit(250);
+    if(error) return res.status(500).json({success:false,error:error.message});
+    return res.json({success:true,conversation:supportPublicConversation(convRes.data),messages:(data||[]).map(supportPublicMessage)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر تحميل المحادثة"}); }
+});
+
+app.post("/api/admin/support-chat/threads/:id/messages", requirePermission("workers:update"), async (req,res)=>{
+  if(!ready(res))return;
+  try{
+    const conversationId = id(req);
+    const convRes = await supabase.from("support_chat_conversations").select("id,phone,phone_key,customer_name,status").eq("id",conversationId).single();
+    if(convRes.error || !convRes.data) return res.status(404).json({success:false,error:"المحادثة غير موجودة"});
+    const message = normalizeChatMessage(req.body?.message || req.body?.message_text || req.body?.text);
+    if(!message) return res.status(400).json({success:false,error:"اكتب رسالة الرد أولًا"});
+    const senderName=(req.admin && (req.admin.display_name || req.admin.username)) || "خدمة العملاء";
+    const {data,error}=await supabase.from("support_chat_messages").insert({conversation_id:conversationId,sender_type:"admin",sender_name:senderName,message_text:message,is_read:false}).select("id,conversation_id,sender_type,sender_name,message_text,is_read,created_at").single();
+    if(error) return res.status(500).json({success:false,error:error.message});
+    await supabase.from("support_chat_conversations").update({last_message_at:new Date().toISOString()}).eq("id",conversationId);
+    await logAdminActivity("support_chat_reply",{entity_type:"support_chat",entity_id:conversationId,entity_name:convRes.data.phone||"عميل",details:{source:"admin_panel"}});
+    return res.json({success:true,message:"تم إرسال رد خدمة العملاء",row:supportPublicMessage(data)});
+  }catch(e){ return res.status(500).json({success:false,error:e.message || "تعذر إرسال الرد"}); }
+});
+
 app.get("/api/workers/:id", async (req,res)=>{ if(!ready(res))return; const {data,error}=await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("id",id(req)).single(); if(error||!data)return res.status(404).json({success:false,error:"الصنايعي غير موجود"}); const scored=await attachSmartScoresToWorkers([data]); res.json(scored[0]||data); });
 
 async function insertWorker(req,res){

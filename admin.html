@@ -302,7 +302,7 @@
 <main class="admin-dashboard" id="dashboard"><header class="admin-topbar"><div class="container admin-topbar-content"><a href="/admin" class="brand"><div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div><div class="brand-text"><h1>صنايعي مطروح</h1><span>لوحة الإدارة والتحكم</span></div></a><div class="admin-actions-top"><span class="admin-role-badge" id="adminRoleBadge"><i class="fa-solid fa-user-shield"></i> الإدارة</span><button class="admin-mini-btn" onclick="loadAllData()"><i class="fa-solid fa-rotate"></i> تحديث</button><button class="admin-mini-btn" data-permission="backup:export" onclick="downloadBackup()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button><button class="admin-mini-btn" data-permission="backup:export" onclick="exportWorkersReport()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button><a href="/" class="admin-mini-btn"><i class="fa-solid fa-house"></i> الرئيسية</a><button class="admin-mini-btn logout-btn" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button></div></div></header>
 <section class="admin-hero"><div class="container"><div class="admin-hero-box"><div><span class="section-label">Dashboard</span><h2>إدارة دليل صنايعي مطروح</h2><p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p></div><button class="btn btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button></div></div></section>
 <section class="container"><div class="admin-tabs"><button class="admin-tab active" onclick="switchTab('workers',this)"><i class="fa-solid fa-users-gear"></i> الصنايعية</button><a class="admin-tab" data-permission="workers:create" href="/admin/add-worker"><i class="fa-solid fa-user-plus"></i> إضافة صنايعي</a><button class="admin-tab" data-permission="settings:manage" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button><button class="admin-tab" data-permission="settings:manage" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
-<button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" data-permission="reports:read" onclick="switchTab('reports',this)"><i class="fa-solid fa-triangle-exclamation"></i> البلاغات</button><button class="admin-tab" data-permission="whatsapp:send" onclick="switchTab('whatsapp',this)"><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button><button class="admin-tab" data-permission="workers:read" onclick="switchTab('chat',this);loadAdminChatThreads()"><i class="fa-solid fa-comments"></i> محادثات التطبيق <span id="adminChatTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button><button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button><button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button><button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button></div>
+<button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button><button class="admin-tab" data-permission="reports:read" onclick="switchTab('reports',this)"><i class="fa-solid fa-triangle-exclamation"></i> البلاغات</button><button class="admin-tab" data-permission="whatsapp:send" onclick="switchTab('whatsapp',this)"><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button><button class="admin-tab" data-permission="workers:read" onclick="switchTab('chat',this);loadAdminChatThreads()"><i class="fa-solid fa-comments"></i> محادثات التطبيق <span id="adminChatTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button><button class="admin-tab" data-permission="workers:read" onclick="switchTab('support',this);loadAdminSupportThreads()"><i class="fa-solid fa-headset"></i> خدمة العملاء <span id="adminSupportTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button><button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button><button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button><button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button></div>
 
 <div class="notifications-grid" id="notificationsGrid">
   <div class="notification-card" onclick="showPendingWorkers()">
@@ -397,6 +397,35 @@
         <textarea id="adminChatInput" placeholder="اكتب رد الإدارة هنا..."></textarea>
         <input type="file" id="adminChatAttachment" accept="image/*">
         <div class="admin-chat-form-actions"><button type="submit" class="big-btn btn-blue"><i class="fa-solid fa-paper-plane"></i> إرسال داخل التطبيق</button><button type="button" class="big-btn btn-dark" onclick="loadAdminChatMessages(adminChatCurrentWorkerId)"><i class="fa-solid fa-rotate"></i> تحديث</button></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="admin-section" id="supportSection">
+  <div class="admin-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h3><i class="fa-solid fa-headset"></i> خدمة العملاء</h3>
+        <p>محادثات العملاء التي تبدأ من أيقونة خدمة العملاء العائمة داخل التطبيق.</p>
+      </div>
+      <button class="big-btn btn-dark" onclick="loadAdminSupportThreads()"><i class="fa-solid fa-rotate"></i> تحديث خدمة العملاء</button>
+    </div>
+  </div>
+  <div class="admin-chat-layout">
+    <div class="admin-chat-panel">
+      <h3>محادثات العملاء</h3>
+      <div class="admin-chat-tools"><input id="adminSupportSearch" placeholder="بحث بالاسم أو رقم الهاتف..." oninput="renderAdminSupportThreads()"></div>
+      <div class="chat-thread-list" id="adminSupportThreads"><div class="chat-empty">اضغط تحديث لعرض محادثات خدمة العملاء</div></div>
+    </div>
+    <div class="admin-chat-panel">
+      <div class="admin-chat-head"><div><h3 id="adminSupportTitle">اختر محادثة</h3><p id="adminSupportSub" style="margin:3px 0 0;color:var(--muted);font-weight:800">افتح محادثة للرد على العميل.</p></div></div>
+      <div class="admin-chat-messages" id="adminSupportMessages"><div class="chat-empty">لا توجد محادثة مفتوحة</div></div>
+      <form class="admin-chat-form" id="adminSupportForm" onsubmit="sendAdminSupportMessage(event)" style="display:none">
+        <textarea id="adminSupportInput" placeholder="اكتب رد خدمة العملاء هنا..."></textarea>
+        <div class="admin-chat-form-actions"><button type="submit" class="big-btn btn-blue"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button><button type="button" class="big-btn btn-dark" onclick="loadAdminSupportMessages(adminSupportCurrentId)"><i class="fa-solid fa-rotate"></i> تحديث</button></div>
       </form>
     </div>
   </div>
@@ -2420,6 +2449,85 @@ async function sendAdminChatMessage(e){
   }catch(err){toast('error',err.message||'تعذر إرسال الرد')}
   finally{if(btn){btn.disabled=false;btn.innerHTML=old;}}
 }
+
+
+// Customer support admin chat
+let adminSupportThreadsData=[];
+let adminSupportCurrentId=null;
+let adminSupportTimer=null;
+async function updateAdminSupportBadge(){
+  try{
+    const r=await fetch('/api/admin/support-chat/unread-count',{credentials:'include'});
+    const d=await r.json().catch(()=>({}));
+    const el=document.getElementById('adminSupportTabBadge');
+    if(el && d.success && Number(d.unread_count||0)>0){el.textContent=d.unread_count;el.style.display='inline-flex';}
+    else if(el){el.style.display='none';}
+  }catch(e){}
+}
+async function loadAdminSupportThreads(){
+  const box=document.getElementById('adminSupportThreads'); if(box)box.innerHTML='<div class="chat-empty">جاري تحميل محادثات خدمة العملاء...</div>';
+  try{
+    const r=await fetch('/api/admin/support-chat/threads',{credentials:'include'});
+    const d=await r.json().catch(()=>({}));
+    if(r.status===401){showLogin();return}
+    if(!r.ok||!d.success)throw new Error(d.error||'تعذر تحميل محادثات خدمة العملاء');
+    adminSupportThreadsData=d.threads||[];
+    renderAdminSupportThreads(); updateAdminSupportBadge();
+  }catch(e){ if(box)box.innerHTML='<div class="chat-empty">'+chatAdminEsc(e.message||'تعذر تحميل محادثات خدمة العملاء')+'</div>'; }
+}
+function renderAdminSupportThreads(){
+  const box=document.getElementById('adminSupportThreads'); if(!box)return;
+  const q=String(document.getElementById('adminSupportSearch')?.value||'').trim().toLowerCase();
+  let list=adminSupportThreadsData;
+  if(q){list=list.filter(t=>{const c=t.conversation||{};return [c.customer_name,c.phone,t.latest&&t.latest.message_text].join(' ').toLowerCase().includes(q);});}
+  if(!list.length){box.innerHTML='<div class="chat-empty">لا توجد محادثات خدمة عملاء مطابقة</div>';return;}
+  box.innerHTML=list.map(t=>{const c=t.conversation||{}, latest=t.latest||{}, unread=Number(t.unread_count||0);return `<div class="chat-thread ${unread?'unread':''} ${String(c.id)===String(adminSupportCurrentId)?'active':''}" onclick="loadAdminSupportMessages('${chatAdminEsc(c.id)}')"><h4>${chatAdminEsc(c.customer_name||'عميل')}</h4><p>${chatAdminEsc(c.phone||'')}</p><p>${chatAdminEsc((latest.message_text||'').slice(0,100))}</p><span class="chat-badge"><i class="fa-solid ${unread?'fa-bell':'fa-clock'}"></i> ${unread?unread+' غير مقروء':chatAdminTime(latest.created_at)}</span></div>`}).join('');
+}
+function renderAdminSupportMessages(messages){
+  const box=document.getElementById('adminSupportMessages'); if(!box)return;
+  if(!messages||!messages.length){box.innerHTML='<div class="chat-empty">لا توجد رسائل في هذه المحادثة</div>';return;}
+  box.innerHTML=messages.map(m=>{const cls=m.sender_type==='admin'?'admin':'worker';const who=m.sender_type==='admin'?'خدمة العملاء':'العميل';return `<div class="admin-chat-msg ${cls}"><b>${who}</b><br>${chatAdminEsc(m.message_text||'')}<small>${chatAdminEsc(chatAdminTime(m.created_at))}</small></div>`}).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function loadAdminSupportMessages(conversationId){
+  if(!conversationId)return;
+  adminSupportCurrentId=conversationId;
+  const box=document.getElementById('adminSupportMessages'); if(box)box.innerHTML='<div class="chat-empty">جاري تحميل الرسائل...</div>';
+  try{
+    const r=await fetch(`/api/admin/support-chat/threads/${encodeURIComponent(conversationId)}/messages`,{credentials:'include'});
+    const d=await r.json().catch(()=>({}));
+    if(r.status===401){showLogin();return}
+    if(!r.ok||!d.success)throw new Error(d.error||'تعذر تحميل محادثة خدمة العملاء');
+    const c=d.conversation||{};
+    document.getElementById('adminSupportTitle').textContent=c.customer_name||'محادثة عميل';
+    document.getElementById('adminSupportSub').textContent=[c.phone,c.status==='closed'?'مغلقة':'مفتوحة'].filter(Boolean).join(' - ');
+    document.getElementById('adminSupportForm').style.display='grid';
+    renderAdminSupportMessages(d.messages||[]);
+    await loadAdminSupportThreads();
+    if(adminSupportTimer)clearInterval(adminSupportTimer);
+    adminSupportTimer=setInterval(()=>{ if(document.getElementById('supportSection')?.classList.contains('active') && adminSupportCurrentId) loadAdminSupportMessages(adminSupportCurrentId); },20000);
+  }catch(e){ if(box)box.innerHTML='<div class="chat-empty">'+chatAdminEsc(e.message||'تعذر تحميل المحادثة')+'</div>'; }
+}
+async function sendAdminSupportMessage(e){
+  e.preventDefault();
+  if(!adminSupportCurrentId){toast('error','اختر محادثة خدمة عملاء أولًا');return;}
+  const input=document.getElementById('adminSupportInput');
+  const msg=String(input?.value||'').trim();
+  if(!msg){toast('error','اكتب رسالة الرد أولًا');return;}
+  const btn=e.currentTarget.querySelector('button[type="submit"]'); const old=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
+  try{
+    const r=await fetch(`/api/admin/support-chat/threads/${encodeURIComponent(adminSupportCurrentId)}/messages`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const d=await r.json().catch(()=>({}));
+    if(r.status===401){showLogin();return}
+    if(!r.ok||!d.success)throw new Error(d.error||'تعذر إرسال الرد');
+    if(input)input.value=''; toast('success',d.message||'تم إرسال الرد'); loadAdminSupportMessages(adminSupportCurrentId);
+  }catch(err){toast('error',err.message||'تعذر إرسال الرد')}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=old;}}
+}
+setInterval(updateAdminSupportBadge,45000);
+setTimeout(updateAdminSupportBadge,2800);
+
 setInterval(updateAdminChatBadge,45000);
 setTimeout(updateAdminChatBadge,2500);
 

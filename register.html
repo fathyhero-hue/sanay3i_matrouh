@@ -2312,5 +2312,110 @@
       });
     }
   </script>
+
+
+<!-- Customer Support Floating Chat -->
+<button class="support-float-btn" type="button" onclick="supportOpenSheet()" aria-label="خدمة العملاء">
+  <span class="support-dot"></span><i class="fa-solid fa-headset"></i>
+</button>
+<div class="support-backdrop" id="supportBackdrop" onclick="supportBackdropClick(event)">
+  <div class="support-sheet" role="dialog" aria-modal="true" aria-label="خدمة العملاء">
+    <button type="button" class="support-close" onclick="supportCloseSheet()"><i class="fa-solid fa-xmark"></i></button>
+    <div class="support-grip"></div>
+    <div class="support-title">
+      <i class="fa-solid fa-headset"></i>
+      <h3>خدمة العملاء</h3>
+      <p>كيف يمكننا مساعدتك؟</p>
+    </div>
+    <a class="support-option" id="supportCallLink" href="tel:+201222264993">
+      <span class="support-option-main"><span class="support-option-icon"><i class="fa-solid fa-phone"></i></span><span><strong>مكالمة هاتفية</strong><span id="supportCallNumber">+201222264993</span></span></span>
+      <i class="fa-solid fa-chevron-left arrow"></i>
+    </a>
+    <button class="support-option" type="button" onclick="supportOpenChatPanel()">
+      <span class="support-option-main"><span class="support-option-icon chat"><i class="fa-solid fa-message"></i></span><span><strong>تحدث إلى ممثلي خدمة العملاء</strong><span>محادثة داخل التطبيق</span></span></span>
+      <i class="fa-solid fa-chevron-left arrow"></i>
+    </button>
+    <div class="support-chat-panel" id="supportChatPanel">
+      <div class="support-start-grid" id="supportStartBox">
+        <input type="text" id="supportCustomerName" placeholder="اسمك اختياري">
+        <input type="tel" class="phone" id="supportCustomerPhone" placeholder="اكتب رقم هاتفك لبدء المحادثة">
+        <button type="button" class="support-action-btn blue" onclick="supportStartChat()"><i class="fa-solid fa-comments"></i> بدء المحادثة</button>
+        <div class="support-note">اكتب رقم الهاتف حتى تستطيع الإدارة معرفة المحادثة والرد عليك داخل التطبيق.</div>
+      </div>
+      <div id="supportConversationBox" style="display:none">
+        <div class="support-msgs" id="supportMessages"><div class="support-note">جاري تحميل المحادثة...</div></div>
+        <form class="support-chat-form" onsubmit="supportSendMessage(event)">
+          <textarea id="supportMessageInput" placeholder="اكتب رسالتك هنا..."></textarea>
+          <button type="submit" class="support-action-btn red"><i class="fa-solid fa-paper-plane"></i> إرسال لخدمة العملاء</button>
+        </form>
+      </div>
+      <div class="support-error" id="supportError"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const CUSTOMER_SUPPORT_PHONE = "+201222264993";
+  let supportTimer = null;
+  function q(id){ return document.getElementById(id); }
+  function esc(v){ return String(v ?? "").replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c] || c)); }
+  function when(v){ try { return new Date(v).toLocaleString("ar-EG", {dateStyle:"short", timeStyle:"short"}); } catch(e){ return ""; } }
+  function supportState(){ try { return JSON.parse(localStorage.getItem("sanay3i_support_chat") || "{}"); } catch(e){ return {}; } }
+  function setSupportState(s){ localStorage.setItem("sanay3i_support_chat", JSON.stringify(s || {})); }
+  function setError(msg){ const el=q("supportError"); if(!el) return; el.textContent = msg || ""; el.classList.toggle("show", !!msg); }
+  function authHeaders(){ const s=supportState(); return s.token ? {"Authorization":"Bearer " + s.token} : {}; }
+  window.supportOpenSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.add("show"); document.body.style.overflow="hidden"; const s=supportState(); if(s.phone && q("supportCustomerPhone")) q("supportCustomerPhone").value=s.phone; };
+  window.supportCloseSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.remove("show"); document.body.style.overflow=""; };
+  window.supportBackdropClick = function(e){ if(e && e.target && e.target.id === "supportBackdrop") window.supportCloseSheet(); };
+  window.supportOpenChatPanel = function(){ const p=q("supportChatPanel"); if(p) p.classList.add("show"); setError(""); const s=supportState(); if(s.conversation_id && s.token){ q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block"; supportLoadMessages(); } };
+  window.supportStartChat = async function(){
+    setError("");
+    const phone=String(q("supportCustomerPhone")?.value||"").trim();
+    const name=String(q("supportCustomerName")?.value||"").trim();
+    if(!phone){ setError("اكتب رقم هاتفك أولًا"); return; }
+    try{
+      const r=await fetch("/api/support-chat/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone,name})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok || !d.success) throw new Error(d.error || "تعذر بدء المحادثة");
+      setSupportState({token:d.token,conversation_id:d.conversation.id,phone:d.conversation.phone || phone,name:d.conversation.customer_name || name});
+      q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block";
+      supportLoadMessages();
+    }catch(err){ setError(err.message || "تعذر بدء المحادثة"); }
+  };
+  window.supportLoadMessages = async function(markRead){
+    const s=supportState(); if(!s.conversation_id || !s.token) return;
+    try{
+      const r=await fetch("/api/support-chat/messages?conversation_id="+encodeURIComponent(s.conversation_id)+"&mark_read="+(markRead===false?"false":"true"),{headers:authHeaders()});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok || !d.success) throw new Error(d.error || "تعذر تحميل المحادثة");
+      const box=q("supportMessages");
+      if(box){
+        const list=d.messages||[];
+        box.innerHTML=list.length ? list.map(m=>`<div class="support-msg ${m.sender_type==='admin'?'admin':'customer'}"><b>${m.sender_type==='admin'?'خدمة العملاء':'أنت'}</b><br>${esc(m.message_text||'')}<small>${esc(when(m.created_at))}</small></div>`).join("") : '<div class="support-note">اكتب رسالتك وسيتم الرد عليك من الإدارة.</div>';
+        box.scrollTop=box.scrollHeight;
+      }
+      if(supportTimer) clearInterval(supportTimer);
+      supportTimer=setInterval(()=>{ const panel=q("supportChatPanel"); if(panel && panel.classList.contains("show")) window.supportLoadMessages(false); },15000);
+    }catch(err){ setError(err.message || "تعذر تحميل المحادثة"); }
+  };
+  window.supportSendMessage = async function(e){
+    e.preventDefault(); setError("");
+    const s=supportState(); const input=q("supportMessageInput"); const message=String(input?.value||"").trim();
+    if(!s.conversation_id || !s.token){ setError("ابدأ المحادثة برقم الهاتف أولًا"); return; }
+    if(!message){ setError("اكتب رسالتك أولًا"); return; }
+    const btn=e.currentTarget.querySelector("button[type=submit]"); const old=btn?btn.innerHTML:"";
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
+    try{
+      const r=await fetch("/api/support-chat/messages",{method:"POST",headers:{"Content-Type":"application/json",...authHeaders()},body:JSON.stringify({conversation_id:s.conversation_id,message})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال الرسالة");
+      if(input) input.value=""; window.supportLoadMessages();
+    }catch(err){ setError(err.message || "تعذر إرسال الرسالة"); }
+    finally{ if(btn){btn.disabled=false;btn.innerHTML=old;} }
+  };
+  window.addEventListener("keydown", function(e){ if(e.key === "Escape") window.supportCloseSheet(); });
+})();
+</script>
+
 </body>
 </html>
