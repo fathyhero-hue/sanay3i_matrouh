@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "redirects": [
+    {
+      "source": "/download",
+      "destination": "https://play.google.com/store/apps/details?id=app.vercel.sanay3i_matrouh.twa&pcampaignid=web_share",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
