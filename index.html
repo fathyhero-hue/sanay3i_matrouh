@@ -1384,6 +1384,207 @@
   }
 }
 
+
+/* HOMEPAGE_DEMAND_RANKING_PATCH_V1 */
+.demand-highlights-section {
+  padding: 18px 0 20px;
+}
+
+.demand-highlights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.demand-highlight-panel {
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(226,232,240,0.95);
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.demand-highlight-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.demand-highlight-head h2 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+.demand-highlight-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.demand-highlight-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #fff;
+  background: linear-gradient(135deg,#061A3D,#2563eb);
+  box-shadow: 0 14px 28px rgba(37,99,235,.18);
+}
+
+.demand-list {
+  display: grid;
+  gap: 10px;
+}
+
+.demand-item {
+  width: 100%;
+  border: 1px solid rgba(226,232,240,0.95);
+  background: #f8fafc;
+  color: var(--primary);
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: right;
+  transition: .22s ease;
+}
+
+.demand-item:hover {
+  transform: translateY(-2px);
+  background: #eff6ff;
+  border-color: rgba(37,99,235,.24);
+}
+
+.demand-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.demand-rank {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid rgba(226,232,240,.95);
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 950;
+  flex: 0 0 auto;
+}
+
+.demand-item-title {
+  min-width: 0;
+}
+
+.demand-item-title strong {
+  display: block;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 950;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demand-item-title small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demand-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(245,158,11,.13);
+  color: #92400e;
+  border: 1px solid rgba(245,158,11,.22);
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.demand-worker-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #dbeafe;
+  border: 1px solid rgba(226,232,240,.95);
+  flex: 0 0 auto;
+}
+
+.demand-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  background: rgba(245, 158, 11, 0.13);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.demand-empty {
+  border: 1px dashed rgba(148,163,184,.65);
+  border-radius: 18px;
+  padding: 16px;
+  color: var(--muted);
+  background: #f8fafc;
+  font-weight: 900;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .demand-highlights-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) and (orientation: portrait) {
+  .demand-highlights-section { padding: 10px 0 12px !important; }
+  .demand-highlights-grid { gap: 9px !important; }
+  .demand-highlight-panel { border-radius: 16px !important; padding: 10px !important; }
+  .demand-highlight-head { margin-bottom: 9px !important; gap: 8px !important; }
+  .demand-highlight-head h2 { font-size: 15px !important; }
+  .demand-highlight-head p { font-size: 10.5px !important; line-height: 1.55 !important; }
+  .demand-highlight-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; font-size: 13px !important; }
+  .demand-list { gap: 7px !important; }
+  .demand-item { border-radius: 13px !important; padding: 8px !important; }
+  .demand-rank { min-width: 40px !important; height: 28px !important; border-radius: 9px !important; font-size: 9px !important; }
+  .demand-worker-avatar { width: 32px !important; height: 32px !important; border-radius: 10px !important; }
+  .demand-item-title strong { font-size: 11.5px !important; }
+  .demand-item-title small { font-size: 9px !important; }
+  .demand-score-pill { font-size: 9px !important; padding: 5px 7px !important; }
+  .demand-card-badge { font-size: 9px !important; padding: 4px 6px !important; margin-bottom: 5px !important; }
+}
+
 </style>
 
   <!-- PWA -->
@@ -1576,6 +1777,39 @@
     </div>
   </section>
 
+
+  <section class="demand-highlights-section" id="demandHighlights">
+    <div class="container demand-highlights-grid">
+      <div class="demand-highlight-panel">
+        <div class="demand-highlight-head">
+          <div>
+            <span class="section-label">الأكثر طلبًا</span>
+            <h2>الحرف الأكثر طلبًا</h2>
+            <p>مرتبة فقط حسب ضغطات زر الاتصال وزر الواتساب للصنايعية داخل كل حرفة.</p>
+          </div>
+          <div class="demand-highlight-icon"><i class="fa-solid fa-fire"></i></div>
+        </div>
+        <div class="demand-list" id="topDemandTradesGrid">
+          <div class="demand-empty">جاري حساب الحرف الأكثر طلبًا...</div>
+        </div>
+      </div>
+
+      <div class="demand-highlight-panel">
+        <div class="demand-highlight-head">
+          <div>
+            <span class="section-label">الأكثر تواصلًا</span>
+            <h2>الصنايعية الأكثر طلبًا</h2>
+            <p>الأولوية هنا مبنية فقط على ضغطات زر الاتصال وزر الواتساب، بدون احتساب زيارات الملف الشخصي.</p>
+          </div>
+          <div class="demand-highlight-icon"><i class="fa-solid fa-ranking-star"></i></div>
+        </div>
+        <div class="demand-list" id="topDemandWorkersGrid">
+          <div class="demand-empty">جاري حساب الصنايعية الأكثر طلبًا...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="workers-section" id="workers">
     <div class="container">
 
@@ -1620,10 +1854,11 @@
         <div class="sort-wrap">
           <i class="fa-solid fa-arrow-down-wide-short"></i>
           <select id="sortFilter" onchange="filterWorkers()">
-            <option value="default">الأفضل تلقائيًا</option>
+            <option value="default">الأفضل: مميز ثم تقييم ثم طلب</option>
             <option value="featured">المميزين أولًا</option>
-            <option value="verified">الموثّقين أولًا</option>
             <option value="rating">الأعلى تقييمًا</option>
+            <option value="demand">الأكثر طلبًا</option>
+            <option value="verified">الموثّقين أولًا</option>
             <option value="newest">الأحدث</option>
           </select>
         </div>
@@ -2503,6 +2738,7 @@
       updateStats();
       renderTradeIcons();
       renderAreaIcons();
+      renderDemandHighlights();
     }
 
     async function loadRatingsForWorkers() {
@@ -2528,6 +2764,73 @@
 
     function getSmartScore(worker) {
       return Number(worker.smart_score || worker.smartScore || 0) || 0;
+    }
+
+    function toNumber(value) {
+      const number = Number(value || 0);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function getWorkerDemandSignals(worker) {
+      const signals = worker.smart_score_signals || worker.smartScoreSignals || worker.analytics || worker.stats || {};
+
+      // مهم: الأكثر طلبًا في الصفحة الرئيسية = ضغطات اتصال + ضغطات واتساب فقط.
+      // لا نحتسب مشاهدات الملف الشخصي، ولا smart score، ولا total contacts غير المفصل.
+      const call =
+        toNumber(signals.call) +
+        toNumber(signals.calls) +
+        toNumber(signals.call_count) +
+        toNumber(signals.call_clicks) +
+        toNumber(signals.call_click_count) +
+        toNumber(signals.phone_clicks) +
+        toNumber(signals.phone_count) +
+        toNumber(worker.call_count) +
+        toNumber(worker.call_clicks) +
+        toNumber(worker.call_click_count) +
+        toNumber(worker.phone_clicks) +
+        toNumber(worker.phone_count) +
+        toNumber(worker.calls_count);
+
+      const whatsapp =
+        toNumber(signals.whatsapp) +
+        toNumber(signals.whatsapp_count) +
+        toNumber(signals.whatsapp_clicks) +
+        toNumber(signals.whatsapp_click_count) +
+        toNumber(signals.wa_clicks) +
+        toNumber(signals.wa_count) +
+        toNumber(worker.whatsapp_count) +
+        toNumber(worker.whatsapp_clicks) +
+        toNumber(worker.whatsapp_click_count) +
+        toNumber(worker.wa_clicks) +
+        toNumber(worker.wa_count);
+
+      return { call, whatsapp };
+    }
+
+    function getWorkerDemandScore(worker) {
+      const s = getWorkerDemandSignals(worker);
+      return Math.max(0, Math.round(s.call + s.whatsapp));
+    }
+
+    function hasDemandData() {
+      return allWorkers.some(worker => getWorkerDemandScore(worker) > 0);
+    }
+
+    function compareDemandPriority(a, b) {
+      const demandCompare = getWorkerDemandScore(b) - getWorkerDemandScore(a);
+      if (demandCompare) return demandCompare;
+      return 0;
+    }
+
+    function renderDemandBadge(worker) {
+      const score = getWorkerDemandScore(worker);
+      if (!score) return "";
+      return `
+        <div class="demand-card-badge" title="الأكثر طلبًا حسب ضغطات الاتصال والواتساب">
+          <i class="fa-solid fa-fire"></i>
+          الأكثر طلبًا
+        </div>
+      `;
     }
 
     function compareSmartPriority(a, b) {
@@ -2616,20 +2919,23 @@
     }
 
     function compareDefaultPriority(a, b) {
-      const smartCompare = compareSmartPriority(a, b);
-      if (smartCompare) return smartCompare;
-
       const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
       if (featuredCompare) return featuredCompare;
+
+      const ratingCompare = compareRatingPriority(a, b);
+      if (ratingCompare) return ratingCompare;
+
+      const demandCompare = compareDemandPriority(a, b);
+      if (demandCompare) return demandCompare;
+
+      const smartCompare = compareSmartPriority(a, b);
+      if (smartCompare) return smartCompare;
 
       const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
       if (verifiedCompare) return verifiedCompare;
 
       const subscriptionCompare = getSubscriptionPriority(b) - getSubscriptionPriority(a);
       if (subscriptionCompare) return subscriptionCompare;
-
-      const ratingCompare = compareRatingPriority(a, b);
-      if (ratingCompare) return ratingCompare;
 
       return compareNewestPriority(a, b);
     }
@@ -2643,11 +2949,52 @@
           const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
           if (featuredCompare) return featuredCompare;
 
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
+
+          const demandCompare = compareDemandPriority(a, b);
+          if (demandCompare) return demandCompare;
+
           const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
           if (verifiedCompare) return verifiedCompare;
 
+          return compareNewestPriority(a, b);
+        });
+        return sorted;
+      }
+
+      if (sortValue === "rating") {
+        sorted.sort((a, b) => {
           const ratingCompare = compareRatingPriority(a, b);
           if (ratingCompare) return ratingCompare;
+
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
+
+          const demandCompare = compareDemandPriority(a, b);
+          if (demandCompare) return demandCompare;
+
+          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+          if (verifiedCompare) return verifiedCompare;
+
+          return compareNewestPriority(a, b);
+        });
+        return sorted;
+      }
+
+      if (sortValue === "demand") {
+        sorted.sort((a, b) => {
+          const demandCompare = compareDemandPriority(a, b);
+          if (demandCompare) return demandCompare;
+
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
+
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
+
+          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
+          if (verifiedCompare) return verifiedCompare;
 
           return compareNewestPriority(a, b);
         });
@@ -2665,21 +3012,8 @@
           const ratingCompare = compareRatingPriority(a, b);
           if (ratingCompare) return ratingCompare;
 
-          return compareNewestPriority(a, b);
-        });
-        return sorted;
-      }
-
-      if (sortValue === "rating") {
-        sorted.sort((a, b) => {
-          const ratingCompare = compareRatingPriority(a, b);
-          if (ratingCompare) return ratingCompare;
-
-          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
-          if (featuredCompare) return featuredCompare;
-
-          const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
-          if (verifiedCompare) return verifiedCompare;
+          const demandCompare = compareDemandPriority(a, b);
+          if (demandCompare) return demandCompare;
 
           return compareNewestPriority(a, b);
         });
@@ -2694,10 +3028,16 @@
           const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
           if (featuredCompare) return featuredCompare;
 
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
+
+          const demandCompare = compareDemandPriority(a, b);
+          if (demandCompare) return demandCompare;
+
           const verifiedCompare = compareBooleanPriority(isVerified(a), isVerified(b));
           if (verifiedCompare) return verifiedCompare;
 
-          return compareRatingPriority(a, b);
+          return 0;
         });
         return sorted;
       }
@@ -2705,6 +3045,96 @@
       sorted.sort(compareDefaultPriority);
       return sorted;
     }
+
+    function demandLabel(score, fallbackCount) {
+      return score > 0 ? "الأكثر طلبًا" : "غير متاح";
+    }
+
+    function getTopDemandTrades(limit) {
+      const map = new Map();
+
+      allWorkers.forEach(worker => {
+        const score = getWorkerDemandScore(worker);
+        if (!score) return;
+        const trade = String(getWorkerTrade(worker) || "حرفة غير محددة").trim();
+        const key = normalizeText(trade);
+        if (!key) return;
+        const current = map.get(key) || { name: trade, score: 0, count: 0 };
+        current.count += 1;
+        current.score += score;
+        map.set(key, current);
+      });
+
+      return Array.from(map.values())
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          if (b.count !== a.count) return b.count - a.count;
+          return a.name.localeCompare(b.name, "ar");
+        })
+        .slice(0, limit || 6);
+    }
+
+    function getTopDemandWorkers(limit) {
+      return [...allWorkers]
+        .filter(worker => getWorkerDemandScore(worker) > 0)
+        .sort((a, b) => {
+          const demandCompare = compareDemandPriority(a, b);
+          if (demandCompare) return demandCompare;
+
+          const ratingCompare = compareRatingPriority(a, b);
+          if (ratingCompare) return ratingCompare;
+
+          const featuredCompare = compareBooleanPriority(isFeatured(a), isFeatured(b));
+          if (featuredCompare) return featuredCompare;
+
+          return compareNewestPriority(a, b);
+        })
+        .slice(0, limit || 6);
+    }
+
+    function renderDemandHighlights() {
+      const tradesBox = document.getElementById("topDemandTradesGrid");
+      const workersBox = document.getElementById("topDemandWorkersGrid");
+      if (!tradesBox || !workersBox) return;
+
+      const topTrades = getTopDemandTrades(6);
+      const topWorkers = getTopDemandWorkers(6);
+
+      tradesBox.innerHTML = topTrades.length ? topTrades.map((item, index) => `
+        <button type="button" class="demand-item" onclick="setQuickTrade('${escapeHtml(item.name).replace(/'/g, "&#039;")}', null)">
+          <span class="demand-item-main">
+            <span class="demand-rank">رقم ${index + 1}</span>
+            <span class="demand-item-title">
+              <strong>${escapeHtml(item.name)}</strong>
+              <small>حسب ضغطات الاتصال والواتساب</small>
+            </span>
+          </span>
+          <span class="demand-score-pill"><i class="fa-solid fa-fire"></i> الأكثر طلبًا</span>
+        </button>
+      `).join("") : '<div class="demand-empty">لا توجد ضغطات اتصال أو واتساب على الحرف حتى الآن.</div>';
+
+      workersBox.innerHTML = topWorkers.length ? topWorkers.map((worker, index) => {
+        const id = getWorkerId(worker);
+        const score = getWorkerDemandScore(worker);
+        const rating = getRatingSummary(id);
+        const subtitle = [getWorkerTrade(worker), getWorkerArea(worker)].filter(Boolean).join(" - ");
+        const metric = demandLabel(score, 0);
+        return `
+          <button type="button" class="demand-item" onclick="window.location.href='/worker/${id}'">
+            <span class="demand-item-main">
+              <span class="demand-rank">رقم ${index + 1}</span>
+              <img src="${escapeHtml(getWorkerImage(worker))}" alt="" class="demand-worker-avatar" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+              <span class="demand-item-title">
+                <strong>${escapeHtml(getWorkerName(worker))}</strong>
+                <small>${escapeHtml(subtitle)}</small>
+              </span>
+            </span>
+            <span class="demand-score-pill"><i class="fa-solid fa-ranking-star"></i> الأكثر طلبًا</span>
+          </button>
+        `;
+      }).join("") : '<div class="demand-empty">لا توجد ضغطات اتصال أو واتساب على الصنايعية حتى الآن.</div>';
+    }
+
 
     function updateStats() {
       document.getElementById("workersCount").textContent = allWorkers.length;
@@ -3106,6 +3536,8 @@
 
             ${renderSmartBadge(worker)}
 
+            ${renderDemandBadge(worker)}
+
             ${renderRatingBadge(workerId)}
 
             <div class="worker-meta">
@@ -3272,7 +3704,7 @@
       updateAreaIconsActiveState();
       updateWorkersHeading("", "", allWorkers.length);
       visibleWorkersLimit = WORKERS_PAGE_SIZE;
-      renderWorkers(allWorkers);
+      renderWorkers(sortWorkers(allWorkers));
     }
 
     async function initPage() {
@@ -3380,7 +3812,7 @@ ws.onmessage = async (msg) => {
   let supportWsReconnectTimer = null;
   let supportFallbackTimer = null;
   function q(id){ return document.getElementById(id); }
-  function esc(v){ return String(v ?? "").replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c] || c)); }
+  function esc(v){ return String(v ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c] || c)); }
   function when(v){ try { return new Date(v).toLocaleString("ar-EG", {dateStyle:"short", timeStyle:"short"}); } catch(e){ return ""; } }
   function supportState(){ try { return JSON.parse(localStorage.getItem("sanay3i_support_chat") || "{}"); } catch(e){ return {}; } }
   function setSupportState(s){ localStorage.setItem("sanay3i_support_chat", JSON.stringify(s || {})); }
