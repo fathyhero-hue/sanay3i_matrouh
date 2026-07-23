@@ -2,10 +2,10 @@
   "name": "sanay3i-matrouh-vercel-supabase",
   "version": "2.0.0",
   "description": "Sanay3i Matrouh on Vercel with Supabase",
-  "main": "server.js",
+  "main": "api/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node api/server.js",
+    "dev": "node api/server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
