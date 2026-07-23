@@ -1209,7 +1209,8 @@
 
 </div>
 <div class="panel-body">
-<form id="registerForm">
+<!-- تمت إضافة novalidate لمنع المتصفح من إيقاف الإرسال في الحقول المخفية -->
+<form id="registerForm" novalidate>
 
 <div class="form-step active" data-step="0">
 <div class="step-title-box">
@@ -1221,13 +1222,13 @@
 <label for="name">
 <i class="fa-solid fa-user"></i> الاسم
 </label>
-<input id="name" name="name" placeholder="مثال: محمد أحمد" required="" type="text"/>
+<input id="name" name="name" placeholder="مثال: محمد أحمد" type="text"/>
 </div>
 <div class="form-group">
 <label for="phone">
 <i class="fa-solid fa-phone"></i> رقم الاتصال
 </label>
-<input id="phone" name="phone" placeholder="مثال: 01012345678" required="" type="tel"/>
+<input id="phone" name="phone" placeholder="مثال: 01012345678" type="tel"/>
 </div>
 <div class="form-group">
 <label for="whatsapp">
@@ -1249,7 +1250,7 @@
 <label for="trade">
 <i class="fa-solid fa-screwdriver-wrench"></i> الحرفة
 </label>
-<select id="trade" name="trade" required="">
+<select id="trade" name="trade">
 <option value="">جاري تحميل الحرف...</option>
 </select>
 </div>
@@ -1257,7 +1258,7 @@
 <label for="area">
 <i class="fa-solid fa-location-dot"></i> المنطقة
 </label>
-<select id="area" name="area" required="">
+<select id="area" name="area">
 <option value="">جاري تحميل المناطق...</option>
 </select>
 </div>
@@ -1447,7 +1448,6 @@
 </section>
 </div>
 </main>
-
 <div class="crop-modal" id="cropModal">
 <div class="crop-box">
 <div class="crop-head">
@@ -1615,9 +1615,9 @@
       }
     }
 
+    // دالة جديدة للتأكد من تعبئة الحقول وتوجيه المستخدم للخطوة المفقودة
     function validateWizardStep(index) {
       hideResult();
-
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
       const trade = document.getElementById("trade").value.trim();
@@ -1641,20 +1641,36 @@
       return true;
     }
 
+    // دالة فحص كل الخطوات قبل الإرسال (تُرجع المستخدم للخطوة الناقصة أوتوماتيك)
+    function validateAllWizardSteps() {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      if (!name || !phone) {
+         showResult("error", "من فضلك املأ الاسم ورقم الاتصال.");
+         goToStep(0, true);
+         return false;
+      }
+
+      const trade = document.getElementById("trade").value.trim();
+      const area = document.getElementById("area").value.trim();
+      if (!trade || !area) {
+         showResult("error", "من فضلك اختر الحرفة والمنطقة.");
+         goToStep(1, true);
+         return false;
+      }
+
+      if (!idFrontFile || !idBackFile) {
+         showResult("error", "لازم ترفع صورة البطاقة الشخصية وجه وظهر.");
+         goToStep(2, true);
+         return false;
+      }
+      return true;
+    }
+
     function goToStep(index, shouldScroll) {
       currentStep = Math.max(0, Math.min(index, formSteps.length - 1));
       updateWizard();
       if (shouldScroll) scrollToRegisterPanel();
-    }
-
-    function validateAllWizardSteps() {
-      for (let i = 0; i < formSteps.length - 1; i++) {
-        if (!validateWizardStep(i)) {
-          goToStep(i, true);
-          return false;
-        }
-      }
-      return true;
     }
 
     function fetchJsonWithFallback(urls) {
@@ -1709,6 +1725,48 @@
         option.value = name;
         option.textContent = name;
         select.appendChild(option);
+      });
+    }
+
+    // ============================================
+    // دالة ضغط الصور الذكية للعميل Client-Side Compression
+    // ============================================
+    function compressImage(file, maxWidth, maxHeight, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function (event) {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = function () {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > maxWidth) {
+                height = Math.round(height * maxWidth / width);
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width = Math.round(width * maxHeight / height);
+                height = maxHeight;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob((blob) => {
+              resolve(blob);
+            }, 'image/jpeg', quality);
+          };
+          img.onerror = reject;
+        };
+        reader.onerror = reject;
       });
     }
 
@@ -1845,9 +1903,10 @@
     function acceptCrop() {
       if (!cropper) return;
       const isMain = currentCropMode === "main";
+      // تم تقليل جودة قص الصورة هنا إلى 0.7 للحفاظ على المساحة ومنع مشاكل Vercel
       const canvas = cropper.getCroppedCanvas({
-        width: isMain ? 1200 : 1000,
-        height: isMain ? 900 : 1000,
+        width: isMain ? 1000 : 800,
+        height: isMain ? 750 : 800,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: "high"
       });
@@ -1867,7 +1926,7 @@
           currentWorkIndex++;
           processNextWorkImage();
         }
-      }, "image/jpeg", 0.92);
+      }, "image/jpeg", 0.7);
     }
 
     function skipCurrentWorkImage() {
@@ -1876,26 +1935,35 @@
       processNextWorkImage();
     }
 
-    function setIdPreview(side, file) {
+    // تعديل الدالة لضغط صور البطاقة الشخصية قبل العرض والحفظ
+    async function setIdPreview(side, file) {
       if (!file) return;
       if (!file.type || !file.type.startsWith("image/")) {
         showResult("error", "من فضلك ارفع صورة صحيحة للبطاقة.");
         return;
       }
 
-      const isFront = side === "front";
-      if (isFront) {
-        idFrontFile = file;
-        if (idFrontPreviewUrl) URL.revokeObjectURL(idFrontPreviewUrl);
-        idFrontPreviewUrl = URL.createObjectURL(file);
-        idFrontPreview.src = idFrontPreviewUrl;
-        idFrontPreviewFrame.classList.add("show");
-      } else {
-        idBackFile = file;
-        if (idBackPreviewUrl) URL.revokeObjectURL(idBackPreviewUrl);
-        idBackPreviewUrl = URL.createObjectURL(file);
-        idBackPreview.src = idBackPreviewUrl;
-        idBackPreviewFrame.classList.add("show");
+      showResult("success", "جاري تهيئة وضغط الصورة... يُرجى الانتظار ثواني.");
+      try {
+        const compressedBlob = await compressImage(file, 1200, 1200, 0.7);
+        hideResult();
+
+        const isFront = side === "front";
+        if (isFront) {
+          idFrontFile = compressedBlob;
+          if (idFrontPreviewUrl) URL.revokeObjectURL(idFrontPreviewUrl);
+          idFrontPreviewUrl = URL.createObjectURL(compressedBlob);
+          idFrontPreview.src = idFrontPreviewUrl;
+          idFrontPreviewFrame.classList.add("show");
+        } else {
+          idBackFile = compressedBlob;
+          if (idBackPreviewUrl) URL.revokeObjectURL(idBackPreviewUrl);
+          idBackPreviewUrl = URL.createObjectURL(compressedBlob);
+          idBackPreview.src = idBackPreviewUrl;
+          idBackPreviewFrame.classList.add("show");
+        }
+      } catch (err) {
+        showResult("error", "حدث خطأ أثناء معالجة الصورة، جرب صورة أخرى.");
       }
     }
 
@@ -1917,14 +1985,12 @@
     idFrontInput.addEventListener("change", function (event) {
       const file = event.target.files[0];
       if (!file) return;
-      hideResult();
       setIdPreview("front", file);
     });
 
     idBackInput.addEventListener("change", function (event) {
       const file = event.target.files[0];
       if (!file) return;
-      hideResult();
       setIdPreview("back", file);
     });
 
