@@ -34,23 +34,36 @@ app.use("/api/admin", (req, res, next) => {
 });
 
 // ===============================
-// 3. إعدادات رفع الملفات (Multer)
+// 3. إعدادات رفع الملفات (Multer) لبيئة Vercel
 // ===============================
-const uploadsDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
+// تم إلغاء إنشاء المجلد المحلي واستخدام الذاكرة للتوافق مع Serverless
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadsDir),
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + path.extname(file.originalname || ".jpg"));
-    }
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 const { supabase } = require("./config/supabase");
+
+// دالة مساعدة لرفع الصور مباشرة إلى Supabase Storage
+async function uploadToSupabase(file) {
+  if (!file) return null;
+  const ext = path.extname(file.originalname || ".jpg");
+  const fileName = Date.now() + "-" + Math.round(Math.random() * 1E9) + ext;
+  const bucket = process.env.SUPABASE_BUCKET || "uploads";
+  
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+    
+  if (error) {
+    console.error("Supabase Upload Error:", error);
+    throw error;
+  }
+  return fileName;
+}
 
 // ===============================
 // 4. مسار فحص تكرار الأرقام عند التسجيل
@@ -106,10 +119,18 @@ app.post('/api/register', upload.fields([
       return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية المطلوبة' });
     }
 
-    const profileImage = files.image && files.image[0] ? files.image[0].filename : null;
-    const idFrontImage = files.idFront && files.idFront[0] ? files.idFront[0].filename : null;
-    const idBackImage = files.idBack && files.idBack[0] ? files.idBack[0].filename : null;
-    const workPhotosArr = files.workPhotos ? files.workPhotos.map(f => f.filename) : [];
+    // رفع الصور من الذاكرة لـ Supabase مباشرة
+    const profileImage = files.image && files.image[0] ? await uploadToSupabase(files.image[0]) : null;
+    const idFrontImage = files.idFront && files.idFront[0] ? await uploadToSupabase(files.idFront[0]) : null;
+    const idBackImage = files.idBack && files.idBack[0] ? await uploadToSupabase(files.idBack[0]) : null;
+    
+    let workPhotosArr = [];
+    if (files.workPhotos && files.workPhotos.length > 0) {
+      for (const file of files.workPhotos) {
+        const uploadedName = await uploadToSupabase(file);
+        if (uploadedName) workPhotosArr.push(uploadedName);
+      }
+    }
 
     const newWorker = {
       name,
@@ -213,6 +234,20 @@ app.get(["/api/static/matrouh-hero-banner.jpg", "/images/matrouh-hero-banner.jpg
       res.status(404).send("Image not found");
     }
   });
+});
+
+// ===============================
+// 8.5 عرض الصور المرفوعة من Supabase 
+// ===============================
+// هذا المسار يضمن أن الروابط الموجودة في واجهة المستخدم تستمر بالعمل عبر التوجيه لـ Supabase
+app.get("/uploads/:fileName", (req, res) => {
+  const bucket = process.env.SUPABASE_BUCKET || "uploads";
+  const { data } = supabase.storage.from(bucket).getPublicUrl(req.params.fileName);
+  if (data && data.publicUrl) {
+    res.redirect(data.publicUrl);
+  } else {
+    res.status(404).send("Image not found");
+  }
 });
 
 app.get("/", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
