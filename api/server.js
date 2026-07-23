@@ -88,6 +88,15 @@ app.use(express.static(STATIC_DIR, {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
 
+// مسار صريح لملف التصميم (style.css) لضمان عدم ضياعه في الروابط الفرعية
+app.get(["/style.css", "/*/style.css"], (req, res) => {
+  res.type("text/css");
+  res.setHeader("Cache-Control", process.env.NODE_ENV === "production" ? "public, max-age=604800" : "no-cache");
+  res.sendFile(path.join(STATIC_DIR, "style.css"), (err) => {
+    if (err) res.status(404).send("CSS not found");
+  });
+});
+
 // مسار صريح لصورة الهيدر (Hero Banner) لضمان ظهورها
 const MATROUH_HERO_BANNER_FILE = path.join(STATIC_DIR, "images", "matrouh-hero-banner.jpg");
 
