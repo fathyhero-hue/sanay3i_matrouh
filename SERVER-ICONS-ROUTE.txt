@@ -1,6 +1,0 @@
-// ضيف هذا الكود داخل api/server.js تحت Route favicon.ico أو بعد Routes الملفات الثابتة
-
-app.get("/icons/:fileName", (req, res) => {
-  res.type("image/png");
-  res.sendFile(path.join(STATIC_DIR, "icons", req.params.fileName));
-});
