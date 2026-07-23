@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
+const fs = require("fs");
 try { require("dotenv").config(); } catch(e) {}
 
 const app = express();
@@ -10,13 +11,12 @@ const app = express();
 // ===============================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.disable("x-powered-by"); // إخفاء نوع السيرفر لأسباب أمنية
+app.disable("x-powered-by");
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  // منع تخزين صفحات الإدارة في الكاش لحماية البيانات
   if (req.path.startsWith("/admin") || req.path.startsWith("/api/admin")) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   }
@@ -28,14 +28,126 @@ app.use((req, res, next) => {
 // ===============================
 const { adminApiRateLimit, analyticsRateLimit } = require("./middlewares/rateLimit");
 
-// حماية مسارات الإدارة من التخمين المتكرر لكلمة السر
 app.use("/api/admin", (req, res, next) => {
   if (req.path === "/login") return next();
   return adminApiRateLimit(req, res, next);
 });
 
 // ===============================
-// 3. استدعاء وتفعيل المسارات (Routes)
+// 3. إعدادات رفع الملفات (Multer)
+// ===============================
+const uploadsDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname || ".jpg"));
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+const { supabase } = require("./config/supabase");
+
+// ===============================
+// 4. مسار فحص تكرار الأرقام عند التسجيل
+// ===============================
+app.get('/api/workers/check-duplicate', async (req, res) => {
+  try {
+    const { phone, whatsapp } = req.query;
+    let query = supabase.from('workers').select('id, name, phone, whatsapp');
+    
+    if (phone && whatsapp) {
+      query = query.or(`phone.eq.${phone},whatsapp.eq.${whatsapp},phone.eq.${whatsapp},whatsapp.eq.${phone}`);
+    } else if (phone) {
+      query = query.or(`phone.eq.${phone},whatsapp.eq.${phone}`);
+    } else if (whatsapp) {
+      query = query.or(`phone.eq.${whatsapp},whatsapp.eq.${whatsapp}`);
+    } else {
+      return res.json({ success: true, duplicate: false });
+    }
+
+    const { data, error } = await query.limit(1);
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      return res.json({ success: true, duplicate: true, worker: data[0] });
+    }
+    res.json({ success: true, duplicate: false });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===============================
+// 5. مسار استقبال تسجيلات الصنايعية الجدد (POST /api/register)
+// ===============================
+app.post('/api/register', upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'idFront', maxCount: 1 },
+  { name: 'idBack', maxCount: 1 },
+  { name: 'workPhotos', maxCount: 5 }
+]), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const files = req.files || {};
+
+    const name = String(body.name || '').trim();
+    const phone = String(body.phone || '').trim();
+    const whatsapp = String(body.whatsapp || body.phone || '').trim();
+    const trade = String(body.trade || '').trim();
+    const area = String(body.area || '').trim();
+    const description = String(body.description || '').trim();
+
+    if (!name || !phone || !trade || !area) {
+      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية المطلوبة' });
+    }
+
+    const profileImage = files.image && files.image[0] ? files.image[0].filename : null;
+    const idFrontImage = files.idFront && files.idFront[0] ? files.idFront[0].filename : null;
+    const idBackImage = files.idBack && files.idBack[0] ? files.idBack[0].filename : null;
+    const workPhotosArr = files.workPhotos ? files.workPhotos.map(f => f.filename) : [];
+
+    const newWorker = {
+      name,
+      phone,
+      whatsapp,
+      trade,
+      area,
+      description,
+      image: profileImage,
+      id_front: idFrontImage,
+      id_back: idBackImage,
+      work_photos: workPhotosArr,
+      approved: false,
+      active: true,
+      created_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase.from('workers').insert([newWorker]).select().single();
+    if (error) throw error;
+
+    const workerId = data.id;
+    const registrationCode = 'SN-' + new Date().getFullYear() + '-' + String(workerId).padStart(5, '0');
+
+    await supabase.from('workers').update({ registration_code: registrationCode }).eq('id', workerId);
+
+    return res.json({
+      success: true,
+      id: workerId,
+      registration_code: registrationCode
+    });
+  } catch (err) {
+    console.error('Registration Error:', err);
+    return res.status(500).json({ success: false, error: err.message || 'حدث خطأ أثناء التسجيل' });
+  }
+});
+
+// ===============================
+// 6. استدعاء وتفعيل المسارات الأخرى (Routes)
 // ===============================
 const adminRoutes = require("./routes/admin");
 const workersRoutes = require("./routes/workers");
@@ -43,20 +155,16 @@ const whatsappRoutes = require("./routes/whatsapp");
 const supportRoutes = require("./routes/support");
 const coreRoutes = require("./routes/core");
 
-// ربط كل ملف بالرابط الخاص به
 app.use("/api/admin", adminRoutes);
 app.use("/api/workers", workersRoutes);
-app.use("/api/sanaieya", workersRoutes); // لدعم الروابط القديمة إن وجدت
+app.use("/api/sanaieya", workersRoutes);
 app.use("/api", whatsappRoutes);
 app.use("/api/support-chat", supportRoutes);
 app.use("/api", coreRoutes);
 
 // ===============================
-// 4. مسارات التحليلات والإحصائيات
+// 7. مسارات التحليلات والإحصائيات
 // ===============================
-const { supabase } = require("./config/supabase");
-
-// تسجيل ضغطات العملاء (اتصال، واتساب، زيارة صفحة)
 app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
   try {
     const body = req.body || {};
@@ -80,7 +188,7 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
 });
 
 // ===============================
-// 5. إعدادات الواجهة الأمامية والملفات الثابتة
+// 8. الملفات الثابتة والصفحات
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
@@ -88,7 +196,6 @@ app.use(express.static(STATIC_DIR, {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
 
-// مسار صريح لملف التصميم (style.css) لضمان عدم ضياعه في الروابط الفرعية
 app.get(["/style.css", "/*/style.css"], (req, res) => {
   res.type("text/css");
   res.setHeader("Cache-Control", process.env.NODE_ENV === "production" ? "public, max-age=604800" : "no-cache");
@@ -97,9 +204,7 @@ app.get(["/style.css", "/*/style.css"], (req, res) => {
   });
 });
 
-// مسار صريح لصورة الهيدر (Hero Banner) لضمان ظهورها
 const MATROUH_HERO_BANNER_FILE = path.join(STATIC_DIR, "images", "matrouh-hero-banner.jpg");
-
 app.get(["/api/static/matrouh-hero-banner.jpg", "/images/matrouh-hero-banner.jpg", "/matrouh-hero-banner.jpg"], (req, res) => {
   res.type("image/jpeg");
   res.setHeader("Cache-Control", process.env.NODE_ENV === "production" ? "public, max-age=604800" : "no-cache");
@@ -110,7 +215,6 @@ app.get(["/api/static/matrouh-hero-banner.jpg", "/images/matrouh-hero-banner.jpg
   });
 });
 
-// توجيه الصفحات لملفات HTML
 app.get("/", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
 app.get("/register", (req, res) => res.sendFile(path.join(STATIC_DIR, "register.html")));
 app.get("/status", (req, res) => res.sendFile(path.join(STATIC_DIR, "status.html")));
@@ -120,20 +224,18 @@ app.get("/worker/:id", (req, res) => res.sendFile(path.join(STATIC_DIR, "worker.
 app.get("/trade/:trade", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
 app.get("/area/:area", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
 
-// قراءة الأيقونات والصور الخاصة بالتطبيق
 app.get("/icons/:fileName", (req, res) => {
   res.type("image/png");
   res.sendFile(path.join(STATIC_DIR, "icons", req.params.fileName));
 });
 
-// ملف الـ Robots لمحركات البحث (SEO)
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain");
   res.send("User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n");
 });
 
 // ===============================
-// 6. معالجة الأخطاء الشاملة
+// 9. معالجة الأخطاء والتشغيل
 // ===============================
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -154,5 +256,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// تصدير التطبيق ليعمل على استضافة Vercel
 module.exports = app;
+
+const PORT = process.env.PORT || 3000;
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log('-------------------------------------------');
+    console.log(`Sanay3i Matrouh server is running locally`);
+    console.log(`http://localhost:${PORT}`);
+    console.log('-------------------------------------------');
+  });
+}
