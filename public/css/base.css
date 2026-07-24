@@ -1,0 +1,59 @@
+/* ==========================================
+   BASE STYLES
+   ========================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #0f172a;
+  --primary-light: #1e293b;
+  --muted: #64748b;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --blue: #1d4ed8;
+  --blue-light: #38bdf8;
+  --green: #16a34a;
+  --danger: #dc2626;
+  --gold: #f59e0b;
+  --white: #ffffff;
+
+  --shadow-sm: 0 6px 18px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 14px 32px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.16);
+}
+
+html {
+  scroll-padding-top: 88px;
+}
+
+body {
+  margin: 0;
+  font-family: "Cairo", sans-serif;
+  background:
+    radial-gradient(circle at top right,
+      rgba(56, 189, 248, 0.22),
+      transparent 32%),
+    radial-gradient(circle at bottom left,
+      rgba(245, 158, 11, 0.15),
+      transparent 30%),
+    linear-gradient(
+      135deg,
+      #f8fafc 0%,
+      #eef6ff 100%
+    );
+
+  color: var(--primary);
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.container {
+  width: min(1160px, calc(100% - 30px));
+  margin: auto;
+}

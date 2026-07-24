@@ -1,0 +1,70 @@
+/* =========================================================
+   ADMIN WHATSAPP & CHAT
+   ========================================================= */
+.admin-chat-layout { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+.admin-chat-panel { background: #fff; border: 1px solid var(--border); border-radius: 24px; padding: 16px; box-shadow: var(--shadow-sm); }
+.admin-chat-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.admin-chat-tools input { flex: 1; min-width: 180px; border: 1px solid var(--border); background: var(--bg); border-radius: 16px; padding: 12px; font-weight: 800; }
+.chat-thread-list { display: grid; gap: 10px; max-height: 620px; overflow: auto; }
+.chat-thread { border: 1px solid var(--border); border-radius: 18px; padding: 12px; background: #f8fafc; cursor: pointer; transition: .15s; }
+.chat-thread:hover, .chat-thread.active { border-color: #93c5fd; background: #eff6ff; }
+.chat-thread.unread { border-color: #86efac; background: #f0fdf4; }
+.chat-thread h4 { margin: 0 0 5px; font-size: 15px; color: var(--primary); }
+.chat-thread p { margin: 0; color: var(--muted); font-weight: 800; line-height: 1.7; font-size: 13px; }
+.chat-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 900; background: #dcfce7; color: #166534; margin-top: 7px; }
+.admin-chat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px; }
+.admin-chat-head h3 { margin: 0; font-size: 20px; }
+.admin-chat-messages { height: 430px; overflow: auto; border: 1px solid var(--border); background: #f8fafc; border-radius: 20px; padding: 13px; display: grid; gap: 10px; align-content: start; }
+.admin-chat-msg { max-width: 82%; border-radius: 18px; padding: 10px 12px; font-weight: 800; line-height: 1.8; white-space: pre-wrap; box-shadow: 0 8px 20px rgba(15, 23, 42, .06); }
+.admin-chat-msg.admin { justify-self: start; background: #dbeafe; border: 1px solid #bfdbfe; color: #1e3a8a; }
+.admin-chat-msg.worker { justify-self: end; background: #dcfce7; border: 1px solid #bbf7d0; color: #166534; }
+.admin-chat-msg small { display: block; color: #64748b; font-weight: 900; font-size: 11px; margin-top: 5px; }
+.admin-chat-msg img { max-width: 220px; border-radius: 14px; margin-top: 8px; display: block; }
+.admin-chat-form { display: grid; gap: 10px; margin-top: 12px; }
+.admin-chat-form textarea { width: 100%; min-height: 95px; border: 1px solid var(--border); background: #fff; border-radius: 16px; padding: 12px; font-family: inherit; font-weight: 800; resize: vertical; }
+.admin-chat-form input { font-family: inherit; font-weight: 800; }
+.admin-chat-form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.chat-empty { border: 1px dashed #cbd5e1; border-radius: 18px; padding: 18px; background: #f8fafc; color: #64748b; font-weight: 900; text-align: center; }
+
+.whatsapp-summary strong { font-size: 18px; color: var(--primary); font-weight: 900; }
+.whatsapp-summary span { color: var(--muted); font-weight: 800; font-size: 13px; }
+.whatsapp-template-grid { display: grid; gap: 12px; }
+.whatsapp-template-grid select, .whatsapp-template-grid textarea { width: 100%; border: 1px solid var(--border); outline: none; background: var(--bg); border-radius: 16px; padding: 13px; font-weight: 800; }
+.whatsapp-template-grid textarea { min-height: 210px; line-height: 1.9; resize: vertical; }
+.whatsapp-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.whatsapp-actions .big-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.whatsapp-hint { background: #ecfdf5; border: 1px solid #bbf7d0; color: #166534; border-radius: 16px; padding: 12px; font-weight: 800; line-height: 1.8; font-size: 13px; margin-top: 12px; }
+
+.wa-dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.wa-tool-card { background: #fff; border: 1px solid var(--border); border-radius: 24px; padding: 18px; box-shadow: var(--shadow-sm); }
+.wa-tool-card h4 { font-size: 18px; color: var(--primary); margin-bottom: 8px; }
+.wa-tool-card p { color: var(--muted); font-weight: 700; line-height: 1.8; }
+.wa-form-grid { display: grid; gap: 10px; margin-top: 12px; }
+.wa-form-grid select, .wa-form-grid input, .wa-form-grid textarea { width: 100%; border: 1px solid var(--border); outline: none; background: var(--bg); border-radius: 16px; padding: 12px; font-weight: 800; }
+.wa-form-grid textarea { min-height: 160px; line-height: 1.8; resize: vertical; }
+.wa-log-list { display: grid; gap: 10px; margin-top: 12px; }
+.wa-log-item { border: 1px solid var(--border); border-radius: 18px; background: #f8fafc; padding: 13px; }
+.wa-log-item h4 { font-size: 15px; margin: 0 0 5px; }
+.wa-log-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
+.wa-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 900; background: #eef2ff; color: #3730a3; }
+.wa-pill.sent { background: #dcfce7; color: #166534; }
+.wa-pill.failed { background: #fee2e2; color: #991b1b; }
+.wa-pill.pending { background: #fef3c7; color: #92400e; }
+.wa-preview { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 16px; padding: 12px; font-weight: 800; line-height: 1.8; white-space: pre-wrap; }
+.wa-progress { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+.wa-progress > span { display: block; height: 100%; background: #2563eb; width: 0%; }
+.wa-inbox-item { border: 1px solid var(--border); border-radius: 18px; background: #fff; padding: 14px; box-shadow: var(--shadow-sm); }
+.wa-inbox-item.unread { border-color: #86efac; background: #f0fdf4; }
+.wa-inbox-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.wa-inbox-title { font-size: 16px; font-weight: 950; color: var(--primary); }
+.wa-inbox-text { margin-top: 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 14px; padding: 11px; font-weight: 800; line-height: 1.8; white-space: pre-wrap; }
+.wa-inbox-reply { margin-top: 10px; display: grid; gap: 8px; }
+.wa-inbox-reply textarea { min-height: 95px; }
+.wa-inbox-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.wa-inbox-actions .big-btn { padding: 10px 12px; border-radius: 14px; font-size: 13px; }
+
+@media (max-width: 760px) {
+    .whatsapp-template-grid textarea { min-height: 170px; }
+    .whatsapp-actions { gap: 7px; }
+    .admin-chat-layout { grid-template-columns: 1fr; }
+}

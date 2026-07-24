@@ -1,0 +1,495 @@
+/* =========================================================
+   FORM LAYOUT
+   ========================================================= */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: grid;
+  gap: 8px;
+}
+
+.form-group.full {
+  grid-column: 1 / -1;
+}
+
+/* =========================================================
+   LABELS
+   ========================================================= */
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.form-group label i {
+  color: var(--blue);
+}
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  min-height: 54px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  outline: none;
+  background: #fff;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+
+  transition: .25s ease;
+}
+
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.8;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: rgba(29,78,216,.45);
+  box-shadow: 0 0 0 4px rgba(29,78,216,.10);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+  background: #f8fafc;
+  cursor: not-allowed;
+  opacity: .75;
+}
+/* =========================================================
+   UPLOADS
+   ========================================================= */
+
+.upload-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.upload-area,
+.id-upload-box {
+  position: relative;
+  min-height: 190px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding: 18px;
+
+  border: 2px dashed var(--border);
+  border-radius: 22px;
+
+  background: var(--bg);
+
+  cursor: pointer;
+  transition: .25s ease;
+  overflow: hidden;
+}
+
+.upload-area:hover,
+.id-upload-box:hover {
+  border-color: var(--blue);
+  background: rgba(29,78,216,.04);
+}
+
+.upload-area.dragover,
+.id-upload-box.dragover {
+  border-color: var(--blue);
+  background: rgba(29,78,216,.08);
+  transform: scale(.99);
+}
+
+.upload-area i,
+.id-upload-box i {
+  font-size: 34px;
+  color: var(--blue);
+}
+
+.upload-area strong,
+.id-upload-box strong {
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.upload-area span,
+.id-upload-box span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: center;
+  font-weight: 700;
+}
+
+.upload-area input,
+.id-upload-box input {
+  display: none;
+}
+
+/* =========================================================
+   IMAGE PREVIEW
+   ========================================================= */
+
+.work-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.id-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.preview-card {
+  position: relative;
+  overflow: hidden;
+
+  border-radius: 20px;
+  border: 1px solid var(--border);
+
+  background: #fff;
+}
+
+.preview-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.preview-card-actions {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px;
+
+  background: linear-gradient(
+    to top,
+    rgba(15,23,42,.75),
+    transparent
+  );
+}
+
+.preview-btn {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(255,255,255,.94);
+  color: var(--primary);
+
+  cursor: pointer;
+  transition: .2s;
+}
+
+.preview-btn:hover {
+  transform: scale(1.08);
+}
+
+.preview-btn.delete {
+  color: #dc2626;
+}
+
+.preview-btn.edit {
+  color: var(--blue);
+}
+/* =========================================================
+   PRIVACY NOTE
+   ========================================================= */
+
+.privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  padding: 16px 18px;
+  margin-top: 18px;
+
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.9;
+}
+
+.privacy-note i {
+  color: var(--green);
+  font-size: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   WIZARD PROGRESS
+   ========================================================= */
+
+.wizard-progress {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.wizard-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 14px;
+
+  border-radius: 18px;
+  border: 1px solid var(--border);
+
+  background: #fff;
+
+  transition: .25s ease;
+}
+
+.wizard-step-pill.active {
+  border-color: var(--blue);
+  background: rgba(29,78,216,.08);
+}
+
+.wizard-step-pill.done {
+  border-color: var(--green);
+  background: rgba(34,197,94,.08);
+}
+
+.step-title-box {
+  display: grid;
+  gap: 2px;
+}
+
+.step-title-box strong {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.step-title-box p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.wizard-actions {
+  margin-top: 22px;
+  padding-top: 18px;
+
+  border-top: 1px solid var(--border);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wizard-actions-left,
+.wizard-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.step-counter {
+  color: var(--muted);
+  background: var(--bg);
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+
+  padding: 10px 13px;
+
+  font-size: 13px;
+  font-weight: 900;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.mini-btn,
+.submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 52px;
+  padding: 0 22px;
+
+  border: none;
+  border-radius: 18px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+
+  cursor: pointer;
+  transition: .25s ease;
+}
+
+.submit-btn {
+  background: var(--blue);
+  color: #fff;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 28px rgba(29,78,216,.20);
+}
+
+.submit-btn:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* =========================================================
+   RESULT
+   ========================================================= */
+
+.result-box {
+  display: none;
+  margin-top: 18px;
+
+  border-radius: 18px;
+  padding: 14px 16px;
+
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.8;
+}
+
+.result-box.show {
+  display: block;
+}
+
+.result-box.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.result-box.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* =========================================================
+   SUCCESS CARD
+   ========================================================= */
+
+.success-card {
+  display: grid;
+  gap: 12px;
+
+  padding: 18px;
+
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 22px;
+
+  color: #14532d;
+}
+
+.success-card-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.success-code-box {
+  background: #fff;
+  border: 1px dashed #22c55e;
+  border-radius: 18px;
+  padding: 14px;
+  text-align: center;
+}
+
+.success-code-box small {
+  display: block;
+  margin-bottom: 6px;
+
+  color: #166534;
+  font-weight: 900;
+}
+
+.success-code-box strong {
+  display: block;
+
+  color: #0f172a;
+
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 1px;
+
+  direction: ltr;
+}
+
+.success-card p {
+  margin: 0;
+  font-weight: 900;
+  line-height: 1.9;
+}

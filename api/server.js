@@ -36,7 +36,6 @@ app.use("/api/admin", (req, res, next) => {
 // ===============================
 // 3. إعدادات رفع الملفات (Multer) لبيئة Vercel
 // ===============================
-// تم إلغاء إنشاء المجلد المحلي واستخدام الذاكرة للتوافق مع Serverless
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
@@ -44,7 +43,6 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 
-// دالة مساعدة لرفع الصور مباشرة إلى Supabase Storage
 async function uploadToSupabase(file) {
   if (!file) return null;
   const ext = path.extname(file.originalname || ".jpg");
@@ -119,7 +117,6 @@ app.post('/api/register', upload.fields([
       return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية المطلوبة' });
     }
 
-    // رفع الصور من الذاكرة لـ Supabase مباشرة
     const profileImage = files.image && files.image[0] ? await uploadToSupabase(files.image[0]) : null;
     const idFrontImage = files.idFront && files.idFront[0] ? await uploadToSupabase(files.idFront[0]) : null;
     const idBackImage = files.idBack && files.idBack[0] ? await uploadToSupabase(files.idBack[0]) : null;
@@ -168,10 +165,8 @@ app.post('/api/register', upload.fields([
 });
 
 // ===============================
-// 5.5. مسارات الحذف، الإيقاف، والتجديد (الفردي والجماعي)
+// 5.5. مسارات الحذف، الإيقاف، والتجديد
 // ===============================
-
-// مسار حذف صنايعي نهائياً
 app.delete('/api/workers/:id', adminApiRateLimit, async (req, res) => {
     try {
         const { error } = await supabase.from('workers').delete().eq('id', req.params.id);
@@ -182,11 +177,9 @@ app.delete('/api/workers/:id', adminApiRateLimit, async (req, res) => {
     }
 });
 
-// مسار إيقاف / تفعيل صنايعي
 app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
     try {
         const { active } = req.body;
-        // active: 1 للتفعيل, 0 للإيقاف
         const { error } = await supabase.from('workers').update({ active }).eq('id', req.params.id);
         if (error) throw error;
         res.json({ success: true, message: 'تم تحديث حالة التفعيل' });
@@ -195,7 +188,6 @@ app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
     }
 });
 
-// مسار التجديد الفردي
 app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     try {
         const { months, amount, payment_method, payment_status, note } = req.body;
@@ -210,7 +202,7 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
         if (fetchError) throw fetchError;
 
         let currentEnd = worker?.subscription_end ? new Date(worker.subscription_end) : new Date();
-        if (currentEnd < new Date()) currentEnd = new Date(); // إذا كان منتهي ابدأ من اليوم
+        if (currentEnd < new Date()) currentEnd = new Date();
 
         currentEnd.setMonth(currentEnd.getMonth() + addMonths);
 
@@ -221,9 +213,6 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
 
         if (updateError) throw updateError;
 
-        // اختياري: إذا كان لديك جدول لتسجيل المدفوعات (قم بإزالة التعليق من السطر التالي لو أردته)
-        // await supabase.from('subscription_payments').insert([{ worker_id: req.params.id, amount, payment_method, payment_status, note, months }]);
-
         res.json({ success: true, message: 'تم تجديد الاشتراك بنجاح' });
     } catch (err) {
         console.error('Renew Error:', err);
@@ -231,7 +220,6 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     }
 });
 
-// مسار التجديد الجماعي للكل
 app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
     try {
         const { months } = req.body;
@@ -260,7 +248,7 @@ app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
 });
 
 // ===============================
-// 6. استدعاء وتفعيل المسارات الأخرى (Routes)
+// 6. استدعاء وتفعيل المسارات الأخرى
 // ===============================
 const adminRoutes = require("./routes/admin");
 const workersRoutes = require("./routes/workers");
@@ -301,10 +289,16 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
 });
 
 // ===============================
-// 8. الملفات الثابتة والصفحات
+// 8. الملفات الثابتة والصفحات (التعديل هنا)
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
+// السماح بالوصول لمجلد public الجديد (مهم جداً للـ CSS والـ JS)
+app.use(express.static(path.join(STATIC_DIR, "public"), {
+  maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
+}));
+
+// السماح بالوصول للملفات في الجذر القديم
 app.use(express.static(STATIC_DIR, {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
@@ -328,9 +322,6 @@ app.get(["/api/static/matrouh-hero-banner.jpg", "/images/matrouh-hero-banner.jpg
   });
 });
 
-// ===============================
-// 8.5 عرض الصور المرفوعة من Supabase 
-// ===============================
 app.get("/uploads/:fileName", (req, res) => {
   const bucket = process.env.SUPABASE_BUCKET || "uploads";
   const { data } = supabase.storage.from(bucket).getPublicUrl(req.params.fileName);

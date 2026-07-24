@@ -1,0 +1,114 @@
+/* =========================================================
+   HOME PAGE (Hero, Stats, Trade Icons, Features)
+   ========================================================= */
+
+/* Hero Section */
+.matrouh-hero { padding: 18px 0 12px !important; }
+.matrouh-hero-container { display: grid; gap: 14px; }
+.matrouh-hero-card {
+  background: #061A3D !important; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 26px !important;
+  overflow: hidden !important; box-shadow: 0 18px 44px rgba(6, 26, 61, 0.16) !important; position: relative; isolation: isolate;
+}
+.matrouh-hero-image-wrap {
+  position: relative !important; height: auto !important; min-height: 0 !important; aspect-ratio: auto !important;
+  background: #061A3D !important; overflow: hidden !important; line-height: 0 !important;
+}
+.matrouh-hero-image {
+  width: 100% !important; height: auto !important; min-height: 0 !important; max-height: none !important;
+  display: block !important; object-fit: contain !important; object-position: center center !important; transform: none !important; background: transparent !important;
+}
+.matrouh-hero-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 26, 61, 0.02) 0%, rgba(6, 26, 61, 0.05) 54%, rgba(6, 26, 61, 0.18) 100%) !important; pointer-events: none; }
+.matrouh-location-badge {
+  position: absolute; top: 12px !important; right: 14px !important; min-height: 34px !important; padding: 6px 12px !important;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.88); color: #0f2a5f; border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 14px 30px rgba(6, 26, 61, 0.18); backdrop-filter: blur(14px); font-size: 11.5px !important; font-weight: 900; display: inline-flex; align-items: center; gap: 8px;
+}
+.matrouh-location-badge i { color: #2563EB; }
+.matrouh-hero-strip {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 20px !important;
+  background: radial-gradient(circle at 95% 0%, rgba(59, 130, 246, 0.36), transparent 32%), linear-gradient(135deg, #061A3D 0%, #082052 52%, #0B2A66 100%); color: #fff;
+}
+.matrouh-hero-title-block { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; min-width: 0; }
+.matrouh-hero-icon {
+  width: 48px !important; height: 48px !important; border-radius: 17px !important; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; font-size: 20px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 16px 32px rgba(0,0,0,.16); flex: 0 0 auto;
+}
+.matrouh-hero-title-block h2 { margin: 0; color: #fff; font-size: clamp(20px, 2.2vw, 28px) !important; line-height: 1.25; font-weight: 900; letter-spacing: -.4px; }
+.matrouh-hero-title-block p { margin: 4px 0 0 !important; color: rgba(255, 255, 255, 0.78); font-size: 13.5px !important; line-height: 1.55 !important; font-weight: 800; }
+.matrouh-hero-actions { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.matrouh-main-action, .matrouh-secondary-action {
+  min-height: 42px !important; border-radius: 999px; padding: 9px 15px !important; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px !important; font-weight: 900; transition: transform .22s ease; white-space: nowrap;
+}
+.matrouh-main-action { background: #fff; color: #061A3D; box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18); }
+.matrouh-secondary-action { background: rgba(255, 255, 255, 0.10); color: #fff; border: 1px solid rgba(255, 255, 255, 0.18); }
+.matrouh-main-action:hover, .matrouh-secondary-action:hover { transform: translateY(-2px); }
+.matrouh-trust-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.matrouh-trust-row div { min-height: 42px !important; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 15px !important; background: rgba(255,255,255,.88); border: 1px solid rgba(226,232,240,.95); color: #334155; font-size: 13px; font-weight: 900; text-align: center; }
+.matrouh-trust-row i { color: #16A34A; }
+
+/* Sections Common */
+.workers-section, .features-section { padding: 54px 0; }
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+.section-label { display: inline-block; color: var(--blue); font-weight: 900; font-size: 13px; margin-bottom: 8px; }
+.section-head h2, .section-center h2 { margin: 0; font-size: 34px; font-weight: 900; color: var(--primary); }
+.section-head p, .section-center p { margin: 8px 0 0; color: var(--muted); font-weight: 700; line-height: 1.8; }
+.section-center { text-align: center; max-width: 700px; margin: 0 auto 26px; }
+.join-link { display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); color: var(--blue); border-radius: 999px; padding: 12px 16px; font-weight: 900; box-shadow: var(--shadow-sm); transition: 0.25s ease; white-space: nowrap; }
+.join-link:hover { background: var(--blue); color: #fff; transform: translateY(-2px); }
+
+/* Stats */
+.stats-section { padding: 20px 0 24px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.stat-box { background: rgba(255,255,255,.92); border: 1px solid rgba(226,232,240,.9); border-radius: 26px; padding: 22px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow-sm); }
+.stat-icon { width: 58px; height: 58px; border-radius: 19px; background: rgba(29,78,216,.09); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.stat-box h3 { margin: 0; font-size: 28px; font-weight: 900; }
+.stat-box p { margin: 2px 0 0; color: var(--muted); font-weight: 800; }
+
+/* Trade & Area Icons */
+.trade-icons-section, .area-icons-section { padding: 20px 0; }
+.trade-icons-grid, .area-icons-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.trade-icon-card, .area-icon-card { min-height: 128px; border: 1px solid rgba(226,232,240,0.95); background: rgba(255,255,255,0.94); color: var(--primary); border-radius: 26px; padding: 16px 12px; cursor: pointer; display: grid; place-items: center; gap: 9px; box-shadow: var(--shadow-sm); transition: 0.25s ease; text-align: center; font-family: inherit; }
+.trade-icon-card:hover, .trade-icon-card.active { transform: translateY(-4px); border-color: rgba(29,78,216,0.30); box-shadow: 0 16px 32px rgba(29,78,216,0.13); }
+.trade-icon-card.active { background: linear-gradient(135deg, rgba(29,78,216,0.98), rgba(37,99,235,0.96)); color: #fff; }
+.trade-icon-bubble, .area-icon-bubble { width: 58px; height: 58px; border-radius: 20px; display: flex; align-items: center; justify-content: center; background: rgba(29,78,216,0.09); color: var(--blue); font-size: 24px; transition: 0.25s ease; }
+.trade-icon-card.active .trade-icon-bubble, .trade-icon-card:hover .trade-icon-bubble { background: #fff; color: var(--blue); }
+.area-icon-card:hover, .area-icon-card.active { transform: translateY(-4px); border-color: rgba(22,163,74,0.30); box-shadow: 0 16px 32px rgba(22,163,74,0.12); }
+.area-icon-card.active { background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(22,163,74,0.94)); color: #fff; }
+.area-icon-bubble { background: rgba(22,163,74,0.10); color: var(--green); }
+.area-icon-card.active .area-icon-bubble, .area-icon-card:hover .area-icon-bubble { background: #fff; color: var(--green); }
+.trade-icon-card strong, .area-icon-card strong { font-size: 15px; font-weight: 900; line-height: 1.45; }
+.trade-icon-card small, .area-icon-card small { color: var(--muted); font-size: 12px; font-weight: 900; }
+.trade-icon-card.active small, .area-icon-card.active small { color: rgba(255,255,255,0.82); }
+
+/* Features */
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.feature-card { background: rgba(255,255,255,.92); border: 1px solid var(--border); border-radius: 28px; padding: 24px; box-shadow: var(--shadow-sm); text-align: center; transition: 0.25s ease; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.feature-icon { width: 66px; height: 66px; border-radius: 22px; display: flex; align-items: center; justify-content: center; background: rgba(29,78,216,.09); color: var(--blue); margin: 0 auto 15px; font-size: 25px; }
+.feature-card h3 { margin: 0 0 9px; font-size: 20px; font-weight: 900; }
+.feature-card p { margin: 0; color: var(--muted); line-height: 1.9; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .matrouh-hero { padding: 14px 0 10px !important; }
+  .matrouh-hero-image-wrap, .matrouh-hero-image { height: auto !important; min-height: 0 !important; }
+  .matrouh-hero-strip { flex-direction: column; align-items: stretch; padding: 13px 15px !important; }
+  .matrouh-hero-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .trade-icons-grid, .area-icons-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .matrouh-hero { padding: 10px 0 8px !important; }
+  .matrouh-hero-card { border-radius: 18px !important; }
+  .matrouh-hero-image-wrap, .matrouh-hero-image { height: auto !important; min-height: 0 !important; object-fit: contain !important; }
+  .matrouh-location-badge { top: 8px !important; right: 8px !important; min-height: 28px !important; padding: 5px 8px !important; font-size: 9.5px !important; }
+  .matrouh-hero-strip { padding: 12px !important; gap: 10px !important; }
+  .matrouh-hero-icon { width: 40px !important; height: 40px !important; border-radius: 14px !important; font-size: 17px !important; }
+  .matrouh-hero-title-block h2 { font-size: 18px !important; }
+  .matrouh-main-action, .matrouh-secondary-action { min-height: 40px !important; font-size: 11.5px !important; padding: 8px 10px !important; }
+  .matrouh-trust-row { grid-template-columns: 1fr; }
+  .matrouh-hero-actions { grid-template-columns: 1fr; }
+  .trade-icons-grid, .area-icons-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid, .features-grid { grid-template-columns: 1fr; }
+  .section-head { display: block; }
+  .join-link { margin-top: 14px; }
+}
