@@ -2049,35 +2049,28 @@ async function loadAnalytics(){
 
 
 // ======================================================
-// نظام إدارة الصنايعية الشامل (حذف، إيقاف، تعديل، إلخ)
+// نظام إدارة الصنايعية الشامل (النسخة النهائية V8 المستقرة)
 // ======================================================
 (function(){
   let lastActionKey = '';
   let lastActionTime = 0;
 
-  // دوال مساعدة للبحث عن الصنايعي
   function digits(v){ return String(v || '').replace(/\D/g, ''); }
   function esc(v){ return String(v ?? '').replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function getList(){ try { return Array.isArray(window.allWorkers) ? window.allWorkers : (Array.isArray(allWorkers) ? allWorkers : []); } catch(_) { return []; } }
   
-  window.resolveWorker = function(btn){
+  // دالة البحث عن الصنايعي وإتاحتها بشكل عام
+  window.resolveWorkerFromButton = function(btn){
     const card = btn && btn.closest ? btn.closest('.admin-worker-card') : null;
     const candidates = [
       btn && btn.dataset ? btn.dataset.workerId : '',
-      btn && btn.dataset ? btn.dataset.workerReg : '',
-      card && card.dataset ? card.dataset.workerCardId : '',
-      card && card.dataset ? card.dataset.registrationCode : ''
+      card && card.dataset ? card.dataset.workerCardId : ''
     ].filter(Boolean);
     
     const list = getList();
     for(const token of candidates){
       const raw = String(token || '').trim();
-      const d = digits(raw);
-      const found = list.find(w => {
-        const id = String(wid(w) || '').trim();
-        const reg = String(registrationCodeText(w) || wreg(w) || '').trim();
-        return id === raw || digits(id) === d || reg === raw || digits(reg) === d;
-      });
+      const found = list.find(w => String(window.wid ? window.wid(w) : (w.id||w._id)) === raw);
       if(found) return found;
     }
     return null;
@@ -2086,7 +2079,6 @@ async function loadAnalytics(){
   function closeForceModal(){ const old=document.getElementById('adminActionForceModalV8'); if(old) old.remove(); document.body.style.overflow=''; document.documentElement.style.overflow=''; }
   window.closeAdminActionForceModalV8 = closeForceModal;
 
-  // نافذة التحكم الشامل
   function openForceModal(title, bodyHtml){
     closeForceModal();
     const wrap=document.createElement('div');
@@ -2101,7 +2093,7 @@ async function loadAnalytics(){
   }
 
   function workerSummary(w){
-    return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;padding:14px;margin-bottom:16px;"><strong style="display:block;font-size:20px;color:#0f172a;">${esc(wname(w))}</strong><span style="display:block;color:#64748b;font-weight:800;margin-top:5px;">${esc(wtrade(w))} - ${esc(warea(w))} | اتصال: ${esc(wphone(w)||'غير متاح')}</span></div>`;
+    return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;padding:14px;margin-bottom:16px;"><strong style="display:block;font-size:20px;color:#0f172a;">${esc(window.wname(w))}</strong><span style="display:block;color:#64748b;font-weight:800;margin-top:5px;">${esc(window.wtrade(w))} - ${esc(window.warea(w))} | اتصال: ${esc(window.wphone(w)||'غير متاح')} | واتساب: ${esc(window.wwhatsapp(w)||window.wphone(w)||'غير متاح')}</span></div>`;
   }
 
   const cssField = 'display:grid;gap:7px;';
@@ -2113,7 +2105,7 @@ async function loadAnalytics(){
     const seen = new Set();
     let out = `<option value="${esc(current||'')}">${esc(current||'اختر')}</option>`;
     (Array.isArray(list)?list:[]).forEach(i=>{
-      const n = itemName(i);
+      const n = window.itemName ? window.itemName(i) : (i.name||i.title);
       if(!n || seen.has(n)) return;
       seen.add(n);
       out += `<option value="${esc(n)}" ${n===current?'selected':''}>${esc(n)}</option>`;
@@ -2121,100 +2113,199 @@ async function loadAnalytics(){
     return out;
   }
 
-  function openFullControl(w){
-      const id=String(wid(w));
-      openForceModal('تحكم شامل في الصنايعي', `${workerSummary(w)}
-        <form id="forceFullControlFormV8" enctype="multipart/form-data">
-          <div style="${cssGrid}">
-            <label style="${cssField}"><b>الاسم</b><input name="name" id="v8_full_name" value="${esc(wname(w))}" required style="${cssInput}"></label>
-            <label style="${cssField}"><b>رقم الاتصال</b><input name="phone" id="v8_full_phone" value="${esc(wphone(w))}" required style="${cssInput}"></label>
-            <label style="${cssField}"><b>الحرفة</b><select name="trade" id="v8_full_trade" style="${cssInput}">${selectOptions(allTrades,wtrade(w))}</select></label>
-            <label style="${cssField}"><b>المنطقة</b><select name="area" id="v8_full_area" style="${cssInput}">${selectOptions(allAreas,warea(w))}</select></label>
-            <label style="${cssField};grid-column:1/-1"><b>الوصف</b><textarea name="description" id="v8_full_description" style="${cssInput};min-height:100px">${esc(wdesc(w))}</textarea></label>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;">
-            <label style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;"><input type="checkbox" id="v8_full_approved" ${isApproved(w)?'checked':''}> موافق عليه / ظاهر</label>
-            <label style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;"><input type="checkbox" id="v8_full_active" ${isActive(w)?'checked':''}> نشط</label>
-            <label style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;font-weight:900;"><input type="checkbox" id="v8_full_featured" ${isFeatured(w)?'checked':''}> مميز</label>
-          </div>
-          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
-            <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
-            <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ كل التعديلات</button>
-          </div>
-        </form>`);
-      
-      document.getElementById('forceFullControlFormV8').onsubmit=async function(e){
-        e.preventDefault();
-        const fd=new FormData();
-        fd.append('name',v8_full_name.value.trim());
-        fd.append('phone',v8_full_phone.value.trim());
-        fd.append('trade',v8_full_trade.value.trim());
-        fd.append('area',v8_full_area.value.trim());
-        fd.append('description',v8_full_description.value.trim());
-        fd.append('approved',v8_full_approved.checked?'true':'false');
-        fd.append('active',v8_full_active.checked?'true':'false');
-        fd.append('featured',v8_full_featured.checked?'true':'false');
-        try{
-          const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
-          const r=await fetch(`/api/admin/workers/${id}/full-control`,{method:'PUT',credentials:'include',body:fd});
-          const d=await r.json().catch(()=>({}));
-          if(!r.ok || d.success===false) throw new Error(d.error||'فشل الحفظ');
-          toast('success','تم حفظ بيانات الصنايعي');
-          closeForceModal();
-          if(typeof loadAllData === 'function') loadAllData();
-        }catch(ex){ toast('error',ex.message||'فشل الحفظ'); }
-      };
+  function openEdit(w){
+    const id=String(window.wid(w));
+    openForceModal('تعديل بيانات الصنايعي', `${workerSummary(w)}
+      <form id="forceEditFormV8">
+        <div style="${cssGrid}">
+          <label style="${cssField}"><b>الاسم</b><input id="v8_name" value="${esc(window.wname(w))}" required style="${cssInput}"></label>
+          <label style="${cssField}"><b>رقم الاتصال</b><input id="v8_phone" value="${esc(window.wphone(w))}" required style="${cssInput}"></label>
+          <label style="${cssField}"><b>رقم الواتساب</b><input id="v8_whatsapp" value="${esc(window.wwhatsapp(w))}" placeholder="اتركه فارغًا لو نفس رقم الاتصال" style="${cssInput}"></label>
+          <label style="${cssField}"><b>الحرفة</b><select id="v8_trade" style="${cssInput}">${selectOptions(window.allTrades,window.wtrade(w))}</select></label>
+          <label style="${cssField}"><b>المنطقة</b><select id="v8_area" style="${cssInput}">${selectOptions(window.allAreas,window.warea(w))}</select></label>
+          <label style="${cssField};grid-column:1/-1"><b>الوصف</b><textarea id="v8_description" style="${cssInput};min-height:120px">${esc(window.wdesc(w))}</textarea></label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
+          <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ التعديل</button>
+        </div>
+      </form>`);
+    document.getElementById('forceEditFormV8').onsubmit = async function(e){
+      e.preventDefault();
+      const body={name:v8_name.value.trim(),phone:v8_phone.value.trim(),whatsapp:v8_whatsapp.value.trim(),trade:v8_trade.value.trim(),area:v8_area.value.trim(),description:v8_description.value.trim()};
+      try{
+        const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
+        const r=await fetch('/api/workers/'+id,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok || d.success===false) throw new Error(d.error||'فشل تعديل البيانات');
+        window.toast('success','تم تعديل بيانات الصنايعي'); closeForceModal(); if(typeof window.loadAllData==='function') window.loadAllData();
+      }catch(ex){ window.toast('error', ex.message||'فشل تعديل البيانات'); }
+    };
   }
 
-  // موجه الأوامر الرئيسي لكل الأزرار
+  function openIdentity(w){
+    const id=String(window.wid(w));
+    const st=window.identityStatusValue(w);
+    openForceModal('مراجعة تحقق الصنايعي', `${workerSummary(w)}
+      <form id="forceIdentityFormV8">
+        <div style="${cssGrid}">
+          <label style="${cssField}"><b>حالة التحقق</b><select id="v8_identity_status" style="${cssInput}">
+            <option value="pending" ${st==='pending'?'selected':''}>بانتظار المراجعة</option>
+            <option value="verified" ${st==='verified'?'selected':''}>تم التحقق والاعتماد</option>
+            <option value="rejected" ${st==='rejected'?'selected':''}>مرفوض</option>
+            <option value="needs_data" ${st==='needs_data'?'selected':''}>يحتاج تعديل بيانات</option>
+            <option value="needs_id_reupload" ${st==='needs_id_reupload'?'selected':''}>إعادة رفع البطاقة</option>
+          </select></label>
+          <label style="${cssField}"><b>سبب مختصر للصنايعي</b><input id="v8_identity_reason" value="${esc(window.identityReason(w))}" style="${cssInput}"></label>
+          <label style="${cssField};grid-column:1/-1"><b>ملاحظة إدارية داخلية</b><textarea id="v8_identity_note" style="${cssInput};min-height:110px">${esc(window.identityNote(w))}</textarea></label>
+        </div>
+        <div style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:16px;padding:12px;margin-top:14px;font-weight:900;">يمكن اعتماد الصنايعي حتى لو لم يرفع وجه وظهر البطاقة. التسجيل الجديد ما زال يشترط رفع البطاقة.</div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
+          <button type="submit" style="${cssBtn}background:#2563eb;color:#fff;">حفظ قرار التحقق</button>
+        </div>
+      </form>`);
+    document.getElementById('forceIdentityFormV8').onsubmit = async function(e){
+      e.preventDefault();
+      const body={identity_status:v8_identity_status.value,reason:v8_identity_reason.value.trim(),note:v8_identity_note.value.trim()};
+      try{
+        const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
+        const r=await fetch('/api/admin/workers/'+id+'/identity-review',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok || d.success===false) throw new Error(d.error||'فشل حفظ قرار التحقق');
+        window.toast('success','تم حفظ قرار التحقق'); closeForceModal(); if(typeof window.loadAllData==='function') window.loadAllData();
+      }catch(ex){ window.toast('error', ex.message||'فشل حفظ قرار التحقق'); }
+    };
+  }
+
+  function openRenew(w){
+    const id=String(window.wid(w));
+    const sub=window.subInfo(w);
+    openForceModal('الاشتراك والتجديد', `${workerSummary(w)}
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;margin-bottom:14px;font-weight:900;color:#475569;">نهاية الاشتراك الحالية: ${esc(window.formatDate(sub.end))}</div>
+      <form id="forceRenewFormV8">
+        <div style="${cssGrid}">
+          <label style="${cssField}"><b>الباقة</b><select id="v8_renew_plan" style="${cssInput}"><option value="month">شهر - 100 جنيه</option><option value="half">نصف سنة - 600 جنيه</option><option value="year">سنة - 1200 جنيه</option><option value="custom">مخصص</option></select></label>
+          <label style="${cssField}"><b>عدد الشهور</b><input id="v8_renew_months" type="number" min="1" max="60" value="1" required style="${cssInput}"></label>
+          <label style="${cssField}"><b>المبلغ المدفوع</b><input id="v8_renew_amount" type="number" min="0" step="1" value="100" required style="${cssInput}"></label>
+          <label style="${cssField}"><b>طريقة الدفع</b><select id="v8_renew_method" style="${cssInput}"><option value="cash">كاش</option><option value="vodafone_cash">فودافون كاش</option><option value="instapay">إنستاباي</option><option value="bank_transfer">تحويل بنكي</option><option value="free">مجاني / هدية</option><option value="other">أخرى</option></select></label>
+          <label style="${cssField}"><b>حالة الدفع</b><select id="v8_renew_status" style="${cssInput}"><option value="paid">مدفوع</option><option value="pending">منتظر الدفع</option><option value="partial">مدفوع جزئيًا</option></select></label>
+          <label style="${cssField};grid-column:1/-1"><b>ملاحظات الدفع</b><textarea id="v8_renew_note" style="${cssInput};min-height:100px"></textarea></label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
+          <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ التجديد</button>
+        </div>
+      </form>`);
+    document.getElementById('v8_renew_plan').onchange=function(){ const p=this.value; const map={month:[1,100],half:[6,600],year:[12,1200],custom:[1,0]}; document.getElementById('v8_renew_months').value=map[p][0]; document.getElementById('v8_renew_amount').value=map[p][1]; };
+    document.getElementById('forceRenewFormV8').onsubmit = async function(e){
+      e.preventDefault();
+      const body={plan:document.getElementById('v8_renew_plan').value,months:Number(document.getElementById('v8_renew_months').value)||1,amount:Number(document.getElementById('v8_renew_amount').value)||0,payment_method:document.getElementById('v8_renew_method').value,payment_status:document.getElementById('v8_renew_status').value,note:document.getElementById('v8_renew_note').value.trim()};
+      try{
+        const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
+        const r=await fetch('/api/workers/'+id+'/renew',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok || d.success===false) throw new Error(d.error||'فشل تجديد الاشتراك');
+        window.toast('success','تم تجديد الاشتراك'); closeForceModal(); if(typeof window.loadAllData==='function') window.loadAllData();
+      }catch(ex){ window.toast('error', ex.message||'فشل تجديد الاشتراك'); }
+    };
+  }
+
+  function openWhatsapp(w){
+    const id=String(window.wid(w));
+    const phone=window.wwhatsapp(w)||window.wphone(w);
+    openForceModal('رسائل واتساب', `${workerSummary(w)}
+      <label style="${cssField}"><b>نص الرسالة</b><textarea id="v8_wa_message" style="${cssInput};min-height:220px">${esc(window.buildWhatsAppTemplate ? window.buildWhatsAppTemplate('approved', w) : 'رسالة')}</textarea></label>
+      <div style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:16px;padding:12px;margin-top:14px;font-weight:900;line-height:1.8">الإرسال التلقائي يستخدم WhatsApp Cloud API. لو فشل بسبب نافذة المحادثة، استخدم زر فتح واتساب يدويًا.</div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+        <button type="button" id="v8_wa_auto" style="${cssBtn}background:#2563eb;color:#fff;">إرسال تلقائي</button>
+        <button type="button" id="v8_wa_manual" style="${cssBtn}background:#dcfce7;color:#166534;">فتح واتساب يدويًا</button>
+        <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إغلاق</button>
+      </div>`);
+    document.getElementById('v8_wa_manual').onclick=function(){ const num=window.adminWhatsAppNumber(phone); if(!num){window.toast('error','لا يوجد رقم واتساب صالح'); return;} window.open('https://wa.me/'+num+'?text='+encodeURIComponent(document.getElementById('v8_wa_message').value.trim()),'_blank'); };
+    document.getElementById('v8_wa_auto').onclick=async function(){
+      try{
+        const msg=document.getElementById('v8_wa_message').value.trim(); if(!phone){window.toast('error','لا يوجد رقم واتساب');return;} if(!msg){window.toast('error','اكتب نص الرسالة');return;}
+        this.disabled=true; this.textContent='جاري الإرسال...';
+        const r=await fetch('/api/admin/whatsapp/send-worker',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({worker_id:id,phone,message:msg,mode:'text',message_type:'admin_message'})});
+        const d=await r.json().catch(()=>({}));
+        if(!r.ok || d.success===false) throw new Error(d.error||'فشل إرسال واتساب');
+        window.toast('success','تم إرسال واتساب تلقائيًا');
+      }catch(ex){ window.toast('error', ex.message||'فشل إرسال واتساب'); }
+      finally{ this.disabled=false; this.textContent='إرسال تلقائي'; }
+    };
+  }
+
+  // === ربط جميع النوافذ والأزرار بالدالة الموحدة ===
+  
+  window.openIdentityReviewModal = function(id) {
+    const w = window.allWorkers.find(x => String(window.wid(x)) === String(id));
+    if(w) openIdentity(w);
+  };
+  window.openEditModal = function(id) {
+    const w = window.allWorkers.find(x => String(window.wid(x)) === String(id));
+    if(w) openEdit(w);
+  };
+  window.openRenewModal = function(id) {
+    const w = window.allWorkers.find(x => String(window.wid(x)) === String(id));
+    if(w) openRenew(w);
+  };
+  window.openWhatsAppModal = function(id) {
+    const w = window.allWorkers.find(x => String(window.wid(x)) === String(id));
+    if(w) openWhatsapp(w);
+  };
+  
+  // دالة عرض صورة البطاقة
+  window.openIdentityDoc = async function(id, side){
+    try{
+      window.toast("success", "جاري تحميل الصورة...");
+      const r=await fetch(`/api/admin/workers/${id}/id-card/${side}`,{credentials:"include"});
+      const data=await r.json();
+      if(r.status===401){ if(typeof window.showLogin==='function') window.showLogin(); return;}
+      if(!r.ok||!data.success) throw new Error(data.error||"تعذر فتح صورة البطاقة");
+      openForceModal('صورة البطاقة (' + (side==='front'?'وجه':'ظهر') + ')', `<div style="text-align:center;"><img src="${esc(data.url)}" style="max-width:100%;max-height:60vh;object-fit:contain;border-radius:16px;border:1px solid #e5e7eb;"><br><br><a href="${esc(data.url)}" target="_blank" style="${cssBtn}background:#0f172a;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-top:14px"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح في نافذة جديدة</a></div>`);
+    }catch(e){ window.toast("error", e.message||"تعذر فتح صورة البطاقة"); }
+  };
+
+  // الدالة الرئيسية لتوجيه ضغطات الأزرار
   window.adminWorkerCardActionDirectV7 = function(ev, btn){
     if(ev){ ev.preventDefault(); ev.stopPropagation(); }
     if(!btn) return false;
     
-    const action = btn.dataset.workerAction;
-    const worker = window.resolveWorker(btn);
+    const action = btn.dataset.workerAction || btn.dataset.adminWorkerAction;
+    const worker = window.resolveWorkerFromButton(btn); // استخدام الاسم الصحيح هنا!
     
-    if(!worker){ 
-      toast('error','تعذر تحديد الصنايعي. اضغط تحديث البيانات.'); 
-      return false; 
-    }
+    if(!worker){ window.toast('error','تعذر تحديد الصنايعي. اضغط تحديث البيانات.'); return false; }
     
-    const id = String(wid(worker));
-    const actionKey = String(action || '') + ':' + id;
-    const now = Date.now();
+    const id = String(window.wid(worker));
     
-    // منع الضغط المزدوج
-    if(actionKey === lastActionKey && now - lastActionTime < 900) return false;
-    lastActionKey = actionKey;
-    lastActionTime = now;
+    if(action === 'full') { if(typeof window.openFullControl === 'function') window.openFullControl(worker); else openEdit(worker); }
+    else if(action === 'edit') openEdit(worker);
+    else if(action === 'identity') openIdentity(worker);
+    else if(action === 'renew') openRenew(worker);
+    else if(action === 'whatsapp') openWhatsapp(worker);
+    else if(action === 'active') { if(typeof window.toggleActive === 'function') window.toggleActive(id, window.isActive(worker)); }
+    else if(action === 'delete') { if(typeof window.deleteWorker === 'function') window.deleteWorker(id); }
+    else if(action === 'approve') { if(typeof window.toggleApprove === 'function') window.toggleApprove(id, window.isApproved(worker)); }
     
-    // تنفيذ الأمر المطلوب بناءً على الزر
-    if(action === 'full') openFullControl(worker);
-    else if(action === 'edit' && typeof openEditModal === 'function') openEditModal(id);
-    else if(action === 'identity' && typeof openIdentityReviewModal === 'function') openIdentityReviewModal(id);
-    else if(action === 'renew' && typeof openRenewModal === 'function') openRenewModal(id);
-    else if(action === 'whatsapp' && typeof openWhatsAppModal === 'function') openWhatsAppModal(id);
-    else if(action === 'photos' && typeof loadWorkerPhotos === 'function') {
-        loadWorkerPhotos(id).then(()=>toast('success','تم التحميل')).catch(()=>toast('error','خطأ'));
-    }
-    else if(action === 'active' && typeof toggleActive === 'function') toggleActive(id, isActive(worker));
-    else if(action === 'delete' && typeof deleteWorker === 'function') deleteWorker(id);
-
     return false;
   };
 
-  // ربط الأزرار بشكل آلي
+  // ربط أحداث النقر بالدالة
   document.addEventListener("click", function(ev){
-    const btn = ev.target && ev.target.closest ? ev.target.closest("[data-worker-action]") : null;
+    const btn = ev.target && ev.target.closest ? ev.target.closest("[data-worker-action], [data-admin-worker-action]") : null;
     if(btn) window.adminWorkerCardActionDirectV7(ev, btn);
   }, true);
 
-  // إغلاق النوافذ باستخدام زر Escape
+  // إغلاق بالمفتاح
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape') closeForceModal();
   }, true);
 
 })();
+// ======================================================
+// نهاية نظام الإدارة الشامل
+// ======================================================
 
 
 
