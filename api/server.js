@@ -43,7 +43,7 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 
-// تم التعديل هنا: استقبال اسم الـ Bucket وتوجيه الملف ليه
+// استقبال اسم الـ Bucket وتوجيه الملف ليه[cite: 7]
 async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
   const ext = path.extname(file.originalname || ".jpg");
@@ -117,7 +117,7 @@ app.post('/api/register', upload.fields([
       return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية المطلوبة' });
     }
 
-    // تم التعديل هنا: توجيه كل صورة للـ Bucket الخاص بيها
+    // توجيه كل صورة للـ Bucket الخاص بيها[cite: 7]
     const profileImage = files.image && files.image[0] ? await uploadToSupabase(files.image[0], "uploads") : null;
     const idFrontImage = files.idFront && files.idFront[0] ? await uploadToSupabase(files.idFront[0], "identity-docs") : null;
     const idBackImage = files.idBack && files.idBack[0] ? await uploadToSupabase(files.idBack[0], "identity-docs") : null;
@@ -294,12 +294,26 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
-// السماح بالوصول لمجلد public الجديد (مهم جداً للـ CSS والـ JS)
+// معالجة أخطاء أداة المتصفح (Favicon & Manifest) لمنع ظهور 404 في الـ Console
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+app.get("/manifest.json", (req, res) => {
+  res.status(200).json({
+    name: "Sanay3i Matrouh",
+    short_name: "Sanay3i",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#000000"
+  });
+});
+
+// السماح بالوصول لمجلد public الجديد (مهم جداً للـ CSS والـ JS)[cite: 7]
 app.use(express.static(path.join(STATIC_DIR, "public"), {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
 
-// السماح بالوصول للملفات في الجذر القديم
+// السماح بالوصول للملفات في الجذر القديم[cite: 7]
 app.use(express.static(STATIC_DIR, {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
