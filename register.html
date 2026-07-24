@@ -1,522 +1,515 @@
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
-<title>تسجيل صنايعي | صنايعي مطروح</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet">
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+  <title>تسجيل صنايعي | صنايعي مطروح</title>
+  
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet">
 
-<!-- استدعاء ملفات التصميم الخارجية -->
-<link rel="stylesheet" href="/css/base.css" />
-<link rel="stylesheet" href="/css/header.css" />
-<link rel="stylesheet" href="/css/intro.css" />
-<link rel="stylesheet" href="/css/panel.css" />
-<link rel="stylesheet" href="/css/form.css" />
-<link rel="stylesheet" href="/css/cropper.css" />
-<link rel="stylesheet" href="/css/register.css" />
+  <!-- استدعاء ملفات الـ CSS المقسمة والمنظمة -->
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/support.css" />
+  <link rel="stylesheet" href="/css/register.css" />
 
-<!-- PWA -->
-<link href="/manifest.json" rel="manifest"/>
-<meta name="theme-color" content="#061A3D">
-<meta name="background-color" content="#061A3D">
-<meta content="صنايعي مطروح" name="application-name"/>
-<meta content="yes" name="apple-mobile-web-app-capable"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta content="صنايعي مطروح" name="apple-mobile-web-app-title"/>
-<link href="/icons/icon-192.png" rel="apple-touch-icon"/>
-<meta name="msapplication-TileColor" content="#061A3D">
-
-<style id="support-navy-icon-hotfix">
-.support-float-btn{background:linear-gradient(135deg,#061A3D,#0B2A5A)!important;box-shadow:0 18px 42px rgba(6,26,61,.36)!important}
-.support-float-btn:hover{box-shadow:0 22px 50px rgba(6,26,61,.42)!important}
-.support-title i{color:#061A3D!important}
-.support-option-icon{background:#eef4ff!important;color:#061A3D!important}
-.support-option-icon.chat{background:#eef4ff!important;color:#061A3D!important}
-.support-action-btn.blue{background:#061A3D!important}
-</style>
+  <!-- PWA -->
+  <link href="/manifest.json" rel="manifest"/>
+  <meta name="theme-color" content="#061A3D">
+  <meta name="background-color" content="#061A3D">
+  <meta content="صنايعي مطروح" name="application-name"/>
+  <meta content="yes" name="apple-mobile-web-app-capable"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta content="صنايعي مطروح" name="apple-mobile-web-app-title"/>
+  <link href="/icons/icon-192.png" rel="apple-touch-icon"/>
+  <meta name="msapplication-TileColor" content="#061A3D">
 </head>
 <body>
-<header class="site-header">
-<div class="container header-content">
-<a class="brand" href="/">
-<div class="brand-icon">
-<i class="fa-solid fa-screwdriver-wrench"></i>
-</div>
-<div class="brand-text">
-<h1>صنايعي مطروح</h1>
-<span>سجّل بياناتك وانضم للدليل</span>
-</div>
-</a>
-<div class="header-links">
-<a class="header-link" href="/">
-<i class="fa-solid fa-house"></i> الرئيسية
-</a>
-<a class="header-link" href="/status">
-<i class="fa-solid fa-clipboard-check"></i> حالة الطلب
-</a>
-<a class="header-link" href="/admin">
-<i class="fa-solid fa-user-shield"></i> الإدارة
-</a>
-</div>
-</div>
-</header>
-<main class="register-page">
-<div class="container">
-<section class="intro-card">
-<div class="intro-content">
-<div class="intro-badge">
-<i class="fa-solid fa-gift"></i> أول شهر مجاني لكل صنايعي جديد
-</div>
-<h2>سجّل بياناتك واظهر لعملاء مرسى مطروح</h2>
-<p>املأ بياناتك، وارفع صورة أساسية وصور أعمالك. تقدر تقص وتظبط الصور قبل الإرسال عشان تظهر بشكل احترافي داخل التطبيق.</p>
-</div>
-</section>
-<section class="register-grid">
-<div class="panel">
-<div class="panel-head">
-<span class="section-label">
-<i class="fa-solid fa-user-plus"></i> نموذج التسجيل
-</span>
-<h3>بيانات الصنايعي</h3>
-<p>بياناتك لن تظهر في الصفحة الرئيسية إلا بعد موافقة الإدارة.</p>
-<div aria-label="خطوات التسجيل" class="wizard-progress" id="wizardProgress">
-<div class="wizard-step-pill active" data-step-pill="0"><span>1</span> البيانات الأساسية</div>
-<div class="wizard-step-pill" data-step-pill="1"><span>2</span> الحرفة والمنطقة</div>
-<div class="wizard-step-pill" data-step-pill="2"><span>3</span> البطاقة الشخصية</div>
-<div class="wizard-step-pill" data-step-pill="3"><span>4</span> الصور والإرسال</div>
-</div>
-</div>
-<div class="panel-body">
-<form id="registerForm" novalidate>
 
-<div class="form-step active" data-step="0">
-<div class="step-title-box">
-<h4><i class="fa-solid fa-user"></i>الخطوة الأولى: البيانات الأساسية</h4>
-<p>اكتب الاسم ورقم الاتصال ورقم الواتساب بدقة، لأن العميل سيتواصل معك مباشرة.</p>
-</div>
-<div class="form-grid">
-<div class="form-group">
-<label for="name"><i class="fa-solid fa-user"></i> الاسم</label>
-<input id="name" name="name" placeholder="مثال: محمد أحمد" type="text"/>
-</div>
-<div class="form-group">
-<label for="phone"><i class="fa-solid fa-phone"></i> رقم الاتصال</label>
-<input id="phone" name="phone" placeholder="مثال: 01012345678" type="tel"/>
-</div>
-<div class="form-group">
-<label for="whatsapp"><i class="fa-brands fa-whatsapp"></i> رقم الواتساب</label>
-<input id="whatsapp" name="whatsapp" placeholder="مثال: 01012345678" type="tel"/>
-<div class="helper">لو سيبته فاضي، التطبيق هيستخدم رقم الاتصال للواتساب.</div>
-</div>
-</div>
-</div>
+  <header class="site-header">
+    <div class="container header-content">
+      <a class="brand" href="/">
+        <div class="brand-icon">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>سجّل بياناتك وانضم للدليل</span>
+        </div>
+      </a>
 
-<div class="form-step" data-step="1">
-<div class="step-title-box">
-<h4><i class="fa-solid fa-screwdriver-wrench"></i>الخطوة الثانية: الحرفة والمنطقة</h4>
-<p>اختار الحرفة الرئيسية والمنطقة التي تعمل بها، واكتب وصفًا مختصرًا للخدمات والخبرة.</p>
-</div>
-<div class="form-grid">
-<div class="form-group">
-<label for="trade"><i class="fa-solid fa-screwdriver-wrench"></i> الحرفة</label>
-<select id="trade" name="trade">
-<option value="">جاري تحميل الحرف...</option>
-</select>
-</div>
-<div class="form-group">
-<label for="area"><i class="fa-solid fa-location-dot"></i> المنطقة</label>
-<select id="area" name="area">
-<option value="">جاري تحميل المناطق...</option>
-</select>
-</div>
-<div class="form-group full">
-<label for="description"><i class="fa-solid fa-align-right"></i> وصف مختصر</label>
-<textarea id="description" name="description" placeholder="اكتب خبرتك ونوع الشغل والخدمات التي تقدمها..."></textarea>
-</div>
-</div>
-</div>
+      <nav class="main-nav">
+        <a href="/">الرئيسية</a>
+        <a href="/status">حالة الطلب</a>
+      </nav>
 
-<div class="form-step" data-step="2">
-<div class="step-title-box">
-<h4><i class="fa-solid fa-id-card"></i>الخطوة الثالثة: البطاقة الشخصية</h4>
-<p>ارفع صورة واضحة لوجه وظهر البطاقة. الصور تظهر للإدارة فقط ولا تظهر للعملاء.</p>
-</div>
-<div class="form-grid">
-<div class="form-group full">
-<label><i class="fa-solid fa-id-card"></i> صورة البطاقة الشخصية <span style="color:#dc2626">*</span></label>
-<div class="upload-area">
-<div class="upload-row">
-<div class="upload-info">
-<div class="upload-info-icon"><i class="fa-solid fa-shield-halved"></i></div>
-<div>
-<strong>مطلوب رفع وجه وظهر البطاقة لإكمال التسجيل</strong>
-<small>هذه الصور تظهر للإدارة فقط لمراجعة بيانات التسجيل، ولا تظهر للعملاء داخل التطبيق.</small>
-</div>
-</div>
-</div>
-<div class="id-card-grid">
-<div class="id-upload-box">
-<strong><i class="fa-solid fa-address-card"></i> وجه البطاقة</strong>
-<label class="file-btn">
-<i class="fa-solid fa-upload"></i> اختيار صورة وجه البطاقة
-<input accept="image/*" id="idFrontInput" type="file"/>
-</label>
-<div class="id-preview-frame" id="idFrontPreviewFrame">
-<img alt="معاينة وجه البطاقة" id="idFrontPreview"/>
-</div>
-</div>
-<div class="id-upload-box">
-<strong><i class="fa-solid fa-id-card-clip"></i> ظهر البطاقة</strong>
-<label class="file-btn">
-<i class="fa-solid fa-upload"></i> اختيار صورة ظهر البطاقة
-<input accept="image/*" id="idBackInput" type="file"/>
-</label>
-<div class="id-preview-frame" id="idBackPreviewFrame">
-<img alt="معاينة ظهر البطاقة" id="idBackPreview"/>
-</div>
-</div>
-</div>
-<div class="privacy-note">
-<i class="fa-solid fa-lock"></i> لن يكتمل طلب التسجيل بدون صورة وجه وظهر البطاقة. الصور محفوظة لمراجعة الإدارة فقط.
-</div>
-</div>
-</div>
-</div>
-</div>
+      <a href="/admin" class="header-btn">
+        <i class="fa-solid fa-user-shield"></i> الإدارة
+      </a>
 
-<div class="form-step" data-step="3">
-<div class="step-title-box">
-<h4><i class="fa-solid fa-images"></i>الخطوة الرابعة: الصور والإرسال</h4>
-<p>ارفع الصورة الأساسية وصور الأعمال، ثم راجع الطلب واضغط إرسال.</p>
-</div>
-<div class="form-grid">
-<div class="form-group full">
-<label><i class="fa-solid fa-image"></i> الصورة الأساسية</label>
-<div class="upload-area">
-<div class="upload-row">
-<div class="upload-info">
-<div class="upload-info-icon"><i class="fa-solid fa-crop-simple"></i></div>
-<div>
-<strong>صورة الكارت الأساسية</strong>
-<small>هتتقص بنسبة 4:3 المناسبة لكارت الصنايعي.</small>
-</div>
-</div>
-<label class="file-btn">
-<i class="fa-solid fa-image"></i> اختيار الصورة
-<input accept="image/*" id="imageInput" type="file"/>
-</label>
-</div>
-<div class="image-card-preview" id="mainPreviewCard">
-<div class="image-preview-head">
-<strong>معاينة الصورة الأساسية</strong>
-<span>4:3</span>
-</div>
-<div class="main-preview-frame">
-<img alt="الصورة الأساسية" id="mainPreviewImage"/>
-</div>
-<div class="preview-actions">
-<button class="mini-btn blue" id="editMainImageBtn" type="button"><i class="fa-solid fa-crop-simple"></i> تعديل الصورة</button>
-<button class="mini-btn red" id="removeMainImageBtn" type="button"><i class="fa-solid fa-trash"></i> حذف الصورة</button>
-</div>
-</div>
-</div>
-</div>
-<div class="form-group full">
-<label><i class="fa-solid fa-images"></i> صور الأعمال</label>
-<div class="upload-area">
-<div class="upload-row">
-<div class="upload-info">
-<div class="upload-info-icon"><i class="fa-solid fa-briefcase"></i></div>
-<div>
-<strong>صور من شغلك</strong>
-<small>اختار حتى 5 صور، وسيتم قص كل صورة قبل الإرسال.</small>
-</div>
-</div>
-<label class="file-btn">
-<i class="fa-solid fa-images"></i> اختيار صور الأعمال
-<input accept="image/*" id="workImagesInput" multiple="" type="file"/>
-</label>
-</div>
-<div class="work-preview-grid" id="workPreviewGrid"></div>
-</div>
-</div>
-</div>
-</div>
-
-<div class="wizard-actions">
-<div class="wizard-actions-left">
-<span class="step-counter" id="stepCounter">الخطوة 1 من 4</span>
-</div>
-<div class="wizard-actions-right">
-<button class="mini-btn dark" id="prevStepBtn" type="button"><i class="fa-solid fa-arrow-right"></i> السابق</button>
-<button class="submit-btn" id="nextStepBtn" type="button">التالي <i class="fa-solid fa-arrow-left"></i></button>
-<button class="submit-btn" id="submitBtn" style="display:none;" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال طلب التسجيل</button>
-</div>
-</div>
-<div class="result-box" id="resultBox"></div>
-</form>
-</div>
-</div>
-<aside class="side-stack">
-<div class="side-card">
-<h4><i class="fa-solid fa-list-check"></i> التسجيل على 4 خطوات</h4>
-<ul>
-<li><i class="fa-solid fa-check"></i> بياناتك الأساسية.</li>
-<li><i class="fa-solid fa-check"></i> الحرفة والمنطقة والوصف.</li>
-<li><i class="fa-solid fa-check"></i> بطاقة التحقق للإدارة فقط.</li>
-<li><i class="fa-solid fa-check"></i> الصور ثم إرسال الطلب.</li>
-</ul>
-</div>
-
-<div class="side-card">
-<h4><i class="fa-solid fa-circle-info"></i> قبل الإرسال</h4>
-<ul>
-<li><i class="fa-solid fa-check"></i> تأكد من كتابة رقم الاتصال بشكل صحيح.</li>
-<li><i class="fa-solid fa-check"></i> لو رقم الواتساب مختلف عن رقم الاتصال اكتبه في الخانة الخاصة به.</li>
-<li><i class="fa-solid fa-check"></i> رفع صورة وجه وظهر البطاقة شرط أساسي لقبول طلب التسجيل.</li>
-<li><i class="fa-solid fa-check"></i> الصورة الأساسية هي التي تظهر في كارت الصنايعي.</li>
-<li><i class="fa-solid fa-check"></i> صور الأعمال تظهر في صفحة التفاصيل بعد موافقة الإدارة.</li>
-</ul>
-</div>
-<div class="side-card">
-<h4><i class="fa-solid fa-wand-magic-sparkles"></i> نصائح للصور</h4>
-<ul>
-<li><i class="fa-solid fa-check"></i> استخدم صورة واضحة بإضاءة جيدة.</li>
-<li><i class="fa-solid fa-check"></i> خلي الجزء المهم في منتصف الصورة أثناء القص.</li>
-<li><i class="fa-solid fa-check"></i> استخدم التكبير والتحريك لضبط الصورة.</li>
-<li><i class="fa-solid fa-check"></i> صور الأعمال يفضل تكون واضحة وقريبة من الشغل نفسه.</li>
-</ul>
-</div>
-</aside>
-</section>
-</div>
-</main>
-<div class="crop-modal" id="cropModal">
-<div class="crop-box">
-<div class="crop-head">
-<div>
-<h3 id="cropTitle">تعديل الصورة</h3>
-<p id="cropSubtitle">حرّك الصورة وكبّرها أو صغّرها ثم اضغط اعتماد الصورة.</p>
-</div>
-<button class="mini-btn red" id="closeCropBtn" type="button"><i class="fa-solid fa-xmark"></i> إغلاق</button>
-</div>
-<div class="crop-layout">
-<div class="crop-image-wrap"><img alt="الصورة المراد قصها" id="cropImage"/></div>
-<div class="crop-side">
-<div class="crop-preview-card">
-<strong id="cropPreviewTitle">معاينة الصورة</strong>
-<div class="crop-preview-body"><div class="crop-preview" id="cropPreview"></div></div>
-</div>
-<div class="crop-help">
-<h5>طريقة الاستخدام</h5>
-<ul>
-<li>اسحب الصورة لتحريكها داخل الإطار.</li>
-<li>استخدم عجلة الماوس للتكبير أو التصغير.</li>
-<li>استخدم أزرار التكبير والتصغير والتدوير.</li>
-<li>اضغط اعتماد الصورة لحفظ القص.</li>
-</ul>
-<div class="work-crop-counter" id="workCropCounter" style="display:none;"><i class="fa-solid fa-images"></i><span id="workCropCounterText">صورة 1 من 5</span></div>
-</div>
-</div>
-</div>
-<div class="crop-actions">
-<button class="mini-btn blue" id="zoomInBtn" type="button"><i class="fa-solid fa-magnifying-glass-plus"></i> تكبير</button>
-<button class="mini-btn blue" id="zoomOutBtn" type="button"><i class="fa-solid fa-magnifying-glass-minus"></i> تصغير</button>
-<button class="mini-btn blue" id="rotateBtn" type="button"><i class="fa-solid fa-rotate-right"></i> تدوير</button>
-<button class="mini-btn gold" id="resetCropBtn" type="button"><i class="fa-solid fa-arrows-rotate"></i> إعادة الضبط</button>
-<button class="mini-btn green" id="applyCropBtn" type="button"><i class="fa-solid fa-check"></i> اعتماد الصورة</button>
-<button class="mini-btn dark" id="skipWorkCropBtn" style="display:none;" type="button"><i class="fa-solid fa-forward"></i> تخطي هذه الصورة</button>
-</div>
-</div>
-</div>
-
-<style id="support-floating-mobile-hotfix">
-.support-float-btn{position:fixed!important;left:18px!important;right:auto!important;bottom:18px!important;z-index:9998!important;width:66px!important;height:66px!important;border:0!important;border-radius:50%!important;background:linear-gradient(135deg,#dc2626,#b91c1c)!important;color:#fff!important;display:grid!important;place-items:center!important;font-size:28px!important;line-height:1!important;box-shadow:0 18px 42px rgba(220,38,38,.36)!important;cursor:pointer!important;padding:0!important;margin:0!important;overflow:visible!important}
-.support-float-btn i{color:#fff!important;font-size:28px!important;line-height:1!important;margin:0!important}
-.support-float-btn .support-dot{position:absolute!important;top:9px!important;right:9px!important;width:12px!important;height:12px!important;border-radius:999px!important;background:#22c55e!important;border:2px solid #fff!important;display:block!important}
-.support-backdrop{position:fixed!important;inset:0!important;z-index:9997!important;background:rgba(15,23,42,.55)!important;display:none!important;align-items:flex-end!important;justify-content:center!important;padding:0 14px 14px!important;backdrop-filter:blur(4px)!important;margin:0!important}
-.support-backdrop.show{display:flex!important}
-.support-sheet{box-sizing:border-box!important;width:min(680px,100%)!important;max-height:86vh!important;overflow:auto!important;background:#fff!important;border-radius:30px!important;box-shadow:0 -20px 60px rgba(15,23,42,.25)!important;padding:28px 24px 24px!important;position:relative!important;direction:rtl!important;text-align:right!important;margin:0 auto!important}
-.support-grip{width:70px!important;height:7px!important;border-radius:999px!important;background:#e5e7eb!important;margin:0 auto 22px!important;display:block!important}
-.support-close{position:absolute!important;top:18px!important;left:18px!important;width:42px!important;height:42px!important;border:0!important;border-radius:14px!important;background:#f8fafc!important;color:#0f172a!important;display:grid!important;place-items:center!important;font-size:18px!important;padding:0!important;z-index:2!important}
-.support-title{text-align:center!important;margin:0 0 18px!important;display:block!important}.support-title i{font-size:58px!important;color:#dc2626!important;margin:0 0 10px!important;display:block!important}.support-title h3{margin:0!important;font-size:28px!important;font-weight:950!important;color:#111827!important}.support-title p{margin:8px 0 0!important;color:#94a3b8!important;font-weight:800!important}
-.support-option{box-sizing:border-box!important;width:100%!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:24px!important;padding:18px!important;margin:14px 0 0!important;color:#111827!important;text-decoration:none!important;box-shadow:0 12px 30px rgba(15,23,42,.05)!important;cursor:pointer!important;text-align:right!important;font-family:inherit!important}.support-option-main{display:flex!important;align-items:center!important;gap:14px!important}.support-option-icon{flex:0 0 auto!important;width:58px!important;height:58px!important;border-radius:20px!important;display:grid!important;place-items:center!important;font-size:23px!important;background:#fee2e2!important;color:#dc2626!important}.support-option-icon i{color:inherit!important}.support-option-icon.chat{background:#e0f2fe!important;color:#0284c7!important}.support-option strong{display:block!important;font-size:18px!important;font-weight:950!important;color:#111827!important}.support-option span span,.support-option-main span span{display:block!important;color:#94a3b8!important;font-weight:800!important;margin-top:2px!important}.support-option .arrow{color:#94a3b8!important;font-size:21px!important}
-.support-chat-panel{display:none!important;margin-top:16px!important;border:1px solid #e5e7eb!important;border-radius:24px!important;background:#f8fafc!important;padding:14px!important}.support-chat-panel.show{display:block!important}.support-start-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}.support-start-grid input,.support-chat-form textarea{box-sizing:border-box!important;width:100%!important;border:1px solid #e5e7eb!important;border-radius:18px!important;background:#fff!important;padding:13px 14px!important;font-family:inherit!important;font-weight:850!important;outline:none!important;color:#0f172a!important}.support-start-grid input.phone{direction:ltr!important;text-align:left!important}.support-action-btn{border:0!important;border-radius:18px!important;background:#0f172a!important;color:#fff!important;padding:13px 16px!important;font-family:inherit!important;font-weight:950!important;cursor:pointer!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important}.support-action-btn.blue{background:#2563eb!important}.support-action-btn.red{background:#dc2626!important}.support-msgs{height:260px!important;overflow:auto!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:20px!important;padding:12px!important;display:grid!important;gap:9px!important;align-content:start!important;margin-top:12px!important}.support-chat-form{display:grid!important;gap:8px!important;margin-top:10px!important}.support-chat-form textarea{min-height:82px!important;resize:vertical!important}.support-note{font-size:12px!important;color:#64748b!important;font-weight:800!important;line-height:1.7!important;margin-top:9px!important}.support-error{color:#dc2626!important;font-weight:900!important;margin-top:8px!important;display:none!important}.support-error.show{display:block!important}
-@media(max-width:640px){.support-float-btn{width:64px!important;height:64px!important;left:16px!important;bottom:16px!important}.support-backdrop{padding:0!important}.support-sheet{width:100%!important;max-height:88vh!important;border-radius:28px 28px 0 0!important;padding:24px 18px 20px!important}.support-title h3{font-size:24px!important}.support-option{padding:14px!important;border-radius:20px!important}.support-option-icon{width:52px!important;height:52px!important;border-radius:17px!important}.support-option strong{font-size:16px!important}}
-</style>
-
-<button class="support-float-btn" type="button" onclick="supportOpenSheet()" aria-label="خدمة العملاء">
-  <span class="support-dot"></span><i class="fa-solid fa-headset"></i>
-</button>
-<div class="support-backdrop" id="supportBackdrop" onclick="supportBackdropClick(event)">
-  <div class="support-sheet" role="dialog" aria-modal="true" aria-label="خدمة العملاء">
-    <button type="button" class="support-close" onclick="supportCloseSheet()"><i class="fa-solid fa-xmark"></i></button>
-    <div class="support-grip"></div>
-    <div class="support-title">
-      <i class="fa-solid fa-headset"></i>
-      <h3>خدمة العملاء</h3>
-      <p>كيف يمكننا مساعدتك؟</p>
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </div>
-    <a class="support-option" id="supportCallLink" href="tel:+201222264993">
-      <span class="support-option-main"><span class="support-option-icon"><i class="fa-solid fa-phone"></i></span><span><strong>مكالمة هاتفية</strong><span id="supportCallNumber">+201222264993</span></span></span>
-      <i class="fa-solid fa-chevron-left arrow"></i>
-    </a>
-    <button class="support-option" type="button" onclick="supportOpenChatPanel()">
-      <span class="support-option-main"><span class="support-option-icon chat"><i class="fa-solid fa-message"></i></span><span><strong>تحدث إلى ممثلي خدمة العملاء</strong><span>محادثة داخل التطبيق</span></span></span>
-      <i class="fa-solid fa-chevron-left arrow"></i>
-    </button>
-    <div class="support-chat-panel" id="supportChatPanel">
-      <div class="support-start-grid" id="supportStartBox">
-        <input type="text" id="supportCustomerName" placeholder="اسمك اختياري">
-        <input type="tel" class="phone" id="supportCustomerPhone" placeholder="اكتب رقم هاتفك لبدء المحادثة">
-        <button type="button" class="support-action-btn blue" onclick="supportStartChat()"><i class="fa-solid fa-comments"></i> بدء المحادثة</button>
-        <div class="support-note">اكتب رقم الهاتف حتى تستطيع الإدارة معرفة المحادثة والرد عليك داخل التطبيق.</div>
+
+    <div class="mobile-nav" id="mobileNav">
+      <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
+      <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
+      <a href="/admin" onclick="toggleMobileMenu()">الإدارة</a>
+    </div>
+  </header>
+
+  <main class="register-page">
+    <div class="container">
+      <section class="intro-card">
+        <div class="intro-content">
+          <div class="intro-badge">
+            <i class="fa-solid fa-gift"></i> أول شهر مجاني لكل صنايعي جديد
+          </div>
+          <h2>سجّل بياناتك واظهر لعملاء مرسى مطروح</h2>
+          <p>املأ بياناتك، وارفع صورة أساسية وصور أعمالك. تقدر تقص وتظبط الصور قبل الإرسال عشان تظهر بشكل احترافي داخل التطبيق.</p>
+        </div>
+      </section>
+
+      <section class="register-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="section-label">
+              <i class="fa-solid fa-user-plus"></i> نموذج التسجيل
+            </span>
+            <h3>بيانات الصنايعي</h3>
+            <p>بياناتك لن تظهر في الصفحة الرئيسية إلا بعد موافقة الإدارة.</p>
+            <div aria-label="خطوات التسجيل" class="wizard-progress" id="wizardProgress">
+              <div class="wizard-step-pill active" data-step-pill="0"><span>1</span> البيانات الأساسية</div>
+              <div class="wizard-step-pill" data-step-pill="1"><span>2</span> الحرفة والمنطقة</div>
+              <div class="wizard-step-pill" data-step-pill="2"><span>3</span> البطاقة الشخصية</div>
+              <div class="wizard-step-pill" data-step-pill="3"><span>4</span> الصور والإرسال</div>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            <form id="registerForm" novalidate>
+
+              <div class="form-step active" data-step="0">
+                <div class="step-title-box">
+                  <h4><i class="fa-solid fa-user"></i>الخطوة الأولى: البيانات الأساسية</h4>
+                  <p>اكتب الاسم ورقم الاتصال ورقم الواتساب بدقة، لأن العميل سيتواصل معك مباشرة.</p>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="name"><i class="fa-solid fa-user"></i> الاسم</label>
+                    <input id="name" name="name" placeholder="مثال: محمد أحمد" type="text"/>
+                  </div>
+                  <div class="form-group">
+                    <label for="phone"><i class="fa-solid fa-phone"></i> رقم الاتصال</label>
+                    <input id="phone" name="phone" placeholder="مثال: 01012345678" type="tel"/>
+                  </div>
+                  <div class="form-group">
+                    <label for="whatsapp"><i class="fa-brands fa-whatsapp"></i> رقم الواتساب</label>
+                    <input id="whatsapp" name="whatsapp" placeholder="مثال: 01012345678" type="tel"/>
+                    <div class="helper">لو سيبته فاضي، التطبيق هيستخدم رقم الاتصال للواتساب.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-step" data-step="1">
+                <div class="step-title-box">
+                  <h4><i class="fa-solid fa-screwdriver-wrench"></i>الخطوة الثانية: الحرفة والمنطقة</h4>
+                  <p>اختار الحرفة الرئيسية والمنطقة التي تعمل بها، واكتب وصفًا مختصرًا للخدمات والخبرة.</p>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="trade"><i class="fa-solid fa-screwdriver-wrench"></i> الحرفة</label>
+                    <select id="trade" name="trade">
+                      <option value="">جاري تحميل الحرف...</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="area"><i class="fa-solid fa-location-dot"></i> المنطقة</label>
+                    <select id="area" name="area">
+                      <option value="">جاري تحميل المناطق...</option>
+                    </select>
+                  </div>
+                  <div class="form-group full">
+                    <label for="description"><i class="fa-solid fa-align-right"></i> وصف مختصر</label>
+                    <textarea id="description" name="description" placeholder="اكتب خبرتك ونوع الشغل والخدمات التي تقدمها..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-step" data-step="2">
+                <div class="step-title-box">
+                  <h4><i class="fa-solid fa-id-card"></i>الخطوة الثالثة: البطاقة الشخصية</h4>
+                  <p>ارفع صورة واضحة لوجه وظهر البطاقة. الصور تظهر للإدارة فقط ولا تظهر للعملاء.</p>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group full">
+                    <label><i class="fa-solid fa-id-card"></i> صورة البطاقة الشخصية <span style="color:#dc2626">*</span></label>
+                    <div class="upload-area">
+                      <div class="upload-row">
+                        <div class="upload-info">
+                          <div class="upload-info-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                          <div>
+                            <strong>مطلوب رفع وجه وظهر البطاقة لإكمال التسجيل</strong>
+                            <small>هذه الصور تظهر للإدارة فقط لمراجعة بيانات التسجيل، ولا تظهر للعملاء داخل التطبيق.</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="id-card-grid">
+                        <div class="id-upload-box">
+                          <strong><i class="fa-solid fa-address-card"></i> وجه البطاقة</strong>
+                          <label class="file-btn">
+                            <i class="fa-solid fa-upload"></i> اختيار صورة وجه البطاقة
+                            <input accept="image/*" id="idFrontInput" type="file"/>
+                          </label>
+                          <div class="id-preview-frame" id="idFrontPreviewFrame">
+                            <img alt="معاينة وجه البطاقة" id="idFrontPreview"/>
+                          </div>
+                        </div>
+                        <div class="id-upload-box">
+                          <strong><i class="fa-solid fa-id-card-clip"></i> ظهر البطاقة</strong>
+                          <label class="file-btn">
+                            <i class="fa-solid fa-upload"></i> اختيار صورة ظهر البطاقة
+                            <input accept="image/*" id="idBackInput" type="file"/>
+                          </label>
+                          <div class="id-preview-frame" id="idBackPreviewFrame">
+                            <img alt="معاينة ظهر البطاقة" id="idBackPreview"/>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="privacy-note">
+                        <i class="fa-solid fa-lock"></i> لن يكتمل طلب التسجيل بدون صورة وجه وظهر البطاقة. الصور محفوظة لمراجعة الإدارة فقط.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-step" data-step="3">
+                <div class="step-title-box">
+                  <h4><i class="fa-solid fa-images"></i>الخطوة الرابعة: الصور والإرسال</h4>
+                  <p>ارفع الصورة الأساسية وصور الأعمال، ثم راجع الطلب واضغط إرسال.</p>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group full">
+                    <label><i class="fa-solid fa-image"></i> الصورة الأساسية</label>
+                    <div class="upload-area">
+                      <div class="upload-row">
+                        <div class="upload-info">
+                          <div class="upload-info-icon"><i class="fa-solid fa-crop-simple"></i></div>
+                          <div>
+                            <strong>صورة الكارت الأساسية</strong>
+                            <small>هتتقص بنسبة 4:3 المناسبة لكارت الصنايعي.</small>
+                          </div>
+                        </div>
+                        <label class="file-btn">
+                          <i class="fa-solid fa-image"></i> اختيار الصورة
+                          <input accept="image/*" id="imageInput" type="file"/>
+                        </label>
+                      </div>
+                      <div class="image-card-preview" id="mainPreviewCard">
+                        <div class="image-preview-head">
+                          <strong>معاينة الصورة الأساسية</strong>
+                          <span>4:3</span>
+                        </div>
+                        <div class="main-preview-frame">
+                          <img alt="الصورة الأساسية" id="mainPreviewImage"/>
+                        </div>
+                        <div class="preview-actions">
+                          <button class="mini-btn blue" id="editMainImageBtn" type="button"><i class="fa-solid fa-crop-simple"></i> تعديل الصورة</button>
+                          <button class="mini-btn red" id="removeMainImageBtn" type="button"><i class="fa-solid fa-trash"></i> حذف الصورة</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group full">
+                    <label><i class="fa-solid fa-images"></i> صور الأعمال</label>
+                    <div class="upload-area">
+                      <div class="upload-row">
+                        <div class="upload-info">
+                          <div class="upload-info-icon"><i class="fa-solid fa-briefcase"></i></div>
+                          <div>
+                            <strong>صور من شغلك</strong>
+                            <small>اختار حتى 5 صور، وسيتم قص كل صورة قبل الإرسال.</small>
+                          </div>
+                        </div>
+                        <label class="file-btn">
+                          <i class="fa-solid fa-images"></i> اختيار صور الأعمال
+                          <input accept="image/*" id="workImagesInput" multiple="" type="file"/>
+                        </label>
+                      </div>
+                      <div class="work-preview-grid" id="workPreviewGrid"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="wizard-actions">
+                <div class="wizard-actions-left">
+                  <span class="step-counter" id="stepCounter">الخطوة 1 من 4</span>
+                </div>
+                <div class="wizard-actions-right">
+                  <button class="mini-btn dark" id="prevStepBtn" type="button"><i class="fa-solid fa-arrow-right"></i> السابق</button>
+                  <button class="submit-btn" id="nextStepBtn" type="button">التالي <i class="fa-solid fa-arrow-left"></i></button>
+                  <button class="submit-btn" id="submitBtn" style="display:none;" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال طلب التسجيل</button>
+                </div>
+              </div>
+              <div class="result-box" id="resultBox"></div>
+            </form>
+          </div>
+        </div>
+
+        <aside class="side-stack">
+          <div class="side-card">
+            <h4><i class="fa-solid fa-list-check"></i> التسجيل على 4 خطوات</h4>
+            <ul>
+              <li><i class="fa-solid fa-check"></i> بياناتك الأساسية.</li>
+              <li><i class="fa-solid fa-check"></i> الحرفة والمنطقة والوصف.</li>
+              <li><i class="fa-solid fa-check"></i> بطاقة التحقق للإدارة فقط.</li>
+              <li><i class="fa-solid fa-check"></i> الصور ثم إرسال الطلب.</li>
+            </ul>
+          </div>
+
+          <div class="side-card">
+            <h4><i class="fa-solid fa-circle-info"></i> قبل الإرسال</h4>
+            <ul>
+              <li><i class="fa-solid fa-check"></i> تأكد من كتابة رقم الاتصال بشكل صحيح.</li>
+              <li><i class="fa-solid fa-check"></i> لو رقم الواتساب مختلف عن رقم الاتصال اكتبه في الخانة الخاصة به.</li>
+              <li><i class="fa-solid fa-check"></i> رفع صورة وجه وظهر البطاقة شرط أساسي لقبول طلب التسجيل.</li>
+              <li><i class="fa-solid fa-check"></i> الصورة الأساسية هي التي تظهر في كارت الصنايعي.</li>
+              <li><i class="fa-solid fa-check"></i> صور الأعمال تظهر في صفحة التفاصيل بعد موافقة الإدارة.</li>
+            </ul>
+          </div>
+
+          <div class="side-card">
+            <h4><i class="fa-solid fa-wand-magic-sparkles"></i> نصائح للصور</h4>
+            <ul>
+              <li><i class="fa-solid fa-check"></i> استخدم صورة واضحة بإضاءة جيدة.</li>
+              <li><i class="fa-solid fa-check"></i> خلي الجزء المهم في منتصف الصورة أثناء القص.</li>
+              <li><i class="fa-solid fa-check"></i> استخدم التكبير والتحريك لضبط الصورة.</li>
+              <li><i class="fa-solid fa-check"></i> صور الأعمال يفضل تكون واضحة وقريبة من الشغل نفسه.</li>
+            </ul>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <div class="crop-modal" id="cropModal">
+    <div class="crop-box">
+      <div class="crop-head">
+        <div>
+          <h3 id="cropTitle">تعديل الصورة</h3>
+          <p id="cropSubtitle">حرّك الصورة وكبّرها أو صغّرها ثم اضغط اعتماد الصورة.</p>
+        </div>
+        <button class="mini-btn red" id="closeCropBtn" type="button"><i class="fa-solid fa-xmark"></i> إغلاق</button>
       </div>
-      <div id="supportConversationBox" style="display:none">
-        <div class="support-msgs" id="supportMessages"><div class="support-note">جاري تحميل المحادثة...</div></div>
-        <form class="support-chat-form" onsubmit="supportSendMessage(event)">
-          <textarea id="supportMessageInput" placeholder="اكتب رسالتك هنا..."></textarea>
-          <button type="submit" class="support-action-btn red"><i class="fa-solid fa-paper-plane"></i> إرسال لخدمة العملاء</button>
-        </form>
+      <div class="crop-layout">
+        <div class="crop-image-wrap"><img alt="الصورة المراد قصها" id="cropImage"/></div>
+        <div class="crop-side">
+          <div class="crop-preview-card">
+            <strong id="cropPreviewTitle">معاينة الصورة</strong>
+            <div class="crop-preview-body"><div class="crop-preview" id="cropPreview"></div></div>
+          </div>
+          <div class="crop-help">
+            <h5>طريقة الاستخدام</h5>
+            <ul>
+              <li>اسحب الصورة لتحريكها داخل الإطار.</li>
+              <li>استخدم عجلة الماوس للتكبير أو التصغير.</li>
+              <li>استخدم أزرار التكبير والتصغير والتدوير.</li>
+              <li>اضغط اعتماد الصورة لحفظ القص.</li>
+            </ul>
+            <div class="work-crop-counter" id="workCropCounter" style="display:none;"><i class="fa-solid fa-images"></i><span id="workCropCounterText">صورة 1 من 5</span></div>
+          </div>
+        </div>
       </div>
-      <div class="support-error" id="supportError"></div>
+      <div class="crop-actions">
+        <button class="mini-btn blue" id="zoomInBtn" type="button"><i class="fa-solid fa-magnifying-glass-plus"></i> تكبير</button>
+        <button class="mini-btn blue" id="zoomOutBtn" type="button"><i class="fa-solid fa-magnifying-glass-minus"></i> تصغير</button>
+        <button class="mini-btn blue" id="rotateBtn" type="button"><i class="fa-solid fa-rotate-right"></i> تدوير</button>
+        <button class="mini-btn gold" id="resetCropBtn" type="button"><i class="fa-solid fa-arrows-rotate"></i> إعادة الضبط</button>
+        <button class="mini-btn green" id="applyCropBtn" type="button"><i class="fa-solid fa-check"></i> اعتماد الصورة</button>
+        <button class="mini-btn dark" id="skipWorkCropBtn" style="display:none;" type="button"><i class="fa-solid fa-forward"></i> تخطي هذه الصورة</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+  <!-- Customer Support Floating Chat -->
+  <button class="support-float-btn" type="button" onclick="supportOpenSheet()" aria-label="خدمة العملاء">
+    <span class="support-dot"></span><i class="fa-solid fa-headset"></i>
+  </button>
+  <div class="support-backdrop" id="supportBackdrop" onclick="supportBackdropClick(event)">
+    <div class="support-sheet" role="dialog" aria-modal="true" aria-label="خدمة العملاء">
+      <button type="button" class="support-close" onclick="supportCloseSheet()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="support-grip"></div>
+      <div class="support-title">
+        <i class="fa-solid fa-headset"></i>
+        <h3>خدمة العملاء</h3>
+        <p>كيف يمكننا مساعدتك؟</p>
+      </div>
+      <a class="support-option" id="supportCallLink" href="tel:+201222264993">
+        <span class="support-option-main"><span class="support-option-icon"><i class="fa-solid fa-phone"></i></span><span><strong>مكالمة هاتفية</strong><span id="supportCallNumber">+201222264993</span></span></span>
+        <i class="fa-solid fa-chevron-left arrow"></i>
+      </a>
+      <button class="support-option" type="button" onclick="supportOpenChatPanel()">
+        <span class="support-option-main"><span class="support-option-icon chat"><i class="fa-solid fa-message"></i></span><span><strong>تحدث إلى ممثلي خدمة العملاء</strong><span>محادثة داخل التطبيق</span></span></span>
+        <i class="fa-solid fa-chevron-left arrow"></i>
+      </button>
+      <div class="support-chat-panel" id="supportChatPanel">
+        <div class="support-start-grid" id="supportStartBox">
+          <input type="text" id="supportCustomerName" placeholder="اسمك اختياري">
+          <input type="tel" class="phone" id="supportCustomerPhone" placeholder="اكتب رقم هاتفك لبدء المحادثة">
+          <button type="button" class="support-action-btn blue" onclick="supportStartChat()"><i class="fa-solid fa-comments"></i> بدء المحادثة</button>
+          <div class="support-note">اكتب رقم الهاتف حتى تستطيع الإدارة معرفة المحادثة والرد عليك داخل التطبيق.</div>
+        </div>
+        <div id="supportConversationBox" style="display:none">
+          <div class="support-msgs" id="supportMessages"><div class="support-note">جاري تحميل المحادثة...</div></div>
+          <form class="support-chat-form" onsubmit="supportSendMessage(event)">
+            <textarea id="supportMessageInput" placeholder="اكتب رسالتك هنا..."></textarea>
+            <button type="submit" class="support-action-btn red"><i class="fa-solid fa-paper-plane"></i> إرسال لخدمة العملاء</button>
+          </form>
+        </div>
+        <div class="support-error" id="supportError"></div>
+      </div>
+    </div>
+  </div>
 
-<!-- استدعاء ملف الجافاسكريبت الموحد لصفحة التسجيل -->
-<script src="/js/register.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+  <script src="/js/register.js"></script>
 
-<script>
-(function(){
-  const CUSTOMER_SUPPORT_PHONE = "+201222264993";
-  let supportWs = null;
-  let supportWsReconnectTimer = null;
-  let supportFallbackTimer = null;
-  function q(id){ return document.getElementById(id); }
-  function esc(v){ return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;", "'":"&#39;"}[c] || c)); }
-  function when(v){ try { return new Date(v).toLocaleString("ar-EG", {dateStyle:"short", timeStyle:"short"}); } catch(e){ return ""; } }
-  function supportState(){ try { return JSON.parse(localStorage.getItem("sanay3i_support_chat") || "{}"); } catch(e){ return {}; } }
-  function setSupportState(s){ localStorage.setItem("sanay3i_support_chat", JSON.stringify(s || {})); }
-  function setError(msg){ const el=q("supportError"); if(!el) return; el.textContent = msg || ""; el.classList.toggle("show", !!msg); }
-  function authHeaders(){ const s=supportState(); return s.token ? {"Authorization":"Bearer " + s.token} : {}; }
-  function supportRealtimeUrl(){ return (location.protocol === "https:" ? "wss://" : "ws://") + location.host; }
-  function supportRealtimeIsOpen(){ return typeof WebSocket !== "undefined" && supportWs && supportWs.readyState === WebSocket.OPEN; }
-  function supportRealtimeOpenState(){ return typeof WebSocket !== "undefined" && supportWs && (supportWs.readyState === WebSocket.OPEN || supportWs.readyState === WebSocket.CONNECTING); }
-  function supportPanelIsOpen(){
-    const panel=q("supportChatPanel"), conv=q("supportConversationBox");
-    return !!(panel && panel.classList.contains("show") && conv && conv.style.display !== "none");
-  }
-  function stopSupportFallback(){ if(supportFallbackTimer){ clearTimeout(supportFallbackTimer); supportFallbackTimer=null; } }
-  function startSupportFallback(){
-    stopSupportFallback();
-    const s=supportState();
-    if(!s.conversation_id || !s.token || !supportPanelIsOpen()) return;
-    supportFallbackTimer=setTimeout(async function(){
-      if(supportRealtimeIsOpen() || !supportPanelIsOpen()){ stopSupportFallback(); return; }
-      try{ await window.supportLoadMessages(false, true); }catch(e){}
-      startSupportFallback();
-    }, 5000);
-  }
-  function ensureSupportRealtime(){
-    const s=supportState();
-    if(!s.conversation_id || !s.token || typeof WebSocket === "undefined"){ startSupportFallback(); return; }
-    if(supportRealtimeOpenState()){ if(supportRealtimeIsOpen()) stopSupportFallback(); return; }
-    try{
-      supportWs = new WebSocket(supportRealtimeUrl());
-      supportWs.onopen = function(){
-        stopSupportFallback();
-        try{ supportWs.send(JSON.stringify({type:"subscribe", scope:"support_chat", conversation_id:Number(supportState().conversation_id || 0)})); }catch(e){}
-      };
-      supportWs.onmessage = function(evt){
-        let msg=null;
-        try{ msg=JSON.parse(evt.data); }catch(e){ return; }
-        if(!msg || msg.type !== "support_chat") return;
-        const data=msg.data || {};
-        const current=supportState();
-        if(Number(data.conversation_id || 0) !== Number(current.conversation_id || 0)) return;
-        if(data.event === "admin_message" || data.event === "thread_update"){
-          const panel=q("supportChatPanel");
-          if(panel && panel.classList.contains("show")) window.supportLoadMessages(false, true);
-          else {
-            const dot=document.querySelector(".support-float-btn .support-dot");
-            if(dot) dot.style.background = "#f59e0b";
-          }
-        }
-      };
-      supportWs.onclose = function(){
-        supportWs = null;
-        startSupportFallback();
-        clearTimeout(supportWsReconnectTimer);
-        supportWsReconnectTimer = setTimeout(ensureSupportRealtime, 5000);
-      };
-      supportWs.onerror = function(){ try{ supportWs.close(); }catch(e){} };
-      setTimeout(function(){ if(!supportRealtimeIsOpen()) startSupportFallback(); }, 2500);
-    }catch(e){ startSupportFallback(); }
-  }
-  window.supportOpenSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.add("show"); document.body.style.overflow="hidden"; const s=supportState(); if(s.phone && q("supportCustomerPhone")) q("supportCustomerPhone").value=s.phone; };
-  window.supportCloseSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.remove("show"); document.body.style.overflow=""; stopSupportFallback(); };
-  window.supportBackdropClick = function(e){ if(e && e.target && e.target.id === "supportBackdrop") window.supportCloseSheet(); };
-  window.supportOpenChatPanel = function(){ const p=q("supportChatPanel"); if(p) p.classList.add("show"); setError(""); const s=supportState(); if(s.conversation_id && s.token){ q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block"; supportLoadMessages(); ensureSupportRealtime(); startSupportFallback(); } };
-  window.supportStartChat = async function(){
-    setError("");
-    const phone=String(q("supportCustomerPhone")?.value||"").trim();
-    const name=String(q("supportCustomerName")?.value||"").trim();
-    if(!phone){ setError("اكتب رقم هاتفك أولًا"); return; }
-    try{
-      const r=await fetch("/api/support-chat/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone,name})});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok || !d.success) throw new Error(d.error || "تعذر بدء المحادثة");
-      setSupportState({token:d.token,conversation_id:d.conversation.id,phone:d.conversation.phone || phone,name:d.conversation.customer_name || name});
-      q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block";
-      supportLoadMessages();
-      ensureSupportRealtime();
-      startSupportFallback();
-    }catch(err){ setError(err.message || "تعذر بدء المحادثة"); }
-  };
-  window.supportLoadMessages = async function(markRead, fromRealtime){
-    const s=supportState(); if(!s.conversation_id || !s.token) return;
-    try{
-      const r=await fetch("/api/support-chat/messages?conversation_id="+encodeURIComponent(s.conversation_id)+"&mark_read="+(markRead===false?"false":"true"),{headers:authHeaders()});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok || !d.success) throw new Error(d.error || "تعذر تحميل المحادثة");
-      const box=q("supportMessages");
-      if(box){
-        const list=d.messages||[];
-        box.innerHTML=list.length ? list.map(m=>`<div class="support-msg ${m.sender_type==='admin'?'admin':'customer'}"><b>${m.sender_type==='admin'?'خدمة العملاء':'أنت'}</b><br>${esc(m.message_text||'')}<small>${esc(when(m.created_at))}</small></div>`).join("") : '<div class="support-note">اكتب رسالتك وسيتم الرد عليك من الإدارة.</div>';
-        box.scrollTop=box.scrollHeight;
+  <script>
+    function toggleMobileMenu() {
+      const nav = document.getElementById("mobileNav");
+      if (nav) nav.classList.toggle("show");
+    }
+
+    (function(){
+      const CUSTOMER_SUPPORT_PHONE = "+201222264993";
+      let supportWs = null;
+      let supportWsReconnectTimer = null;
+      let supportFallbackTimer = null;
+      function q(id){ return document.getElementById(id); }
+      function esc(v){ return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;", '"':"&quot;", "'":"&#39;"}[c] || c)); }
+      function when(v){ try { return new Date(v).toLocaleString("ar-EG", {dateStyle:"short", timeStyle:"short"}); } catch(e){ return ""; } }
+      function supportState(){ try { return JSON.parse(localStorage.getItem("sanay3i_support_chat") || "{}"); } catch(e){ return {}; } }
+      function setSupportState(s){ localStorage.setItem("sanay3i_support_chat", JSON.stringify(s || {})); }
+      function setError(msg){ const el=q("supportError"); if(!el) return; el.textContent = msg || ""; el.classList.toggle("show", !!msg); }
+      function authHeaders(){ const s=supportState(); return s.token ? {"Authorization":"Bearer " + s.token} : {}; }
+      function supportRealtimeUrl(){ return (location.protocol === "https:" ? "wss://" : "ws://") + location.host; }
+      function supportRealtimeIsOpen(){ return typeof WebSocket !== "undefined" && supportWs && supportWs.readyState === WebSocket.OPEN; }
+      function supportRealtimeOpenState(){ return typeof WebSocket !== "undefined" && supportWs && (supportWs.readyState === WebSocket.OPEN || supportWs.readyState === WebSocket.CONNECTING); }
+      function supportPanelIsOpen(){
+        const panel=q("supportChatPanel"), conv=q("supportConversationBox");
+        return !!(panel && panel.classList.contains("show") && conv && conv.style.display !== "none");
       }
-      ensureSupportRealtime();
-      if(!supportRealtimeIsOpen()) startSupportFallback();
-    }catch(err){ setError(err.message || "تعذر تحميل المحادثة"); }
-  };
-  window.supportSendMessage = async function(e){
-    e.preventDefault(); setError("");
-    const s=supportState(); const input=q("supportMessageInput"); const message=String(input?.value||"").trim();
-    if(!s.conversation_id || !s.token){ setError("ابدأ المحادثة برقم الهاتف أولًا"); return; }
-    if(!message){ setError("اكتب رسالتك أولًا"); return; }
-    const btn=e.currentTarget.querySelector("button[type=submit]"); const old=btn?btn.innerHTML:"";
-    if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
-    try{
-      const r=await fetch("/api/support-chat/messages",{method:"POST",headers:{"Content-Type":"application/json",...authHeaders()},body:JSON.stringify({conversation_id:s.conversation_id,message})});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال الرسالة");
-      if(input) input.value=""; window.supportLoadMessages();
-    }catch(err){ setError(err.message || "تعذر إرسال الرسالة"); }
-    finally{ if(btn){btn.disabled=false;btn.innerHTML=old;} }
-  };
-  window.addEventListener("keydown", function(e){ if(e.key === "Escape") window.supportCloseSheet(); });
-  window.addEventListener("beforeunload", function(){ stopSupportFallback(); try{ if(supportWs) supportWs.close(); }catch(e){} });
-})();
-</script>
+      function stopSupportFallback(){ if(supportFallbackTimer){ clearTimeout(supportFallbackTimer); supportFallbackTimer=null; } }
+      function startSupportFallback(){
+        stopSupportFallback();
+        const s=supportState();
+        if(!s.conversation_id || !s.token || !supportPanelIsOpen()) return;
+        supportFallbackTimer=setTimeout(async function(){
+          if(supportRealtimeIsOpen() || !supportPanelIsOpen()){ stopSupportFallback(); return; }
+          try{ await window.supportLoadMessages(false, true); }catch(e){}
+          startSupportFallback();
+        }, 5000);
+      }
+      function ensureSupportRealtime(){
+        const s=supportState();
+        if(!s.conversation_id || !s.token || typeof WebSocket === "undefined"){ startSupportFallback(); return; }
+        if(supportRealtimeOpenState()){ if(supportRealtimeIsOpen()) stopSupportFallback(); return; }
+        try{
+          supportWs = new WebSocket(supportRealtimeUrl());
+          supportWs.onopen = function(){
+            stopSupportFallback();
+            try{ supportWs.send(JSON.stringify({type:"subscribe", scope:"support_chat", conversation_id:Number(supportState().conversation_id || 0)})); }catch(e){}
+          };
+          supportWs.onmessage = function(evt){
+            let msg=null;
+            try{ msg=JSON.parse(evt.data); }catch(e){ return; }
+            if(!msg || msg.type !== "support_chat") return;
+            const data=msg.data || {};
+            const current=supportState();
+            if(Number(data.conversation_id || 0) !== Number(current.conversation_id || 0)) return;
+            if(data.event === "admin_message" || data.event === "thread_update"){
+              const panel=q("supportChatPanel");
+              if(panel && panel.classList.contains("show")) window.supportLoadMessages(false, true);
+              else {
+                const dot=document.querySelector(".support-float-btn .support-dot");
+                if(dot) dot.style.background = "#f59e0b";
+              }
+            }
+          };
+          supportWs.onclose = function(){
+            supportWs = null;
+            startSupportFallback();
+            clearTimeout(supportWsReconnectTimer);
+            supportWsReconnectTimer = setTimeout(ensureSupportRealtime, 5000);
+          };
+          supportWs.onerror = function(){ try{ supportWs.close(); }catch(e){} };
+          setTimeout(function(){ if(!supportRealtimeIsOpen()) startSupportFallback(); }, 2500);
+        }catch(e){ startSupportFallback(); }
+      }
+      window.supportOpenSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.add("show"); document.body.style.overflow="hidden"; const s=supportState(); if(s.phone && q("supportCustomerPhone")) q("supportCustomerPhone").value=s.phone; };
+      window.supportCloseSheet = function(){ const b=q("supportBackdrop"); if(b) b.classList.remove("show"); document.body.style.overflow=""; stopSupportFallback(); };
+      window.supportBackdropClick = function(e){ if(e && e.target && e.target.id === "supportBackdrop") window.supportCloseSheet(); };
+      window.supportOpenChatPanel = function(){ const p=q("supportChatPanel"); if(p) p.classList.add("show"); setError(""); const s=supportState(); if(s.conversation_id && s.token){ q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block"; supportLoadMessages(); ensureSupportRealtime(); startSupportFallback(); } };
+      window.supportStartChat = async function(){
+        setError("");
+        const phone=String(q("supportCustomerPhone")?.value||"").trim();
+        const name=String(q("supportCustomerName")?.value||"").trim();
+        if(!phone){ setError("اكتب رقم هاتفك أولًا"); return; }
+        try{
+          const r=await fetch("/api/support-chat/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone,name})});
+          const d=await r.json().catch(()=>({}));
+          if(!r.ok || !d.success) throw new Error(d.error || "تعذر بدء المحادثة");
+          setSupportState({token:d.token,conversation_id:d.conversation.id,phone:d.conversation.phone || phone,name:d.conversation.customer_name || name});
+          q("supportStartBox").style.display="none"; q("supportConversationBox").style.display="block";
+          supportLoadMessages();
+          ensureSupportRealtime();
+          startSupportFallback();
+        }catch(err){ setError(err.message || "تعذر بدء المحادثة"); }
+      };
+      window.supportLoadMessages = async function(markRead, fromRealtime){
+        const s=supportState(); if(!s.conversation_id || !s.token) return;
+        try{
+          const r=await fetch("/api/support-chat/messages?conversation_id="+encodeURIComponent(s.conversation_id)+"&mark_read="+(markRead===false?"false":"true"),{headers:authHeaders()});
+          const d=await r.json().catch(()=>({}));
+          if(!r.ok || !d.success) throw new Error(d.error || "تعذر تحميل المحادثة");
+          const box=q("supportMessages");
+          if(box){
+            const list=d.messages||[];
+            box.innerHTML=list.length ? list.map(m=>`<div class="support-msg ${m.sender_type==='admin'?'admin':'customer'}"><b>${m.sender_type==='admin'?'خدمة العملاء':'أنت'}</b><br>${esc(m.message_text||'')}<small>${esc(when(m.created_at))}</small></div>`).join("") : '<div class="support-note">اكتب رسالتك وسيتم الرد عليك من الإدارة.</div>';
+            box.scrollTop=box.scrollHeight;
+          }
+          ensureSupportRealtime();
+          if(!supportRealtimeIsOpen()) startSupportFallback();
+        }catch(err){ setError(err.message || "تعذر تحميل المحادثة"); }
+      };
+      window.supportSendMessage = async function(e){
+        e.preventDefault(); setError("");
+        const s=supportState(); const input=q("supportMessageInput"); const message=String(input?.value||"").trim();
+        if(!s.conversation_id || !s.token){ setError("ابدأ المحادثة برقم الهاتف أولًا"); return; }
+        if(!message){ setError("اكتب رسالتك أولًا"); return; }
+        const btn=e.currentTarget.querySelector("button[type=submit]"); const old=btn?btn.innerHTML:"";
+        if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
+        try{
+          const r=await fetch("/api/support-chat/messages",{method:"POST",headers:{"Content-Type":"application/json",...authHeaders()},body:JSON.stringify({conversation_id:s.conversation_id,message})});
+          const d=await r.json().catch(()=>({}));
+          if(!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال الرسالة");
+          if(input) input.value=""; window.supportLoadMessages();
+        }catch(err){ setError(err.message || "تعذر إرسال الرسالة"); }
+        finally{ if(btn){btn.disabled=false;btn.innerHTML=old;} }
+      };
+      window.addEventListener("keydown", function(e){ if(e.key === "Escape") window.supportCloseSheet(); });
+      window.addEventListener("beforeunload", function(){ stopSupportFallback(); try{ if(supportWs) supportWs.close(); }catch(e){} });
+    })();
+  </script>
 
-<script>
+  <!-- Service Worker -->
+  <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
         navigator.serviceWorker.register("/service-worker.js").catch(function (error) {
@@ -524,6 +517,6 @@
         });
       });
     }
-</script>
+  </script>
 </body>
 </html>

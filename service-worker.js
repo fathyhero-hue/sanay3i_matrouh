@@ -1,36 +1,66 @@
-// Service Worker - no-cache admin fix V8 + navy splash + registration required actions + whatsapp inbox webhook + professional home header + Matrouh hero image patch + admin full worker control + owner phone verified chat + customer support floating chat + mobile UI hotfix + websocket support chat + realtime fallback
-const CACHE_NAME = 'sanay3i-support-chat-realtime-fallback-hotfix-20260623';
+const CACHE_NAME = 'sanay3i-matrouh-v2';
 
-self.addEventListener('install', event => { 
-  self.skipWaiting(); 
+const ASSETS_TO_CACHE = [
+  '/',
+  '/register',
+  '/status',
+  '/css/global.css',
+  '/css/support.css',
+  '/css/cards.css',
+  '/css/worker.css',
+  '/css/status.css',
+  '/css/register.css',
+  '/icons/default-worker-avatar.png',
+  '/icons/icon-192.png',
+  '/manifest.json',
+  'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css'
+];
+
+// تثبيت الـ Service Worker وحفظ الملفات في الكاش
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', event => { 
-  event.waitUntil(self.clients.claim()); 
+// تنظيف الكاش القديم عند التحديث
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-  
-  // التعامل مع مسارات الإدارة والـ API وتوفير حماية لمنع انهيار الـ Promise عند انقطاع الشبكة
-  if (url.pathname.startsWith('/admin') || url.pathname.endsWith('/admin.html') || url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(err => {
-        if (url.pathname.startsWith('/api/')) {
-          return new Response(JSON.stringify({ success: false, error: 'Network connection error' }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
-        throw err;
-      })
-    );
+// التعامل مع طلبات الشبكة (Fetch)
+self.addEventListener('fetch', (event) => {
+  // استثناء طلبات الـ API لكي يتم جلبها دائماً من السيرفر مباشرة
+  if (event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).catch(() => {
+        // صفحة بديلة في حالة انقطاع الإنترنت تماماً
+        if (event.request.mode === 'navigate') {
+          return caches.match('/offline.html');
+        }
+      });
+    })
   );
 });
-
-// SUPPORT_NAVY_ICON_HOTFIX 20260623

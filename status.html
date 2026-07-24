@@ -4,205 +4,58 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>متابعة حالة الطلب | صنايعي مطروح</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <style>
-    *{box-sizing:border-box}
-    :root{
-      --primary:#0f172a;--muted:#64748b;--border:#e2e8f0;--blue:#1d4ed8;--blue2:#38bdf8;--green:#16a34a;--danger:#dc2626;--gold:#f59e0b;--white:#fff;--bg:#f8fafc;
-      --shadow:0 22px 70px rgba(15,23,42,.14);--soft:0 12px 32px rgba(15,23,42,.08)
-    }
-    body{margin:0;font-family:"Cairo",sans-serif;color:var(--primary);background:radial-gradient(circle at top right,rgba(56,189,248,.24),transparent 32%),radial-gradient(circle at bottom left,rgba(245,158,11,.16),transparent 31%),linear-gradient(135deg,#f8fafc,#eff6ff);min-height:100vh}
-    a{text-decoration:none;color:inherit}
-    .container{width:min(980px,calc(100% - 28px));margin:auto}
-    .site-header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);border-bottom:1px solid rgba(226,232,240,.85);backdrop-filter:blur(18px)}
-    .header-content{min-height:82px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;flex-wrap:wrap}
-    .brand{display:flex;align-items:center;gap:12px}
-    .brand-icon{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--blue),var(--blue2));display:grid;place-items:center;color:#fff;font-size:25px;box-shadow:0 14px 32px rgba(29,78,216,.22)}
-    .brand h1{margin:0;font-size:30px;font-weight:900;line-height:1.2}
-    .brand p{margin:2px 0 0;color:var(--muted);font-weight:800}
-    .nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .btn{border:0;border-radius:999px;padding:13px 20px;font-family:inherit;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px;transition:.2s;box-shadow:0 10px 24px rgba(15,23,42,.08)}
-    .btn:hover{transform:translateY(-1px)}
-    .btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff}
-    .btn-dark{background:#0f172a;color:#fff}.btn-light{background:#fff;color:#0f172a;border:1px solid var(--border)}
-    main{padding:42px 0 70px}
-    .hero{display:grid;grid-template-columns:1.08fr .92fr;gap:22px;align-items:stretch}
-    .card{background:rgba(255,255,255,.92);border:1px solid rgba(226,232,240,.9);border-radius:30px;box-shadow:var(--shadow);overflow:hidden}
-    .intro{padding:34px}.intro-badge{display:inline-flex;align-items:center;gap:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:999px;padding:8px 14px;font-weight:900;margin-bottom:16px}
-    .intro h2{font-size:38px;line-height:1.25;margin:0 0 14px;font-weight:900}.intro p{margin:0;color:#475569;font-size:17px;line-height:2;font-weight:700}
-    .steps{margin-top:20px;display:grid;gap:12px}.step{display:flex;gap:11px;align-items:flex-start;padding:13px;border:1px solid var(--border);border-radius:18px;background:#fff}.step i{width:34px;height:34px;border-radius:12px;background:#f1f5f9;display:grid;place-items:center;color:#1d4ed8}.step strong{display:block;font-weight:900}.step span{display:block;color:#64748b;font-weight:800;font-size:14px;margin-top:2px}
-    .lookup{padding:28px}.lookup h3{margin:0 0 8px;font-size:25px;font-weight:900}.lookup .hint{margin:0 0 18px;color:#64748b;font-weight:800;line-height:1.8}
-    label{display:block;font-weight:900;margin-bottom:8px}.field{position:relative}.field i{position:absolute;right:17px;top:50%;transform:translateY(-50%);color:#1d4ed8}.field input{width:100%;border:1px solid var(--border);background:#fff;border-radius:20px;padding:16px 48px 16px 16px;font-family:inherit;font-weight:900;font-size:17px;outline:none;direction:ltr;text-align:left}.field input:focus{border-color:#60a5fa;box-shadow:0 0 0 5px rgba(59,130,246,.12)}
-    .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.full{width:100%}
-    .result{margin-top:18px;display:none}.result.show{display:block}.status-card{border-radius:24px;border:1px solid var(--border);padding:20px;background:#fff;box-shadow:var(--soft)}
-    .status-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border);padding-bottom:15px;margin-bottom:15px}.status-head h4{margin:0;font-size:22px;font-weight:900}.code{direction:ltr;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:7px 12px;font-weight:900;color:#0f172a}
-    .status-pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:10px 14px;font-weight:900}.tone-success{background:#dcfce7;color:#166534}.tone-pending{background:#fef3c7;color:#92400e}.tone-warning{background:#ffedd5;color:#9a3412}.tone-danger{background:#fee2e2;color:#991b1b}
-    .status-message{margin:14px 0 0;color:#475569;line-height:1.9;font-weight:800}.reason{margin-top:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:16px;padding:12px;font-weight:900;line-height:1.8}
-    .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}.meta div{background:#f8fafc;border:1px solid var(--border);border-radius:16px;padding:12px}.meta small{display:block;color:#64748b;font-weight:900}.meta strong{display:block;margin-top:3px;font-weight:900;color:#0f172a}
-    .alert{border-radius:20px;padding:15px 16px;font-weight:900;line-height:1.8}.alert.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}.alert.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}.loading{display:none;margin-top:14px;color:#1d4ed8;font-weight:900}.loading.show{display:block}
-    .privacy-note{margin-top:18px;background:rgba(255,255,255,.65);border:1px solid rgba(226,232,240,.95);border-radius:22px;padding:16px;color:#475569;font-weight:800;line-height:1.9}.privacy-note i{color:#1d4ed8;margin-left:6px}
-
-    .worker-chat-widget{margin-top:15px;border:1px solid #bfdbfe;background:#f8fbff;border-radius:22px;overflow:hidden;box-shadow:var(--soft)}
-    .worker-chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 16px;background:linear-gradient(135deg,#061A3D,#123a7a);color:#fff}
-    .worker-chat-head strong{display:flex;align-items:center;gap:8px;font-size:16px}.worker-chat-head span{font-weight:900;font-size:13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:7px 10px}
-    .worker-chat-body{padding:14px}.worker-chat-open{width:100%;background:#0f172a;color:#fff}
-    .worker-chat-panel{display:none;margin-top:12px}.worker-chat-panel.show{display:block}
-    .worker-chat-messages{height:310px;overflow:auto;border:1px solid var(--border);background:#fff;border-radius:18px;padding:12px;display:grid;gap:10px;align-content:start}
-    .chat-msg{max-width:86%;border-radius:18px;padding:10px 12px;font-weight:800;line-height:1.8;white-space:pre-wrap;box-shadow:0 8px 20px rgba(15,23,42,.06)}
-    .chat-msg.admin{justify-self:start;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}.chat-msg.worker{justify-self:end;background:#dcfce7;border:1px solid #bbf7d0;color:#166534}.chat-msg small{display:block;color:#64748b;font-weight:900;margin-top:5px;font-size:11px}.chat-msg img{max-width:180px;border-radius:14px;margin-top:8px;display:block}
-    .worker-chat-form{display:grid;gap:8px;margin-top:10px}.worker-chat-form textarea{width:100%;min-height:90px;border:1px solid var(--border);background:#fff;border-radius:16px;padding:12px;font-family:inherit;font-weight:800;resize:vertical}.worker-chat-form input{font-family:inherit;font-weight:800}.worker-chat-form .row{display:flex;gap:8px;flex-wrap:wrap}.worker-chat-form .row .btn{box-shadow:none}
-
-
-    .progress-timeline{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative}
-    .progress-step{background:#f8fafc;border:1px solid var(--border);border-radius:20px;padding:14px;position:relative;overflow:hidden;min-height:118px}
-    .progress-step::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:#cbd5e1}
-    .progress-step .num{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-weight:900;margin-bottom:8px;background:#e2e8f0;color:#475569}
-    .progress-step strong{display:block;font-weight:900;margin-bottom:4px}.progress-step span{display:block;color:#64748b;font-weight:800;font-size:13px;line-height:1.7}
-    .progress-step.done{border-color:#bbf7d0;background:#f0fdf4}.progress-step.done::before{background:#16a34a}.progress-step.done .num{background:#16a34a;color:#fff}
-    .progress-step.current{border-color:#bfdbfe;background:#eff6ff;box-shadow:0 14px 34px rgba(37,99,235,.10)}.progress-step.current::before{background:#1d4ed8}.progress-step.current .num{background:#1d4ed8;color:#fff}
-    .progress-step.danger-current{border-color:#fecaca;background:#fef2f2;box-shadow:0 14px 34px rgba(220,38,38,.10)}.progress-step.danger-current::before{background:#dc2626}.progress-step.danger-current .num{background:#dc2626;color:#fff}
-    .copy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:18px;padding:12px 14px;margin-top:14px}
-    .copy-row .code-big{direction:ltr;font-size:20px;font-weight:900;letter-spacing:.5px}.mini-btn{border:0;border-radius:999px;padding:10px 14px;font-family:inherit;font-weight:900;cursor:pointer;background:#0f172a;color:#fff;display:inline-flex;align-items:center;gap:7px}
-    .next-action{margin-top:15px;border-radius:20px;padding:15px 16px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;font-weight:900;line-height:1.9}.next-action.warning{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.next-action.danger{background:#fef2f2;border-color:#fecaca;color:#991b1b}.next-action.success{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
-    .action-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}.action-buttons .btn{box-shadow:none}.whatsapp-admin{background:#16a34a;color:#fff}.hidden{display:none!important}
-
-    .required-actions{margin-top:14px;display:grid;gap:10px}.required-actions-title{display:flex;align-items:center;gap:8px;font-weight:900;color:#0f172a}.required-action-card{border:1px solid #bfdbfe;background:#f8fbff;border-radius:18px;padding:12px;display:grid;gap:8px}.required-action-card strong{display:flex;align-items:center;gap:8px;color:#1d4ed8}.required-action-card p{margin:0;color:#475569;font-weight:800;line-height:1.8;font-size:13px}.required-action-card .mini-btn{background:#1d4ed8;width:max-content}.self-service-panel{display:none;margin-top:12px;border:1px solid #cbd5e1;background:#fff;border-radius:18px;padding:14px}.self-service-panel.show{display:block}.self-service-panel h5{margin:0 0 8px;font-size:16px;font-weight:900}.self-service-form{display:grid;gap:10px}.self-service-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.self-service-field label{font-size:12px;margin-bottom:6px}.self-service-field input,.self-service-field textarea{width:100%;border:1px solid var(--border);background:#f8fafc;border-radius:14px;padding:11px 12px;font-family:inherit;font-weight:800;outline:none}.self-service-field textarea{min-height:95px;resize:vertical}.upload-box{border:1px dashed #94a3b8;background:#f8fafc;border-radius:16px;padding:12px}.upload-box input{width:100%;font-family:inherit;font-weight:800}.self-service-help{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:14px;padding:10px;font-weight:800;line-height:1.7;font-size:12px}.action-success-note{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:14px;padding:10px;font-weight:900;line-height:1.7}
-    .toast{position:fixed;left:18px;bottom:18px;background:#0f172a;color:#fff;border-radius:16px;padding:12px 15px;font-weight:900;box-shadow:var(--shadow);z-index:90;opacity:0;transform:translateY(12px);transition:.2s}.toast.show{opacity:1;transform:translateY(0)}
-    @media(max-width:820px){.hero{grid-template-columns:1fr}.intro h2{font-size:30px}.brand h1{font-size:24px}.header-content{justify-content:center}.nav{justify-content:center}.meta{grid-template-columns:1fr}.progress-timeline{grid-template-columns:1fr}.status-head{flex-direction:column}.btn{width:100%}.copy-row{align-items:stretch}.mini-btn{justify-content:center}}
   
+  <!-- استدعاء ملفات الـ CSS المقسمة والمنظمة -->
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/status.css" />
 
-
-    /* ===============================
-       Patch 24 - Status page mobile polish
-    ================================ */
-    body { overflow-x: hidden; }
-    html { scroll-padding-top: 88px; }
-
-    @media (max-width: 760px) {
-      .container { width: min(100% - 24px, 1180px); }
-      .header-content { min-height: 70px; gap: 10px; }
-      .brand { min-width: 0; }
-      .brand-icon { width: 46px; height: 46px; border-radius: 16px; font-size: 19px; }
-      .brand h1 { font-size: 18px; white-space: nowrap; }
-      .brand span { max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
-      .nav { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
-      .nav a { justify-content: center; min-height: 42px; }
-      .hero { grid-template-columns: 1fr !important; gap: 14px; padding: 24px 0 90px; }
-      .intro, .card { border-radius: 22px; padding: 18px; }
-      .intro h2 { font-size: clamp(26px, 8vw, 34px); line-height: 1.35; }
-      .intro p { font-size: 14px; line-height: 1.9; }
-      .steps, .progress-timeline, .meta { grid-template-columns: 1fr !important; gap: 10px; }
-      .step { border-radius: 18px; padding: 13px; }
-      .lookup { display: grid; grid-template-columns: 1fr; gap: 10px; }
-      .field input { min-height: 50px; border-radius: 16px; }
-      .btn { width: 100%; min-height: 50px; border-radius: 16px; justify-content: center; }
-      .actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
-      .status-head { align-items: stretch !important; }
-      .copy-row { display: grid; grid-template-columns: 1fr; gap: 8px; }
-    }
-
-    @media (max-width: 430px) {
-      .container { width: min(100% - 18px, 1180px); }
-      .brand span { display: none; }
-      .nav { grid-template-columns: 1fr; }
-    }
-
-
-
-    /* ===============================
-       Patch 25 - Status compact portrait mobile
-    ================================ */
-    @media (max-width: 640px) and (orientation: portrait) {
-      .container { width: calc(100% - 16px) !important; }
-      main { padding: 14px 0 24px !important; }
-      .header-content { min-height: 56px !important; padding: 7px 0 !important; }
-      .brand-icon { width: 36px !important; height: 36px !important; border-radius: 12px !important; font-size: 15px !important; }
-      .brand h1 { font-size: 15px !important; }
-      .brand p { display: none !important; }
-      .nav { grid-template-columns: 1fr 1fr !important; gap: 5px !important; }
-      .nav .btn { min-height: 34px !important; font-size: 10px !important; padding: 6px 4px !important; border-radius: 10px !important; }
-      .hero { display: block !important; padding: 0 !important; }
-      .card, .intro, .lookup, .status-card { border-radius: 16px !important; padding: 12px !important; margin-bottom: 10px !important; }
-      .intro-badge { font-size: 10px !important; padding: 5px 8px !important; margin-bottom: 7px !important; }
-      .intro h2 { font-size: 20px !important; line-height: 1.3 !important; margin-bottom: 7px !important; }
-      .intro p, .lookup .hint, .privacy-note, .status-message { font-size: 11px !important; line-height: 1.6 !important; }
-      .steps { gap: 6px !important; margin-top: 10px !important; }
-      .step { padding: 8px !important; border-radius: 12px !important; gap: 7px !important; }
-      .step i { width: 28px !important; height: 28px !important; border-radius: 9px !important; font-size: 12px !important; }
-      .step strong { font-size: 11px !important; }
-      .step span { font-size: 9.5px !important; line-height: 1.4 !important; }
-      .lookup h3 { font-size: 17px !important; margin-bottom: 4px !important; }
-      label { font-size: 10.5px !important; margin-bottom: 5px !important; }
-      .field input { min-height: 40px !important; border-radius: 12px !important; font-size: 12px !important; padding: 9px 36px 9px 10px !important; }
-      .field i { right: 12px !important; font-size: 11px !important; }
-      .btn { min-height: 38px !important; border-radius: 12px !important; font-size: 11px !important; padding: 7px 8px !important; }
-      .progress-timeline { grid-template-columns: 1fr !important; gap: 6px !important; margin-top: 10px !important; }
-      .progress-step { min-height: auto !important; padding: 9px 10px !important; border-radius: 13px !important; }
-      .progress-step .num { width: 26px !important; height: 26px !important; border-radius: 8px !important; font-size: 11px !important; margin-bottom: 5px !important; }
-      .progress-step strong { font-size: 11px !important; }
-      .progress-step span { font-size: 9.5px !important; line-height: 1.45 !important; }
-      .status-head { gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; }
-      .status-head h4 { font-size: 16px !important; }
-      .status-pill { font-size: 10px !important; padding: 6px 8px !important; }
-      .copy-row { padding: 8px !important; border-radius: 12px !important; margin-top: 10px !important; }
-      .copy-row .code-big { font-size: 15px !important; }
-      .mini-btn { min-height: 32px !important; font-size: 10px !important; border-radius: 10px !important; padding: 6px 8px !important; }
-      .meta { grid-template-columns: 1fr !important; gap: 6px !important; }
-      .meta div { padding: 8px !important; border-radius: 12px !important; }
-      .meta small { font-size: 9px !important; }
-      .meta strong { font-size: 11px !important; }
-      .next-action, .reason, .alert, .privacy-note { border-radius: 13px !important; padding: 10px !important; font-size: 10.5px !important; }
-    }
-
-    @media(max-width:820px){.self-service-grid{grid-template-columns:1fr}.required-action-card .mini-btn{width:100%;justify-content:center}}
-
-
-/* Customer Support Floating Chat */
-.support-float-btn{position:fixed;left:22px;bottom:22px;z-index:998;width:68px;height:68px;border:0;border-radius:50%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;display:grid;place-items:center;font-size:27px;box-shadow:0 20px 48px rgba(220,38,38,.34);cursor:pointer;transition:.2s}
-.support-float-btn:hover{transform:translateY(-2px) scale(1.03)}
-.support-float-btn .support-dot{position:absolute;top:9px;right:9px;width:12px;height:12px;border-radius:999px;background:#22c55e;border:2px solid #fff}
-.support-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1200;display:none;align-items:flex-end;justify-content:center;padding:18px;backdrop-filter:blur(4px)}
-.support-backdrop.show{display:flex}
-.support-sheet{width:min(680px,100%);background:#fff;border-radius:34px 34px 28px 28px;box-shadow:0 -20px 60px rgba(15,23,42,.22);padding:28px;position:relative;max-height:88vh;overflow:auto}
-.support-grip{width:72px;height:7px;border-radius:999px;background:#e5e7eb;margin:0 auto 22px}.support-close{position:absolute;top:18px;left:18px;width:42px;height:42px;border:0;border-radius:14px;background:#f8fafc;color:#0f172a;cursor:pointer;font-size:18px}
-.support-title{text-align:center;margin-bottom:18px}.support-title i{font-size:58px;color:#dc2626;margin-bottom:10px}.support-title h3{margin:0;font-size:28px;font-weight:950;color:#111827}.support-title p{margin:8px 0 0;color:#94a3b8;font-weight:800}
-.support-option{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid #e5e7eb;border-radius:24px;padding:18px;margin-top:14px;color:#111827;text-decoration:none;box-shadow:0 12px 30px rgba(15,23,42,.05);cursor:pointer}
-.support-option-main{display:flex;align-items:center;gap:14px}.support-option-icon{width:58px;height:58px;border-radius:20px;display:grid;place-items:center;font-size:23px;background:#fee2e2;color:#dc2626}.support-option-icon.chat{background:#e0f2fe;color:#0284c7}.support-option strong{display:block;font-size:18px;font-weight:950}.support-option span{display:block;color:#94a3b8;font-weight:800;margin-top:2px;direction:ltr}.support-option .arrow{color:#94a3b8;font-size:21px}
-.support-chat-panel{display:none;margin-top:16px;border:1px solid #e5e7eb;border-radius:24px;background:#f8fafc;padding:14px}.support-chat-panel.show{display:block}.support-start-grid{display:grid;gap:10px}.support-start-grid input,.support-chat-form textarea{width:100%;border:1px solid #e5e7eb;border-radius:18px;background:#fff;padding:13px 14px;font-family:inherit;font-weight:850;outline:none}.support-start-grid input:focus,.support-chat-form textarea:focus{border-color:#60a5fa;box-shadow:0 0 0 5px rgba(59,130,246,.12)}.support-start-grid input.phone{direction:ltr;text-align:left}.support-action-btn{border:0;border-radius:18px;background:#0f172a;color:#fff;padding:13px 16px;font-family:inherit;font-weight:950;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}.support-action-btn.blue{background:#2563eb}.support-action-btn.red{background:#dc2626}.support-msgs{height:260px;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:12px;display:grid;gap:9px;align-content:start;margin-top:12px}.support-msg{max-width:88%;border-radius:18px;padding:10px 12px;font-weight:800;line-height:1.8;white-space:pre-wrap}.support-msg.admin{justify-self:start;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}.support-msg.customer{justify-self:end;background:#dcfce7;border:1px solid #bbf7d0;color:#166534}.support-msg small{display:block;color:#64748b;font-size:11px;font-weight:900;margin-top:5px}.support-chat-form{display:grid;gap:8px;margin-top:10px}.support-chat-form textarea{min-height:82px;resize:vertical}.support-note{font-size:12px;color:#64748b;font-weight:800;line-height:1.7;margin-top:9px}.support-error{color:#dc2626;font-weight:900;margin-top:8px;display:none}.support-error.show{display:block}
-@media(max-width:640px){.support-float-btn{width:62px;height:62px;left:16px;bottom:18px}.support-backdrop{padding:0;align-items:flex-end}.support-sheet{border-radius:28px 28px 0 0;padding:24px 18px 20px;max-height:90vh}.support-title h3{font-size:24px}.support-option{padding:14px;border-radius:20px}.support-option-icon{width:52px;height:52px;border-radius:17px}.support-option strong{font-size:16px}}
-
-</style>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#061A3D">
   <meta name="background-color" content="#061A3D">
+  <meta name="application-name" content="صنايعي مطروح">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="صنايعي مطروح">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="msapplication-TileColor" content="#061A3D">
-
-<style id="support-navy-icon-hotfix">
-/* Customer Support Navy Icon Color Hotfix */
-.support-float-btn{background:linear-gradient(135deg,#061A3D,#0B2A5A)!important;box-shadow:0 18px 42px rgba(6,26,61,.36)!important}
-.support-float-btn:hover{box-shadow:0 22px 50px rgba(6,26,61,.42)!important}
-.support-title i{color:#061A3D!important}
-.support-option-icon{background:#eef4ff!important;color:#061A3D!important}
-.support-option-icon.chat{background:#eef4ff!important;color:#061A3D!important}
-.support-action-btn.blue{background:#061A3D!important}
-</style>
 </head>
-<body>
+
+<body class="status-page">
   <header class="site-header">
     <div class="container header-content">
-      <a class="brand" href="/">
-        <div class="brand-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-        <div>
+      <a href="/" class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div class="brand-text">
           <h1>صنايعي مطروح</h1>
-          <p>متابعة حالة طلب التسجيل</p>
+          <span>متابعة حالة طلب التسجيل</span>
         </div>
       </a>
-      <nav class="nav">
-        <a class="btn btn-light" href="/"><i class="fa-solid fa-house"></i> الرئيسية</a>
-        <a class="btn btn-light" href="/register"><i class="fa-solid fa-user-plus"></i> تسجيل صنايعي</a>
+
+      <nav class="main-nav">
+        <a href="/">الرئيسية</a>
+        <a href="/register">تسجيل صنايعي</a>
       </nav>
+
+      <a href="/register" class="header-btn">
+        <i class="fa-solid fa-user-plus"></i> تسجيل صنايعي
+      </a>
+
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+
+    <div class="mobile-nav" id="mobileNav">
+      <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
+      <a href="/register" onclick="toggleMobileMenu()">تسجيل صنايعي</a>
     </div>
   </header>
 
@@ -240,12 +93,16 @@
   </main>
 
   <script>
+    function toggleMobileMenu() {
+      const nav = document.getElementById("mobileNav");
+      if (nav) nav.classList.toggle("show");
+    }
+
     const form = document.getElementById("statusForm");
     const input = document.getElementById("lookupInput");
     const result = document.getElementById("result");
     const loading = document.getElementById("loading");
 
-    // ضع رقم واتساب الإدارة بصيغة دولية بدون + لتفعيل زر واتساب مباشر، مثال: 201000000000
     const ADMIN_WHATSAPP_NUMBER = "";
     let lastStatusData = null;
 
@@ -358,69 +215,6 @@
         }).join("")
         + '<div id="requiredActionPanel" class="self-service-panel"></div>'
         + '</div>';
-    }
-
-    let workerChatTimer = null;
-    function buildWorkerChatWidget(req, st, chat){
-      const unread = Number(chat && chat.unread_count || 0);
-      const badge = unread ? '<span><i class="fa-solid fa-bell"></i> ' + unread + ' رسالة جديدة</span>' : '<span><i class="fa-solid fa-comments"></i> محادثة مباشرة</span>';
-      return '<div class="worker-chat-widget" id="workerChatWidget">'
-        + '<div class="worker-chat-head"><strong><i class="fa-solid fa-headset"></i> محادثة مع الإدارة</strong>' + badge + '</div>'
-        + '<div class="worker-chat-body">'
-        + '<p style="margin:0 0 10px;color:#475569;font-weight:800;line-height:1.8">افتح المحادثة لإرسال رسالة للإدارة ومتابعة الردود داخل التطبيق.</p>'
-        + '<button type="button" class="btn worker-chat-open" onclick="openWorkerChat()"><i class="fa-solid fa-message"></i> فتح المحادثة</button>'
-        + '<div class="worker-chat-panel" id="workerChatPanel">'
-        + '<div class="worker-chat-messages" id="workerChatMessages"><div class="alert info">جاري تحميل المحادثة...</div></div>'
-        + '<form class="worker-chat-form" onsubmit="sendWorkerChatMessage(event)">'
-        + '<textarea id="workerChatInput" placeholder="اكتب رسالتك للإدارة هنا..."></textarea>'
-        + '<input type="file" id="workerChatAttachment" accept="image/*">'
-        + '<div class="row"><button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> إرسال</button><button type="button" class="btn btn-light" onclick="loadWorkerChatMessages(false)"><i class="fa-solid fa-rotate"></i> تحديث</button></div>'
-        + '</form></div></div></div>';
-    }
-    function chatTime(v){try{return new Date(v).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'});}catch(e){return ''}}
-    function renderWorkerChatMessages(messages){
-      const box=document.getElementById('workerChatMessages'); if(!box)return;
-      if(!messages || !messages.length){box.innerHTML='<div class="alert info"><i class="fa-solid fa-comments"></i> لا توجد رسائل حتى الآن. ابدأ المحادثة مع الإدارة.</div>';return;}
-      box.innerHTML=messages.map(function(m){
-        const cls=m.sender_type==='admin'?'admin':'worker';
-        const who=m.sender_type==='admin'?'الإدارة':'أنت';
-        const img=m.attachment_url?'<img src="'+escapeHtml(m.attachment_url)+'" alt="مرفق">':'';
-        return '<div class="chat-msg '+cls+'"><b>'+who+'</b><br>'+escapeHtml(m.message_text||'')+img+'<small>'+escapeHtml(chatTime(m.created_at))+'</small></div>';
-      }).join('');
-      box.scrollTop=box.scrollHeight;
-    }
-    async function loadWorkerChatMessages(markRead){
-      const lookup=currentLookupValue(); if(!lookup)return;
-      const box=document.getElementById('workerChatMessages'); if(box)box.innerHTML='<div class="alert info">جاري تحميل المحادثة...</div>';
-      try{
-        const r=await fetch('/api/worker-chat/messages?lookup='+encodeURIComponent(lookup)+'&mark_read='+(markRead===false?'false':'true'));
-        const d=await r.json().catch(function(){return {}});
-        if(!r.ok||!d.success)throw new Error(d.error||'تعذر تحميل المحادثة');
-        renderWorkerChatMessages(d.messages||[]);
-      }catch(e){ if(box)box.innerHTML='<div class="alert error">'+escapeHtml(e.message||'تعذر تحميل المحادثة')+'</div>'; }
-    }
-    function openWorkerChat(){
-      const panel=document.getElementById('workerChatPanel'); if(!panel)return;
-      panel.classList.add('show');
-      loadWorkerChatMessages(true);
-      if(workerChatTimer)clearInterval(workerChatTimer);
-      workerChatTimer=setInterval(function(){ if(document.getElementById('workerChatPanel')?.classList.contains('show')) loadWorkerChatMessages(false); },15000);
-      panel.scrollIntoView({behavior:'smooth',block:'center'});
-    }
-    async function sendWorkerChatMessage(e){
-      e.preventDefault();
-      const lookup=currentLookupValue(); const input=document.getElementById('workerChatInput'); const file=document.getElementById('workerChatAttachment');
-      const msg=(input&&input.value||'').trim();
-      if(!msg && !(file&&file.files&&file.files[0])){showToast('اكتب رسالة أو ارفع صورة');return;}
-      const btn=e.currentTarget.querySelector('button[type="submit"]'); const old=btn?btn.innerHTML:'';
-      if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
-      try{
-        const fd=new FormData(); fd.set('lookup',lookup); fd.set('message',msg); if(file&&file.files&&file.files[0])fd.set('attachment',file.files[0]);
-        const r=await fetch('/api/worker-chat/messages',{method:'POST',body:fd}); const d=await r.json().catch(function(){return {}});
-        if(!r.ok||!d.success)throw new Error(d.error||'تعذر إرسال الرسالة');
-        if(input)input.value=''; if(file)file.value=''; showToast(d.message||'تم إرسال الرسالة'); loadWorkerChatMessages(true);
-      }catch(err){showToast(err.message||'تعذر إرسال الرسالة');}
-      finally{if(btn){btn.disabled=false;btn.innerHTML=old;}}
     }
 
     function buildNextAction(req, st){
@@ -578,12 +372,11 @@
       result.className = "result show";
       result.innerHTML = '<div class="status-card">'
         + '<div class="status-head"><div><h4>' + escapeHtml(req.name || "طلب تسجيل") + '</h4><div class="status-message">' + escapeHtml(req.trade || "-") + ' - ' + escapeHtml(req.area || "-") + '</div></div><span class="status-pill ' + toneClass + '"><i class="fa-solid fa-circle-info"></i>' + escapeHtml(st.label || "بانتظار المراجعة") + '</span></div>'
-        + '<div class="copy-row"><div><small>رقم الطلب</small><div class="code-big">' + escapeHtml(registrationCode) + '</div></div><button type="button" class="mini-btn" onclick="copyText(' + JSON.stringify(registrationCode).replace(/</g, "\\u003c") + ')"><i class="fa-solid fa-copy"></i> نسخ الرقم</button></div>'
+        + '<div class="copy-row"><div><small>رقم الطلب</small><div class="code-big">' + escapeHtml(registrationCode) + '</div></div><button type="button" class="mini-btn" onclick="copyText(' + JSON.stringify(registrationCode).replace(/</g, "\u003c") + ')"><i class="fa-solid fa-copy"></i> نسخ الرقم</button></div>'
         + buildTimeline(st)
         + '<p class="status-message">' + escapeHtml(st.message || "") + '</p>'
         + reason
         + buildNextAction(req, st)
-        + buildWorkerChatWidget(req, st, data.chat || {})
         + '<div class="meta"><div><small>تاريخ التسجيل</small><strong>' + escapeHtml(formatDate(req.created_at)) + '</strong></div><div><small>الحرفة</small><strong>' + escapeHtml(req.trade || "-") + '</strong></div><div><small>المنطقة</small><strong>' + escapeHtml(req.area || "-") + '</strong></div></div>'
         + '</div>';
     }
@@ -615,6 +408,17 @@
     if(code){
       input.value = code;
       setTimeout(function(){ form.dispatchEvent(new Event("submit")); }, 250);
+    }
+  </script>
+
+  <!-- Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/service-worker.js").catch(function (error) {
+          console.log("Service Worker registration failed:", error);
+        });
+      });
     }
   </script>
 </body>
