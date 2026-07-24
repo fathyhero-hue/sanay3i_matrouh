@@ -203,36 +203,41 @@ router.get("/activity-log", requirePermission("activity_log:read"), async (req, 
 });
 
 // ===============================
-// 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية)
+// 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية) - محدث ذكي
 // ===============================
 router.get('/workers/:id/id-card/:side', async (req, res) => {
   if (!isSupabaseReady(res)) return;
   
   try {
     const { id, side } = req.params;
-    // تحديد اسم العمود في الداتابيز بناءً على الجانب المطلوب
-    const columnName = side === 'front' ? 'id_front' : 'id_back';
 
-    // 1. نجيب اسم الصورة من الداتابيز
+    // 1. نجيب كل احتمالات أسماء الأعمدة من الداتابيز عشان نضمن إننا نلاقي الصورة
     const { data: worker, error: dbError } = await supabase
       .from('workers')
-      .select(columnName)
+      .select('id_front, id_back, id_front_path, id_back_path, id_front_url, id_back_url')
       .eq('id', id)
       .single();
 
-    if (dbError || !worker || !worker[columnName]) {
-      return res.status(404).json({ success: false, error: 'الصورة غير موجودة' });
+    if (dbError || !worker) {
+      return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
     }
 
-    const fileName = worker[columnName];
+    // 2. نحدد اسم الصورة بناءً على الجنب المطلوب والعمود اللي فيه داتا
+    const fileName = side === 'front' 
+      ? (worker.id_front || worker.id_front_path || worker.id_front_url)
+      : (worker.id_back || worker.id_back_path || worker.id_back_url);
 
-    // 2. نطلب من Supabase يعملنا رابط مؤقت يفتح الصورة لمدة 60 ثانية بس من الباكيت السري
+    if (!fileName) {
+      return res.status(404).json({ success: false, error: 'لم يتم رفع صورة لهذا الجانب' });
+    }
+
+    // 3. نطلب من Supabase رابط مؤقت من الباكيت السري
     const { data: signedData, error: signedError } = await supabase.storage
       .from('identity-docs')
       .createSignedUrl(fileName, 60);
 
     if (signedError) {
-      // لو الصورة مش في identity-docs (لأنها مثلاً اترفع على uploads بالغلط قبل التعديل)، هنجرب نجيبها من uploads
+      // لو الصورة مش في identity-docs، هندور عليها في الباكيت العام (عشان الصنايعية القدام)
       const { data: fallbackData, error: fallbackError } = await supabase.storage
         .from('uploads')
         .createSignedUrl(fileName, 60);
@@ -241,7 +246,7 @@ router.get('/workers/:id/id-card/:side', async (req, res) => {
       return res.json({ success: true, url: fallbackData.signedUrl });
     }
 
-    // إرسال الرابط الآمن للفرونت إند عشان يعرضه
+    // إرسال الرابط الآمن للفرونت إند
     res.json({ success: true, url: signedData.signedUrl });
   } catch (error) {
     console.error('Signed URL Error:', error);
