@@ -463,19 +463,43 @@
 </div>
 
 <script>
-  // فتح المودال وعرض الصور مباشرة 
-  function showIdImages(frontSrc, backSrc) {
+  // جلب الصور الموثقة من السيرفر وعرضها في المودال
+  async function loadAndShowIdImages(workerId) {
     document.getElementById('idViewerModal').style.display = 'flex';
-    
     const frontImg = document.getElementById('frontIdImg');
     const backImg = document.getElementById('backIdImg');
     
-    // وضع الروابط المباشرة في الصور
-    frontImg.src = frontSrc || '';
-    frontImg.alt = frontSrc ? 'صورة وجه البطاقة' : 'لا توجد صورة';
-    
-    backImg.src = backSrc || '';
-    backImg.alt = backSrc ? 'صورة ظهر البطاقة' : 'لا توجد صورة';
+    frontImg.src = '';
+    frontImg.alt = 'جاري تحميل وجه البطاقة...';
+    backImg.src = '';
+    backImg.alt = 'جاري تحميل ظهر البطاقة...';
+
+    try {
+      // جلب الرابط الآمن لوجه البطاقة
+      const rFront = await fetch(`/api/admin/workers/${workerId}/id-card/front`, {credentials:"include"});
+      if (rFront.ok) {
+        const dFront = await rFront.json();
+        if (dFront.success && dFront.url) {
+          frontImg.src = dFront.url;
+        } else {
+          frontImg.alt = 'لا توجد صورة';
+        }
+      }
+
+      // جلب الرابط الآمن لظهر البطاقة
+      const rBack = await fetch(`/api/admin/workers/${workerId}/id-card/back`, {credentials:"include"});
+      if (rBack.ok) {
+        const dBack = await rBack.json();
+        if (dBack.success && dBack.url) {
+          backImg.src = dBack.url;
+        } else {
+          backImg.alt = 'لا توجد صورة';
+        }
+      }
+    } catch (err) {
+      console.error("خطأ في جلب الصور:", err);
+      if(typeof toast === 'function') toast("error", "حدث خطأ أثناء جلب الصور");
+    }
   }
 
   // قفل مودال البطاقة

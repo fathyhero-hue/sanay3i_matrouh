@@ -153,12 +153,9 @@ function identityNote(w){return w.identity_review_note||w.identity_admin_note||"
 
 function renderIdentityDocsAdmin(w){
   const id=wid(w), docsOk=hasIdentityDocs(w), status=identityStatusValue(w), reason=identityReason(w), note=identityNote(w);
-  
-  // نجيب المسار من الداتابيز مباشرة ونجهزه للعرض
-  const rawFront = w.id_front_url || w.id_front_path || '';
-  const rawBack = w.id_back_url || w.id_back_path || '';
-  const frontSrc = getValidImageUrl(rawFront);
-  const backSrc = getValidImageUrl(rawBack);
+  // نتأكد إن في مسار في الداتابيز
+  const hasFront = !!(w.id_front_url || w.id_front_path);
+  const hasBack = !!(w.id_back_url || w.id_back_path);
 
   return `<div class="subscription-box">
     <strong><i class="fa-solid fa-id-card"></i> مستندات التحقق</strong>
@@ -169,7 +166,7 @@ function renderIdentityDocsAdmin(w){
     ${reason?`<div class="verification-note"><strong>السبب:</strong> ${reason}</div>`:""}
     ${note?`<span class="verification-small">ملاحظة إدارية: ${note}</span>`:""}
     <div class="card-actions" style="margin-top: 10px;">
-      ${rawFront || rawBack ? `<button type="button" class="action-btn btn-blue" onclick="showIdImages('${frontSrc}', '${backSrc}')"><i class="fa-solid fa-image"></i> عرض صور البطاقة</button>` : ''}
+      ${hasFront || hasBack ? `<button type="button" class="action-btn btn-blue" onclick="loadAndShowIdImages('${id}')"><i class="fa-solid fa-image"></i> عرض صور البطاقة</button>` : ''}
       <button type="button" class="action-btn btn-dark" onclick="openIdentityReviewModal('${id}')"><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button>
     </div>
   </div>`;
