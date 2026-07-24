@@ -168,6 +168,98 @@ app.post('/api/register', upload.fields([
 });
 
 // ===============================
+// 5.5. مسارات الحذف، الإيقاف، والتجديد (الفردي والجماعي)
+// ===============================
+
+// مسار حذف صنايعي نهائياً
+app.delete('/api/workers/:id', adminApiRateLimit, async (req, res) => {
+    try {
+        const { error } = await supabase.from('workers').delete().eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true, message: 'تم الحذف بنجاح' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// مسار إيقاف / تفعيل صنايعي
+app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
+    try {
+        const { active } = req.body;
+        // active: 1 للتفعيل, 0 للإيقاف
+        const { error } = await supabase.from('workers').update({ active }).eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true, message: 'تم تحديث حالة التفعيل' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// مسار التجديد الفردي
+app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
+    try {
+        const { months, amount, payment_method, payment_status, note } = req.body;
+        const addMonths = parseInt(months) || 1;
+
+        const { data: worker, error: fetchError } = await supabase
+            .from('workers')
+            .select('subscription_end')
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        let currentEnd = worker?.subscription_end ? new Date(worker.subscription_end) : new Date();
+        if (currentEnd < new Date()) currentEnd = new Date(); // إذا كان منتهي ابدأ من اليوم
+
+        currentEnd.setMonth(currentEnd.getMonth() + addMonths);
+
+        const { error: updateError } = await supabase
+            .from('workers')
+            .update({ subscription_end: currentEnd.toISOString() })
+            .eq('id', req.params.id);
+
+        if (updateError) throw updateError;
+
+        // اختياري: إذا كان لديك جدول لتسجيل المدفوعات (قم بإزالة التعليق من السطر التالي لو أردته)
+        // await supabase.from('subscription_payments').insert([{ worker_id: req.params.id, amount, payment_method, payment_status, note, months }]);
+
+        res.json({ success: true, message: 'تم تجديد الاشتراك بنجاح' });
+    } catch (err) {
+        console.error('Renew Error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// مسار التجديد الجماعي للكل
+app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
+    try {
+        const { months } = req.body;
+        const addMonths = parseInt(months) || 1;
+
+        const { data: workers, error: fetchError } = await supabase.from('workers').select('id, subscription_end');
+        if (fetchError) throw fetchError;
+
+        const updatePromises = workers.map(worker => {
+            let currentEnd = worker.subscription_end ? new Date(worker.subscription_end) : new Date();
+            if (currentEnd < new Date()) currentEnd = new Date();
+            currentEnd.setMonth(currentEnd.getMonth() + addMonths);
+
+            return supabase.from('workers')
+                .update({ subscription_end: currentEnd.toISOString() })
+                .eq('id', worker.id);
+        });
+
+        await Promise.all(updatePromises);
+
+        res.json({ success: true, message: `تم تجديد اشتراك ${workers.length} صنايعي بنجاح.` });
+    } catch (err) {
+        console.error('Renew All Error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ===============================
 // 6. استدعاء وتفعيل المسارات الأخرى (Routes)
 // ===============================
 const adminRoutes = require("./routes/admin");
@@ -239,7 +331,6 @@ app.get(["/api/static/matrouh-hero-banner.jpg", "/images/matrouh-hero-banner.jpg
 // ===============================
 // 8.5 عرض الصور المرفوعة من Supabase 
 // ===============================
-// هذا المسار يضمن أن الروابط الموجودة في واجهة المستخدم تستمر بالعمل عبر التوجيه لـ Supabase
 app.get("/uploads/:fileName", (req, res) => {
   const bucket = process.env.SUPABASE_BUCKET || "uploads";
   const { data } = supabase.storage.from(bucket).getPublicUrl(req.params.fileName);
