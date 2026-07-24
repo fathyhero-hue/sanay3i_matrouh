@@ -127,15 +127,53 @@ function stats(){
 function imgPath(image){if(!image)return"";if(image.startsWith("http"))return image;if(image.startsWith("/uploads"))return image;if(image.startsWith("uploads"))return"/"+image;return"/uploads/"+image}
 function renderPhotoAdmin(id){if(photosByWorker[id]===undefined)return`<div class="no-photos"><button class="action-btn btn-blue" onclick="event.stopPropagation();loadWorkerPhotos('${id}')"><i class="fa-solid fa-images"></i> تحميل صور الأعمال عند الحاجة</button></div>`;const photos=photosByWorker[id]||[];if(!photos.length)return'<div class="no-photos">لا توجد صور أعمال مضافة</div>';return`<div class="work-admin-gallery">${photos.map(p=>`<div class="work-admin-photo"><img loading="lazy" decoding="async" src="${imgPath(p.image)}">${can("workers:update")?`<button onclick="deleteWorkPhoto(event,'${p.id}')">×</button>`:""}</div>`).join("")}</div>`}
 
-function hasIdentityDocs(w){return !!(w.id_front_path&&w.id_back_path)}
+function hasIdentityDocs(w){return !!((w.id_front_url||w.id_front_path)&&(w.id_back_url||w.id_back_path))}
 function identityStatusValue(w){return String(w.identity_status||w.verification_status||(ok(w.identity_verified)?"verified":"pending")).trim()||"pending"}
 function identityStatusLabel(v){return {pending:"بانتظار المراجعة",verified:"تم التحقق",rejected:"مرفوض",needs_data:"يحتاج تعديل بيانات",needs_id_reupload:"إعادة رفع البطاقة"}[v]||"بانتظار المراجعة"}
 function identityStatusClass(v){return {pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-red"}[v]||"status-yellow"}
 function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
 function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
 function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
-function renderIdentityDocsAdmin(w){const id=wid(w),docsOk=hasIdentityDocs(w),status=identityStatusValue(w),reason=identityReason(w),note=identityNote(w);return `<div class="subscription-box"><strong><i class="fa-solid fa-id-card"></i> مستندات التحقق</strong><div class="status-row"><span class="status-badge ${docsOk?'status-green':'status-red'}">${docsOk?'تم رفع وجه وظهر البطاقة':'البطاقة غير مكتملة'}</span><span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span></div>${reason?`<div class="verification-note"><strong>السبب:</strong> ${reason}</div>`:""}${note?`<span class="verification-small">ملاحظة إدارية: ${note}</span>`:""}<div class="card-actions">${w.id_front_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','front')"><i class="fa-solid fa-address-card"></i> عرض وجه البطاقة</button>`:''}${w.id_back_path?`<button class="action-btn btn-blue" onclick="openIdentityDoc('${id}','back')"><i class="fa-solid fa-id-card-clip"></i> عرض ظهر البطاقة</button>`:''}<button class="action-btn btn-dark" onclick="openIdentityReviewModal('${id}')"><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button></div></div>`}
 
+// دالة مساعدة لتظبيط رابط الصورة عشان تظهر سواء Local أو Online
+function getValidImageUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  if (path.startsWith('/')) return path;
+  return '/uploads/' + path; // افتراض إن الصور بتتحفظ في مجلد uploads الداخلي
+}
+
+function hasIdentityDocs(w){return !!((w.id_front_url||w.id_front_path)&&(w.id_back_url||w.id_back_path))}
+function identityStatusValue(w){return String(w.identity_status||w.verification_status||(ok(w.identity_verified)?"verified":"pending")).trim()||"pending"}
+function identityStatusLabel(v){return {pending:"بانتظار المراجعة",verified:"تم التحقق",rejected:"مرفوض",needs_data:"يحتاج تعديل بيانات",needs_id_reupload:"إعادة رفع البطاقة"}[v]||"بانتظار المراجعة"}
+function identityStatusClass(v){return {pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-red"}[v]||"status-yellow"}
+function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
+function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
+function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
+
+function renderIdentityDocsAdmin(w){
+  const id=wid(w), docsOk=hasIdentityDocs(w), status=identityStatusValue(w), reason=identityReason(w), note=identityNote(w);
+  
+  // نجيب المسار من الداتابيز مباشرة ونجهزه للعرض
+  const rawFront = w.id_front_url || w.id_front_path || '';
+  const rawBack = w.id_back_url || w.id_back_path || '';
+  const frontSrc = getValidImageUrl(rawFront);
+  const backSrc = getValidImageUrl(rawBack);
+
+  return `<div class="subscription-box">
+    <strong><i class="fa-solid fa-id-card"></i> مستندات التحقق</strong>
+    <div class="status-row">
+      <span class="status-badge ${docsOk?'status-green':'status-red'}">${docsOk?'تم رفع وجه وظهر البطاقة':'البطاقة غير مكتملة'}</span>
+      <span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span>
+    </div>
+    ${reason?`<div class="verification-note"><strong>السبب:</strong> ${reason}</div>`:""}
+    ${note?`<span class="verification-small">ملاحظة إدارية: ${note}</span>`:""}
+    <div class="card-actions" style="margin-top: 10px;">
+      ${rawFront || rawBack ? `<button type="button" class="action-btn btn-blue" onclick="showIdImages('${frontSrc}', '${backSrc}')"><i class="fa-solid fa-image"></i> عرض صور البطاقة</button>` : ''}
+      <button type="button" class="action-btn btn-dark" onclick="openIdentityReviewModal('${id}')"><i class="fa-solid fa-shield-halved"></i> مراجعة التحقق</button>
+    </div>
+  </div>`;
+}
 // ======================================================
 // نظام إدارة الصنايعية الموحد (V8)
 // ======================================================

@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   
-  <!-- استدعاء ملفات الـ CSS الخاصة بالإدارة -->
-  <link rel="stylesheet" href="/style.css" />
+ <!-- استدعاء ملفات الـ CSS الخاصة بالإدارة -->
+  <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/admin-base.css" />
   <link rel="stylesheet" href="/css/admin-login.css" />
   <link rel="stylesheet" href="/css/admin-layout.css" />
@@ -439,6 +439,52 @@
 </main>
 
 <div class="message-toast" id="toast"></div>
+
+<!-- مودال عرض البطاقة للإدارة -->
+<div id="idViewerModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 9999; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px);">
+  <div style="background: #fff; width: 100%; max-width: 550px; border-radius: 20px; padding: 20px; max-height: 95vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.25);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
+      <h3 style="margin: 0; font-size: 18px; color: #0f172a;"><i class="fa-solid fa-id-card"></i> مراجعة صور البطاقة</h3>
+      <button type="button" onclick="closeIdModal()" style="background: #fee2e2; color: #dc2626; border: none; padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-xmark"></i> إغلاق
+      </button>
+    </div>
+
+    <div>
+      <strong style="display:block; margin-bottom: 8px; color: #475569; font-size: 14px;">وجه البطاقة:</strong>
+      <img id="frontIdImg" src="" alt="لا توجد صورة" style="width: 100%; border-radius: 12px; border: 2px dashed #cbd5e1; margin-bottom: 20px; background: #f8fafc; min-height: 200px; object-fit: contain;">
+
+      <strong style="display:block; margin-bottom: 8px; color: #475569; font-size: 14px;">ظهر البطاقة:</strong>
+      <img id="backIdImg" src="" alt="لا توجد صورة" style="width: 100%; border-radius: 12px; border: 2px dashed #cbd5e1; background: #f8fafc; min-height: 200px; object-fit: contain;">
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // فتح المودال وعرض الصور مباشرة 
+  function showIdImages(frontSrc, backSrc) {
+    document.getElementById('idViewerModal').style.display = 'flex';
+    
+    const frontImg = document.getElementById('frontIdImg');
+    const backImg = document.getElementById('backIdImg');
+    
+    // وضع الروابط المباشرة في الصور
+    frontImg.src = frontSrc || '';
+    frontImg.alt = frontSrc ? 'صورة وجه البطاقة' : 'لا توجد صورة';
+    
+    backImg.src = backSrc || '';
+    backImg.alt = backSrc ? 'صورة ظهر البطاقة' : 'لا توجد صورة';
+  }
+
+  // قفل مودال البطاقة
+  function closeIdModal() {
+    document.getElementById('idViewerModal').style.display = 'none';
+    document.getElementById('frontIdImg').src = '';
+    document.getElementById('backIdImg').src = '';
+  }
+</script>
 
 <!-- استدعاء ملف الـ JS الموحد للإدارة -->
 <script src="/js/admin.js"></script>
