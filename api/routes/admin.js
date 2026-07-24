@@ -276,4 +276,54 @@ router.get('/workers/:id/id-card/:side', async (req, res) => {
   }
 });
 
+// ===============================
+// 6. مسار إشعارات لوحة التحكم (Notifications)
+// ===============================
+router.get("/notifications", async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  const t = today();
+  try {
+    const [workersRes, reviewsRes] = await Promise.all([
+      supabase.from("workers").select("id, approved, subscription_end"),
+      supabase.from("reviews").select("id, approved")
+    ]);
+
+    const workers = workersRes.data || [];
+    const reviews = reviewsRes.data || [];
+
+    const pendingWorkers = workers.filter(w => !bool(w.approved)).length;
+    const pendingReviews = reviews.filter(r => !bool(r.approved)).length;
+
+    let subscriptionsSoon = 0;
+    let subscriptionsExpired = 0;
+
+    workers.forEach(w => {
+      if (!w.subscription_end) return;
+      const end = new Date(w.subscription_end);
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
+      const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+      if (days < 0) subscriptionsExpired++;
+      else if (days <= 7) subscriptionsSoon++;
+    });
+
+    res.json({
+      success: true,
+      pendingWorkers,
+      pendingReviews,
+      subscriptionsSoon,
+      subscriptionsExpired
+    });
+  } catch (e) {
+    res.json({ 
+      success: true, 
+      pendingWorkers: 0, 
+      pendingReviews: 0, 
+      subscriptionsSoon: 0, 
+      subscriptionsExpired: 0 
+    });
+  }
+});
+
 module.exports = router;
