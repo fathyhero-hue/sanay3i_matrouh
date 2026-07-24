@@ -202,4 +202,51 @@ router.get("/activity-log", requirePermission("activity_log:read"), async (req, 
   res.json({ success: true, items: data || [] });
 });
 
+// ===============================
+// 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية)
+// ===============================
+router.get('/workers/:id/id-card/:side', async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  
+  try {
+    const { id, side } = req.params;
+    // تحديد اسم العمود في الداتابيز بناءً على الجانب المطلوب
+    const columnName = side === 'front' ? 'id_front' : 'id_back';
+
+    // 1. نجيب اسم الصورة من الداتابيز
+    const { data: worker, error: dbError } = await supabase
+      .from('workers')
+      .select(columnName)
+      .eq('id', id)
+      .single();
+
+    if (dbError || !worker || !worker[columnName]) {
+      return res.status(404).json({ success: false, error: 'الصورة غير موجودة' });
+    }
+
+    const fileName = worker[columnName];
+
+    // 2. نطلب من Supabase يعملنا رابط مؤقت يفتح الصورة لمدة 60 ثانية بس من الباكيت السري
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('identity-docs')
+      .createSignedUrl(fileName, 60);
+
+    if (signedError) {
+      // لو الصورة مش في identity-docs (لأنها مثلاً اترفع على uploads بالغلط قبل التعديل)، هنجرب نجيبها من uploads
+      const { data: fallbackData, error: fallbackError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(fileName, 60);
+        
+      if (fallbackError) throw fallbackError;
+      return res.json({ success: true, url: fallbackData.signedUrl });
+    }
+
+    // إرسال الرابط الآمن للفرونت إند عشان يعرضه
+    res.json({ success: true, url: signedData.signedUrl });
+  } catch (error) {
+    console.error('Signed URL Error:', error);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب الصورة' });
+  }
+});
+
 module.exports = router;

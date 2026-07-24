@@ -43,14 +43,14 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 
-async function uploadToSupabase(file) {
+// تم التعديل هنا: استقبال اسم الـ Bucket وتوجيه الملف ليه
+async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
   const ext = path.extname(file.originalname || ".jpg");
   const fileName = Date.now() + "-" + Math.round(Math.random() * 1E9) + ext;
-  const bucket = process.env.SUPABASE_BUCKET || "uploads";
   
   const { data, error } = await supabase.storage
-    .from(bucket)
+    .from(targetBucket)
     .upload(fileName, file.buffer, {
       contentType: file.mimetype,
       upsert: false
@@ -117,14 +117,15 @@ app.post('/api/register', upload.fields([
       return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية المطلوبة' });
     }
 
-    const profileImage = files.image && files.image[0] ? await uploadToSupabase(files.image[0]) : null;
-    const idFrontImage = files.idFront && files.idFront[0] ? await uploadToSupabase(files.idFront[0]) : null;
-    const idBackImage = files.idBack && files.idBack[0] ? await uploadToSupabase(files.idBack[0]) : null;
+    // تم التعديل هنا: توجيه كل صورة للـ Bucket الخاص بيها
+    const profileImage = files.image && files.image[0] ? await uploadToSupabase(files.image[0], "uploads") : null;
+    const idFrontImage = files.idFront && files.idFront[0] ? await uploadToSupabase(files.idFront[0], "identity-docs") : null;
+    const idBackImage = files.idBack && files.idBack[0] ? await uploadToSupabase(files.idBack[0], "identity-docs") : null;
     
     let workPhotosArr = [];
     if (files.workPhotos && files.workPhotos.length > 0) {
       for (const file of files.workPhotos) {
-        const uploadedName = await uploadToSupabase(file);
+        const uploadedName = await uploadToSupabase(file, "uploads");
         if (uploadedName) workPhotosArr.push(uploadedName);
       }
     }
@@ -289,7 +290,7 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
 });
 
 // ===============================
-// 8. الملفات الثابتة والصفحات (التعديل هنا)
+// 8. الملفات الثابتة والصفحات
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
