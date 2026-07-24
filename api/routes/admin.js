@@ -203,7 +203,8 @@ router.get("/activity-log", requirePermission("activity_log:read"), async (req, 
 });
 
 // ===============================
-// 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية) - محدث ذكي
+// ===============================
+// 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية) - التحديث الشامل
 // ===============================
 router.get('/workers/:id/id-card/:side', async (req, res) => {
   if (!isSupabaseReady(res)) return;
@@ -211,39 +212,61 @@ router.get('/workers/:id/id-card/:side', async (req, res) => {
   try {
     const { id, side } = req.params;
 
-    // 1. نجيب كل احتمالات أسماء الأعمدة من الداتابيز عشان نضمن إننا نلاقي الصورة
+    // 1. نستخدم select('*') لتجنب أي أخطاء لو في عمود مش موجود في الجدول
     const { data: worker, error: dbError } = await supabase
       .from('workers')
-      .select('id_front, id_back, id_front_path, id_back_path, id_front_url, id_back_url')
+      .select('*')
       .eq('id', id)
       .single();
 
     if (dbError || !worker) {
+      console.error("DB Error:", dbError);
       return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
     }
 
-    // 2. نحدد اسم الصورة بناءً على الجنب المطلوب والعمود اللي فيه داتا
-    const fileName = side === 'front' 
+    // 2. نحدد اسم الصورة أياً كان العمود اللي متسجلة فيه
+    let rawFileName = side === 'front' 
       ? (worker.id_front || worker.id_front_path || worker.id_front_url)
       : (worker.id_back || worker.id_back_path || worker.id_back_url);
 
-    if (!fileName) {
+    if (!rawFileName) {
       return res.status(404).json({ success: false, error: 'لم يتم رفع صورة لهذا الجانب' });
     }
 
-    // 3. نطلب من Supabase رابط مؤقت من الباكيت السري
+    // تنظيف اسم الملف (لو كان متخزن كمسار كامل ناخده من غير الزيادات)
+    let fileName = rawFileName;
+    if (fileName.includes('/')) {
+        fileName = fileName.split('/').pop(); 
+    }
+
+    // تجهيز المسار اللي ظاهر عندك في الصورة (جوه فولدر id-cards)
+    const folderPath = `id-cards/${fileName}`;
+
+    // 3. نطلب من Supabase رابط مؤقت من الباكيت السري (المسار الداخلي)
     const { data: signedData, error: signedError } = await supabase.storage
       .from('identity-docs')
-      .createSignedUrl(fileName, 60);
+      .createSignedUrl(folderPath, 60);
 
-    if (signedError) {
-      // لو الصورة مش في identity-docs، هندور عليها في الباكيت العام (عشان الصنايعية القدام)
-      const { data: fallbackData, error: fallbackError } = await supabase.storage
-        .from('uploads')
+    if (signedError || !signedData?.signedUrl) {
+      // محاولة 2: لو الصورة مش جوه الفولدر، نجرب من الجذر مباشرة (للتسجيلات الجديدة)
+      const { data: rootData } = await supabase.storage
+        .from('identity-docs')
         .createSignedUrl(fileName, 60);
         
-      if (fallbackError) throw fallbackError;
-      return res.json({ success: true, url: fallbackData.signedUrl });
+      if (rootData && rootData.signedUrl) {
+        return res.json({ success: true, url: rootData.signedUrl });
+      }
+
+      // محاولة 3: لو ملهاش أثر، نجرب نجيبها من فولدر uploads القديم
+      const { data: fallbackData } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(folderPath, 60);
+        
+      if (fallbackData && fallbackData.signedUrl) {
+        return res.json({ success: true, url: fallbackData.signedUrl });
+      }
+
+      return res.status(404).json({ success: false, error: 'الصورة غير موجودة في التخزين' });
     }
 
     // إرسال الرابط الآمن للفرونت إند
@@ -253,5 +276,3 @@ router.get('/workers/:id/id-card/:side', async (req, res) => {
     res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب الصورة' });
   }
 });
-
-module.exports = router;
