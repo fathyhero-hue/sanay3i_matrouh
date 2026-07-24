@@ -203,7 +203,6 @@ router.get("/activity-log", requirePermission("activity_log:read"), async (req, 
 });
 
 // ===============================
-// ===============================
 // 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية) - التحديث الشامل
 // ===============================
 router.get('/workers/:id/id-card/:side', async (req, res) => {
@@ -276,3 +275,5 @@ router.get('/workers/:id/id-card/:side', async (req, res) => {
     res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب الصورة' });
   }
 });
+
+module.exports = router;
