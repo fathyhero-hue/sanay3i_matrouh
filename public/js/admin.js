@@ -127,20 +127,11 @@ function stats(){
 function imgPath(image){if(!image)return"";if(image.startsWith("http"))return image;if(image.startsWith("/uploads"))return image;if(image.startsWith("uploads"))return"/"+image;return"/uploads/"+image}
 function renderPhotoAdmin(id){if(photosByWorker[id]===undefined)return`<div class="no-photos"><button class="action-btn btn-blue" onclick="event.stopPropagation();loadWorkerPhotos('${id}')"><i class="fa-solid fa-images"></i> تحميل صور الأعمال عند الحاجة</button></div>`;const photos=photosByWorker[id]||[];if(!photos.length)return'<div class="no-photos">لا توجد صور أعمال مضافة</div>';return`<div class="work-admin-gallery">${photos.map(p=>`<div class="work-admin-photo"><img loading="lazy" decoding="async" src="${imgPath(p.image)}">${can("workers:update")?`<button onclick="deleteWorkPhoto(event,'${p.id}')">×</button>`:""}</div>`).join("")}</div>`}
 
-function hasIdentityDocs(w){return !!((w.id_front_url||w.id_front_path)&&(w.id_back_url||w.id_back_path))}
-function identityStatusValue(w){return String(w.identity_status||w.verification_status||(ok(w.identity_verified)?"verified":"pending")).trim()||"pending"}
-function identityStatusLabel(v){return {pending:"بانتظار المراجعة",verified:"تم التحقق",rejected:"مرفوض",needs_data:"يحتاج تعديل بيانات",needs_id_reupload:"إعادة رفع البطاقة"}[v]||"بانتظار المراجعة"}
-function identityStatusClass(v){return {pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-red"}[v]||"status-yellow"}
-function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
-function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
-function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
-
-// دالة مساعدة لتظبيط رابط الصورة عشان تظهر سواء Local أو Online
 function getValidImageUrl(path) {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   if (path.startsWith('/')) return path;
-  return '/uploads/' + path; // افتراض إن الصور بتتحفظ في مجلد uploads الداخلي
+  return '/uploads/' + path; 
 }
 
 function hasIdentityDocs(w){return !!((w.id_front_url||w.id_front_path)&&(w.id_back_url||w.id_back_path))}
@@ -153,7 +144,6 @@ function identityNote(w){return w.identity_review_note||w.identity_admin_note||"
 
 function renderIdentityDocsAdmin(w){
   const id=wid(w), docsOk=hasIdentityDocs(w), status=identityStatusValue(w), reason=identityReason(w), note=identityNote(w);
-  // نتأكد إن في مسار في الداتابيز
   const hasFront = !!(w.id_front_url || w.id_front_path);
   const hasBack = !!(w.id_back_url || w.id_back_path);
 
@@ -415,6 +405,7 @@ function adminWorkerQuickButton(w){
   </div>`;
 }
 
+// دالة عرض الصنايعية (مضاف إليها التعديلات الجديدة للصور)
 function renderWorkers(workers){
   const grid=document.getElementById("adminWorkersGrid");
   grid.innerHTML="";
@@ -422,13 +413,52 @@ function renderWorkers(workers){
   workers.forEach(w=>{
     const id=String(wid(w));
     const sub=subInfo(w),approved=isApproved(w),active=isActive(w),featured=isFeatured(w);
+
+    // 1. تجهيز إشعار طلب الصورة الشخصية الجديدة
+    let pendingImageAlert = '';
+    if (w.pending_image) {
+        pendingImageAlert = `
+            <div style="background-color: #fef08a; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #ca8a04;">
+                <strong style="color: #b45309;"><i class="fa-solid fa-bell fa-shake"></i> طلب تغيير الصورة الشخصية:</strong>
+                <div style="margin-top: 10px; text-align: center;">
+                    <img src="${getValidImageUrl(w.pending_image)}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid #ca8a04;">
+                </div>
+                <button onclick="approveProfileImage('${id}')" style="margin-top: 10px; width: 100%; background: #16a34a; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                    <i class="fa-solid fa-check"></i> اعتماد الصورة الجديدة
+                </button>
+            </div>
+        `;
+    }
+
+    // 2. تجهيز قسم معرض صور الأعمال
+    let workPhotosGallery = '';
+    if (w.work_photos && Array.isArray(w.work_photos) && w.work_photos.length > 0) {
+        let imagesHtml = w.work_photos.map(img => 
+            `<a href="${getValidImageUrl(img)}" target="_blank">
+                <img src="${getValidImageUrl(img)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; transition: 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+            </a>`
+        ).join('');
+        
+        workPhotosGallery = `
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                <strong style="color: #0f172a; font-size: 14px;"><i class="fa-solid fa-images"></i> معرض الأعمال المرفوعة (${w.work_photos.length}):</strong>
+                <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${imagesHtml}
+                </div>
+            </div>
+        `;
+    }
+
     const card=document.createElement("article");
     card.className="admin-worker-card";
     card.dataset.workerCardId=id;
     card.dataset.registrationCode=registrationCodeText(w);
     card.dataset.workerPhone=wphone(w)||"";
     card.dataset.workerWhatsapp=wwhatsapp(w)||"";
-    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}<div class="worker-card-photos-box"><strong><i class="fa-solid fa-images"></i> صور الأعمال</strong>${photosByWorker[id]!==undefined?renderPhotoAdmin(id):'<div class="no-photos"><button class="action-btn btn-blue" onclick="event.stopPropagation();loadWorkerPhotos(\''+id+'\')"><i class="fa-solid fa-images"></i> تحميل صور الأعمال عند الحاجة</button></div>'}</div>${adminWorkerQuickButton(w)}</div>`;
+    
+    // تم دمج المتغيرات الجديدة هنا بأمان تام قبل زر التحكم السريع
+    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}${pendingImageAlert}${workPhotosGallery}${adminWorkerQuickButton(w)}</div>`;
+    
     grid.appendChild(card);
   });
 }
@@ -1061,7 +1091,7 @@ function renderAdminChatMessages(messages){
 }
 
 window.onload = checkLogin;
-// دالة تقييم الصنايعي داخل لوحة الإدارة
+
 function renderAdminRating(id){
   const summary = (typeof getRatingSummary === "function") ? getRatingSummary(id) : { average: 0, count: 0 };
   if (!summary.count) {
@@ -1070,7 +1100,6 @@ function renderAdminRating(id){
   return `<div class="admin-card-rating"><i class="fa-solid fa-star"></i> ${summary.average} من 5 (${summary.count})</div>`;
 }
 
-// دالة محادثات خدمة العملاء للإدارة
 let adminSupportThreadsData = [];
 let adminSupportCurrentId = null;
 
@@ -1142,12 +1171,11 @@ async function sendAdminSupportMessage(e) {
     toast('error', err.message || 'فشل إرسال الرد');
   }
 }
-// دالة الهروب من الرموز الخاصة في الأزرار
+
 function adminActionsEscapeAttr(v){
   return String(v ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// دالة ترتيب الصنايعية في لوحة الإدارة
 function sortAdminWorkers(workers){
   const sortEl = document.getElementById("adminSortFilter");
   const sortValue = sortEl ? sortEl.value : "default";
@@ -1175,3 +1203,32 @@ function sortAdminWorkers(workers){
 
   return sorted;
 }
+
+// دالة الاعتماد للصورة الشخصية الجديدة بضغطة زر
+window.approveProfileImage = async function(id) {
+    if(!confirm('هل أنت متأكد من اعتماد الصورة الشخصية الجديدة؟ سيتم عرضها للجمهور مباشرة.')) return;
+    
+    try {
+        const r = await fetch('/api/admin/workers/' + id + '/verify', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ approved: true })
+        });
+        
+        const d = await r.json();
+        
+        if(d.success) {
+            if(typeof toast === 'function') toast("success", "تم اعتماد الصورة بنجاح!");
+            else alert("تم اعتماد الصورة بنجاح!");
+            
+            // تحديث البيانات في لوحة الإدارة
+            if(typeof loadAllData === 'function') loadAllData();
+            else location.reload();
+        } else {
+            alert(d.error || 'حدث خطأ أثناء الاعتماد');
+        }
+    } catch(e) {
+        console.error(e);
+        alert('تعذر الاتصال بالخادم');
+    }
+};

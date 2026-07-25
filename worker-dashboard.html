@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم الصنايعي | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    body { font-family: 'Cairo', sans-serif; background: #f8fafc; margin: 0; color: #334155; }
+    .header { background: #061A3D; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .header h2 { margin: 0; font-size: 20px; }
+    .container { max-width: 800px; margin: 30px auto; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; overflow-x: auto; }
+    .tab { padding: 10px 15px; cursor: pointer; font-weight: bold; border-radius: 8px; transition: 0.2s; color: #64748b; white-space: nowrap; }
+    .tab:hover { background: #f1f5f9; }
+    .tab.active { background: #0284c7; color: white; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
+    
+    /* Forms */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #0f172a; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; box-sizing: border-box; font-size: 15px; background: #fff; }
+    
+    /* Buttons */
+    .btn { padding: 12px 20px; background: #0284c7; color: white; border: none; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 15px; transition: 0.2s; }
+    .btn:hover { background: #0369a1; }
+    .btn-danger { background: #dc2626; padding: 8px 15px; font-size: 14px; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-alt { background: #475569; padding: 8px 15px; font-size: 13px; margin-top: 5px; }
+    .btn-alt:hover { background: #334155; }
+    
+    /* Profile Pic & Gallery */
+    .profile-section { text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+    .profile-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #e0f2fe; margin-bottom: 15px; background: #fff; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .gallery-item { position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; height: 140px; }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    .gallery-item button { position: absolute; top: 5px; left: 5px; background: rgba(220,38,38,0.9); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+    .upload-box { border: 2px dashed #cbd5e1; padding: 25px; text-align: center; border-radius: 12px; background: #f8fafc; transition: 0.2s; }
+    .upload-box:hover { border-color: #0284c7; background: #f0f9ff; }
+    
+    /* Chat */
+    .chat-box { border: 1px solid #cbd5e1; border-radius: 8px; height: 350px; overflow-y: auto; padding: 15px; margin-bottom: 15px; background: #f8fafc; }
+    .msg { margin-bottom: 15px; padding: 12px 15px; border-radius: 8px; max-width: 80%; line-height: 1.5; }
+    .msg.admin { background: #e2e8f0; margin-right: auto; border-bottom-right-radius: 0; }
+    .msg.worker { background: #e0f2fe; margin-left: auto; border: 1px solid #bae6fd; border-bottom-left-radius: 0; }
+    .msg small { display: block; font-size: 11px; color: #64748b; margin-top: 5px; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2><i class="fa-solid fa-gauge-high"></i> لوحة التحكم</h2>
+    <div>
+        <a href="#" id="viewProfileBtn" target="_blank" style="color: #e0f2fe; text-decoration: none; margin-left: 15px; font-weight: bold; font-size: 14px;"><i class="fa-solid fa-eye"></i> رؤية صفحتي</a>
+        <button class="btn btn-danger" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('info', event)"><i class="fa-solid fa-user-pen"></i> البيانات الشخصية</div>
+      <div class="tab" onclick="switchTab('gallery', event)"><i class="fa-solid fa-images"></i> معرض الأعمال</div>
+      <div class="tab" onclick="switchTab('chat', event)"><i class="fa-solid fa-headset"></i> مراسلة الإدارة</div>
+    </div>
+
+    <!-- 1. تبويبة البيانات الشخصية -->
+    <div id="info" class="tab-content active">
+      
+      <!-- الصورة الشخصية -->
+      <div class="profile-section">
+        <img id="profileImgPreview" src="/icons/default-worker-avatar.png" class="profile-img" alt="صورتك الشخصية">
+        <div>
+          <input type="file" id="profileImageInput" accept="image/*" style="display:none;" onchange="uploadProfileImage()">
+          <button class="btn" style="padding: 8px 15px; font-size: 14px; margin-bottom: 5px;" onclick="document.getElementById('profileImageInput').click()">
+            <i class="fa-solid fa-camera"></i> رفع صورة جديدة
+          </button>
+          <br>
+          <button class="btn btn-alt" onclick="requestDefaultImage()">
+            <i class="fa-solid fa-user-secret"></i> إزالة الصورة (العودة للافتراضية)
+          </button>
+        </div>
+        <small style="display:block; color:#64748b; margin-top:10px;">الصور الجديدة تخضع لمراجعة الإدارة قبل الظهور للجمهور.</small>
+      </div>
+
+      <!-- البيانات -->
+      <h3 style="margin-top:0; color:#0f172a;">تعديل البيانات الأساسية</h3>
+      <div id="status" style="color: #16a34a; font-weight: bold; margin-bottom: 15px; text-align: center;"></div>
+      
+      <div class="form-group">
+        <label>اسم الصنايعي</label>
+        <input type="text" id="w_name">
+      </div>
+      
+      <div class="form-group">
+        <label>المهنة / الحرفة</label>
+        <select id="w_trade">
+          <option value="">اختر المهنة...</option>
+          <option value="سباك">سباك</option>
+          <option value="كهربائي">كهربائي</option>
+          <option value="نجار">نجار</option>
+          <option value="نقاش">نقاش</option>
+          <option value="مبيض محارة">مبيض محارة</option>
+          <option value="بتاع سيراميك">بتاع سيراميك (مبلط)</option>
+          <option value="بتاع جبس بورد">بتاع جبس بورد</option>
+          <option value="فني تكييف">فني تكييف</option>
+          <option value="فني ألوميتال">فني ألوميتال</option>
+          <option value="فني صيانة أجهزة">فني صيانة أجهزة كهربائية</option>
+          <option value="حداد">حداد</option>
+          <option value="بناء">بناء</option>
+          <option value="حداد مسلح">حداد مسلح</option>
+          <option value="فني دش">فني تركيب دش</option>
+          <option value="فني زجاج">فني زجاج</option>
+          <option value="صنايعي رخام وجرانيت">صنايعي رخام وجرانيت</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>المنطقة</label>
+        <select id="w_area">
+          <option value="">اختر المنطقة...</option>
+          <option value="مرسى مطروح (وسط البلد)">مرسى مطروح (وسط البلد)</option>
+          <option value="العوام">العوام</option>
+          <option value="البوسيت">البوسيت</option>
+          <option value="علم الروم">علم الروم</option>
+          <option value="الفيروز">الفيروز</option>
+          <option value="باب البحر">باب البحر</option>
+          <option value="روميل">روميل</option>
+          <option value="مينا حشيش">مينا حشيش</option>
+          <option value="الكيلو 4">الكيلو 4</option>
+          <option value="الكيلو 7">الكيلو 7</option>
+          <option value="سملا">سملا</option>
+          <option value="السنوسية">السنوسية</option>
+          <option value="الإمام مالك">الإمام مالك</option>
+          <option value="وادي ماجد">وادي ماجد</option>
+          <option value="القصر">القصر</option>
+          <option value="السلوم">السلوم</option>
+          <option value="سيدي براني">سيدي براني</option>
+          <option value="النجيلة">النجيلة</option>
+          <option value="سيدي حنيش">سيدي حنيش</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>رقم الواتساب للتواصل</label>
+        <input type="tel" id="w_whatsapp">
+      </div>
+      
+      <div class="form-group">
+        <label>نبذة عنك وعن شغلك</label>
+        <textarea id="w_desc" rows="4" placeholder="اكتب تفاصيل أكتر تقنع العميل بشغلك..."></textarea>
+      </div>
+      
+      <button class="btn" style="width: 100%;" onclick="saveInfo(this)"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+    </div>
+
+    <!-- 2. تبويبة معرض الأعمال -->
+    <div id="gallery" class="tab-content">
+      <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-images"></i> صور أعمالك السابقة</h3>
+      <p style="color: #64748b; font-size: 14px;">يُسمح لك برفع حتى 5 صور تظهر جودة عملك للعملاء.</p>
+      
+      <div id="galleryStatus" style="text-align: center; margin-bottom: 15px; font-weight: bold;"></div>
+      
+      <div class="gallery-grid" id="photosGrid">
+        <!-- الصور ستظهر هنا -->
+      </div>
+      
+      <div class="upload-box" id="uploadBox">
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 35px; color: #94a3b8; margin-bottom: 10px;"></i>
+        <br>
+        <input type="file" id="workPhotosInput" multiple accept="image/*" style="display: none;" onchange="uploadWorkPhotos()">
+        <button class="btn" onclick="document.getElementById('workPhotosInput').click()"><i class="fa-solid fa-plus"></i> اختر صور للرفع</button>
+        <p style="font-size: 14px; color: #0284c7; margin-top: 15px; font-weight: bold;">متبقي لك: <span id="remainingPhotos">5</span> صور</p>
+      </div>
+    </div>
+
+    <!-- 3. تبويبة الشات -->
+    <div id="chat" class="tab-content">
+      <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-comments"></i> رسائلك مع الإدارة</h3>
+      <div class="chat-box" id="chatBox">جاري التحميل...</div>
+      <div style="display: flex; gap: 10px;">
+        <input type="text" id="chatInput" placeholder="اكتب رسالتك للإدارة هنا..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;">
+        <button class="btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // الإعدادات والتوثيق
+    const urlParams = new URLSearchParams(window.location.search);
+    let workerId = urlParams.get('id') || localStorage.getItem('sanay3i_current_worker_id');
+    let currentWorkPhotos = [];
+
+    if (!workerId) {
+      alert('يجب تسجيل الدخول أولاً');
+      window.location.href = '/worker-login';
+    }
+
+    document.getElementById('viewProfileBtn').href = '/worker/' + workerId;
+
+    // دالة جلب مسار الصور الصحيح
+    function imgPath(image) {
+      if (!image) return "/icons/default-worker-avatar.png";
+      if (image.startsWith("http")) return image;
+      if (image.startsWith("/uploads")) return image;
+      if (image.startsWith("uploads")) return "/" + image;
+      return "/uploads/" + image;
+    }
+
+    // ==========================================
+    // 1. البيانات الشخصية والصورة
+    // ==========================================
+    async function loadProfile() {
+      try {
+        const r = await fetch('/api/worker/profile/' + workerId);
+        const d = await r.json();
+        if(d.success) {
+          // تعبئة البيانات
+          document.getElementById('w_name').value = d.worker.name || '';
+          document.getElementById('w_trade').value = d.worker.trade || '';
+          document.getElementById('w_area').value = d.worker.area || '';
+          document.getElementById('w_whatsapp').value = d.worker.whatsapp || '';
+          document.getElementById('w_desc').value = d.worker.description || '';
+          
+          // الصورة الشخصية
+          document.getElementById('profileImgPreview').src = imgPath(d.worker.image);
+          
+          // صور الأعمال
+          currentWorkPhotos = d.worker.work_photos || [];
+          if(!Array.isArray(currentWorkPhotos)) currentWorkPhotos = [];
+          renderGallery();
+        } else {
+            alert('حدث خطأ في تحميل البيانات. الرجاء تسجيل الدخول مجدداً.');
+            logout();
+        }
+      } catch(e) { console.error(e); }
+    }
+
+    async function saveInfo(btn) {
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+      btn.disabled = true;
+      try {
+        const data = {
+          name: document.getElementById('w_name').value,
+          trade: document.getElementById('w_trade').value,
+          area: document.getElementById('w_area').value,
+          whatsapp: document.getElementById('w_whatsapp').value,
+          description: document.getElementById('w_desc').value
+        };
+        const r = await fetch('/api/worker/profile/' + workerId, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        });
+        const d = await r.json();
+        if(d.success) {
+            document.getElementById('status').innerHTML = '<i class="fa-solid fa-circle-check"></i> تم حفظ التعديلات بنجاح!';
+        } else {
+            document.getElementById('status').style.color = '#dc2626';
+            document.getElementById('status').innerText = d.error || 'حدث خطأ أثناء الحفظ';
+        }
+      } catch(e) {
+         document.getElementById('status').innerText = 'تعذر الاتصال بالخادم';
+      }
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      setTimeout(() => { document.getElementById('status').innerText = ''; document.getElementById('status').style.color = '#16a34a'; }, 4000);
+    }
+
+    // رفع صورة شخصية جديدة
+    async function uploadProfileImage() {
+        const fileInput = document.getElementById('profileImageInput');
+        if(!fileInput.files.length) return;
+        
+        const formData = new FormData();
+        formData.append('profileImage', fileInput.files[0]);
+        
+        alert('جاري إرسال الصورة...');
+        try {
+            const r = await fetch('/api/worker/profile/' + workerId + '/request-image', {
+                method: 'POST', body: formData
+            });
+            const d = await r.json();
+            if(d.success) {
+                alert('تم رفع صورتك بنجاح! سيتم تحديثها فور موافقة الإدارة.');
+            } else {
+                alert(d.error || 'حدث خطأ أثناء الرفع');
+            }
+        } catch(e) {
+            alert('خطأ في الاتصال');
+        }
+    }
+
+    // طلب إزالة الصورة (العودة للافتراضية) عبر الإدارة
+    async function requestDefaultImage() {
+        if(!confirm('سيتم إرسال طلب للإدارة لإزالة صورتك الحالية والعودة للصورة الرمزية الافتراضية. هل توافق؟')) return;
+        try {
+            const formData = new FormData();
+            formData.append('worker_id', workerId);
+            formData.append('message', 'برجاء حذف صورتي الشخصية الحالية والعودة للصورة الافتراضية للموقع.');
+            await fetch('/api/worker-owner-chat/messages', { method: 'POST', body: formData });
+            alert('تم إرسال الطلب للإدارة بنجاح! سيتم التنفيذ قريباً.');
+            switchTab('chat'); // تحويله للشات ليرى طلبه
+        } catch(e) {
+            alert('حدث خطأ أثناء إرسال الطلب');
+        }
+    }
+
+    // ==========================================
+    // 2. معرض الأعمال
+    // ==========================================
+    function renderGallery() {
+        const grid = document.getElementById('photosGrid');
+        const remSpan = document.getElementById('remainingPhotos');
+        const uploadBox = document.getElementById('uploadBox');
+        
+        if(currentWorkPhotos.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 20px;">لم تقم برفع أي صور لأعمالك حتى الآن.</div>';
+        } else {
+            grid.innerHTML = currentWorkPhotos.map(photo => `
+                <div class="gallery-item">
+                    <img src="${imgPath(photo)}" alt="عمل سابق">
+                    <button onclick="deleteWorkPhoto('${photo}')" title="حذف الصورة"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+        
+        const remaining = 5 - currentWorkPhotos.length;
+        remSpan.innerText = remaining;
+        uploadBox.style.display = remaining <= 0 ? 'none' : 'block';
+    }
+
+    async function uploadWorkPhotos() {
+        const input = document.getElementById('workPhotosInput');
+        if(!input.files.length) return;
+        
+        const remaining = 5 - currentWorkPhotos.length;
+        if(input.files.length > remaining) {
+            alert('لقد تجاوزت الحد الأقصى! يمكنك رفع ' + remaining + ' صور فقط حالياً.');
+            input.value = '';
+            return;
+        }
+        
+        const status = document.getElementById('galleryStatus');
+        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفع...';
+        status.style.color = '#0284c7';
+        
+        const formData = new FormData();
+        for(let i=0; i<input.files.length; i++) {
+            formData.append('workPhotos', input.files[i]);
+        }
+        
+        try {
+            const r = await fetch('/api/worker/profile/' + workerId + '/work-photos', {
+                method: 'POST', body: formData
+            });
+            const d = await r.json();
+            if(d.success) {
+                currentWorkPhotos = d.work_photos;
+                renderGallery();
+                status.innerHTML = '<i class="fa-solid fa-circle-check"></i> تم الرفع بنجاح!';
+                status.style.color = '#16a34a';
+            } else {
+                status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> ' + (d.error || 'حدث خطأ');
+                status.style.color = '#dc2626';
+            }
+        } catch(e) {
+            status.innerText = 'تعذر الاتصال بالخادم';
+            status.style.color = '#dc2626';
+        }
+        input.value = '';
+        setTimeout(()=> { status.innerText = ''; }, 4000);
+    }
+
+    async function deleteWorkPhoto(photoName) {
+        if(!confirm('هل أنت متأكد من حذف هذه الصورة نهائياً؟')) return;
+        
+        const status = document.getElementById('galleryStatus');
+        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحذف...';
+        status.style.color = '#0284c7';
+        
+        try {
+            const r = await fetch('/api/worker/profile/' + workerId + '/work-photo', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ photoName })
+            });
+            const d = await r.json();
+            if(d.success) {
+                currentWorkPhotos = d.work_photos;
+                renderGallery();
+                status.innerHTML = '<i class="fa-solid fa-circle-check"></i> تم الحذف بنجاح!';
+                status.style.color = '#16a34a';
+            } else {
+                status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> خطأ في الحذف';
+                status.style.color = '#dc2626';
+            }
+        } catch(e) {
+            status.innerText = 'تعذر الاتصال بالخادم';
+            status.style.color = '#dc2626';
+        }
+        setTimeout(()=> { status.innerText = ''; }, 4000);
+    }
+
+    // ==========================================
+    // 3. الشات والمراسلة
+    // ==========================================
+    function formatTime(dateString) {
+        if(!dateString) return '';
+        return new Date(dateString).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadMessages() {
+      try {
+        const r = await fetch('/api/worker-owner-chat/messages?worker_id=' + workerId);
+        const d = await r.json();
+        const box = document.getElementById('chatBox');
+        if(d.success) {
+          if(d.messages.length === 0) {
+            box.innerHTML = '<div style="text-align:center; color:#94a3b8; margin-top:40px;">لا توجد رسائل بينك وبين الإدارة حتى الآن.<br>يمكنك إرسال طلباتك ومقترحاتك من الأسفل.</div>';
+          } else {
+            box.innerHTML = d.messages.map(m => 
+              '<div class="msg ' + (m.sender_type === "admin" ? "admin" : "worker") + '">' + 
+              '<strong style="color: #0f172a;">' + (m.sender_type === "admin" ? '<i class="fa-solid fa-headset"></i> الدعم الفني' : '<i class="fa-solid fa-user"></i> أنت') + '</strong><br>' + 
+              '<div style="margin-top:5px;">' + (m.message_text || '') + '</div>' + 
+              '<small>' + formatTime(m.created_at) + '</small>' +
+              '</div>'
+            ).join('');
+          }
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch(e) { console.error('Error loading chat:', e); }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if(!text) return;
+      try {
+        const formData = new FormData();
+        formData.append('worker_id', workerId);
+        formData.append('message', text);
+        await fetch('/api/worker-owner-chat/messages', { method: 'POST', body: formData });
+        input.value = '';
+        loadMessages();
+      } catch(e) {
+          alert('تعذر إرسال الرسالة، جرب مرة أخرى');
+      }
+    }
+
+    document.getElementById('chatInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // ==========================================
+    // التنقل بين التبويبات وتسجيل الخروج
+    // ==========================================
+    function switchTab(tabId, event) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      if(event) event.currentTarget.classList.add('active');
+      else document.querySelector(`.tab[onclick*="${tabId}"]`).classList.add('active');
+      
+      if(tabId === 'chat') {
+          document.getElementById('chatBox').innerHTML = 'جاري التحميل...';
+          loadMessages();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('sanay3i_current_worker_id');
+      localStorage.removeItem('sanay3i_owner_chat_token_' + workerId);
+      window.location.href = '/worker-login';
+    }
+
+    // التشغيل المبدئي
+    loadProfile();
+    setInterval(() => {
+      if(document.getElementById('chat').classList.contains('active')) loadMessages();
+    }, 10000);
+  </script>
+</body>
+</html>

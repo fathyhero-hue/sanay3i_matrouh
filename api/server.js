@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
+const crypto = require("crypto");
 try { require("dotenv").config(); } catch(e) {}
 
 const app = express();
@@ -34,6 +35,24 @@ app.use("/api/admin", (req, res, next) => {
 });
 
 // ===============================
+// دوال تشفير كلمات المرور الخاصة بالصنايعية
+// ===============================
+const ADMIN_PASSWORD_ITERATIONS = 120000;
+function hashAdminPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.pbkdf2Sync(String(password || ""), salt, ADMIN_PASSWORD_ITERATIONS, 64, "sha256").toString("hex");
+  return { salt, hash };
+}
+
+function verifyWorkerPassword(row, password) {
+  if (!row || !row.password_salt || !row.password_hash) return false;
+  const { hash } = hashAdminPassword(password, row.password_salt);
+  const a = Buffer.from(hash);
+  const b = Buffer.from(String(row.password_hash || ""));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+// ===============================
 // 3. إعدادات رفع الملفات (Multer) لبيئة Vercel
 // ===============================
 const upload = multer({
@@ -43,7 +62,6 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 
-// استقبال اسم الـ Bucket وتوجيه الملف ليه[cite: 7]
 async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
   const ext = path.extname(file.originalname || ".jpg");
@@ -62,6 +80,152 @@ async function uploadToSupabase(file, targetBucket = "uploads") {
   }
   return fileName;
 }
+
+// ===============================
+// دوال معالجة الاعتماد والمراجعة
+// ===============================
+async function handleWorkerVerify(req, res) {
+    try {
+        const { approved } = req.body;
+        const updateData = { 
+          approved: Boolean(approved),
+          identity_verified: Boolean(approved)
+        };
+
+        if (approved) {
+          const { data: workerData } = await supabase
+            .from('workers')
+            .select('pending_image')
+            .eq('id', req.params.id)
+            .maybeSingle();
+            
+          if (workerData && workerData.pending_image) {
+            updateData.image = workerData.pending_image;
+            updateData.pending_image = null;
+          }
+        }
+
+        const { error } = await supabase
+          .from('workers')
+          .update(updateData)
+          .eq('id', req.params.id);
+
+        if (error) throw error;
+
+        res.json({ success: true, message: 'تم تحديث حالة التحقيق والاعتماد بنجاح' });
+    } catch (err) {
+        console.error('Verify Worker Error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+async function handleIdentityReview(req, res) {
+    try {
+        const body = req.body || {};
+        const updateData = {};
+        
+        const isApproved = body.approved !== undefined ? Boolean(body.approved) : true;
+        updateData.approved = isApproved;
+        updateData.identity_verified = isApproved;
+
+        if (isApproved) {
+          const { data: workerData } = await supabase
+            .from('workers')
+            .select('pending_image')
+            .eq('id', req.params.id)
+            .maybeSingle();
+            
+          if (workerData && workerData.pending_image) {
+            updateData.image = workerData.pending_image;
+            updateData.pending_image = null;
+          }
+        }
+
+        const { error } = await supabase
+            .from('workers')
+            .update(updateData)
+            .eq('id', req.params.id);
+
+        if (error) {
+            console.error('Supabase update error:', error);
+            return res.status(400).json({ success: false, error: error.message });
+        }
+
+        res.json({ success: true, message: 'تم تحديث حالة مراجعة البطاقة والاعتماد بنجاح' });
+    } catch (err) {
+        console.error('Identity Review Error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+// تسجيل مسارات الاعتماد والمراجعة
+app.put('/api/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
+app.post('/api/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
+app.put('/api/admin/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
+app.post('/api/admin/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
+
+app.put('/api/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
+app.post('/api/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
+app.put('/api/admin/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
+app.post('/api/admin/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
+
+// ===============================
+// مسار التحقق وتسجيل الدخول المباشر لبروفايل الصنايعي
+// ===============================
+app.post(['/api/worker-owner-chat/verify', '/api/workers/:id/verify-chat', '/api/support-chat/verify', '/api/worker/verify-chat'], async (req, res) => {
+  try {
+    const workerId = req.params.id || req.body.workerId || req.body.worker_id;
+    const body = req.body || {};
+    const inputPhone = String(body.phone || body.whatsapp || '').trim();
+
+    if (!inputPhone) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم الهاتف للتحقق' });
+    }
+
+    let query = supabase.from('workers').select('id, phone, whatsapp, name');
+    if (workerId) {
+      query = query.eq('id', workerId);
+    } else {
+      query = query.or(`phone.eq.${inputPhone},whatsapp.eq.${inputPhone}`);
+    }
+
+    const { data: worker, error } = await query.maybeSingle();
+
+    let targetWorker = worker;
+    if (error || !targetWorker) {
+      const { data: workerByPhone } = await supabase
+        .from('workers')
+        .select('id, phone, whatsapp, name')
+        .or(`phone.eq.${inputPhone},whatsapp.eq.${inputPhone}`)
+        .maybeSingle();
+        
+      if (!workerByPhone) {
+        return res.status(404).json({ success: false, error: 'رقم الهاتف غير مسجل في النظام' });
+      }
+      targetWorker = workerByPhone;
+    }
+
+    const workerPhone = String(targetWorker.phone || '').trim();
+    const workerWhatsapp = String(targetWorker.whatsapp || '').trim();
+
+    if (inputPhone === workerPhone || inputPhone === workerWhatsapp || inputPhone.slice(-9) === workerPhone.slice(-9)) {
+      const sessionToken = crypto.randomBytes(32).toString('hex');
+      return res.json({ 
+        success: true, 
+        verified: true, 
+        token: sessionToken,
+        unread_count: 0,
+        message: 'تم التحقق بنجاح',
+        worker: { id: targetWorker.id, name: targetWorker.name }
+      });
+    } else {
+      return res.status(401).json({ success: false, verified: false, error: 'رقم الهاتف غير مطابق للرقم المسجل لهذا الصنايعي' });
+    }
+  } catch (err) {
+    console.error('Verify Owner/Chat Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ داخلي أثناء التحقق' });
+  }
+});
 
 // ===============================
 // 4. مسار فحص تكرار الأرقام عند التسجيل
@@ -94,13 +258,11 @@ app.get('/api/workers/check-duplicate', async (req, res) => {
 });
 
 // ===============================
-// 5. مسار استقبال تسجيلات الصنايعية الجدد (POST /api/register)
+// 5. مسار استقبال تسجيلات الصنايعية الجدد
 // ===============================
 app.post('/api/register', upload.fields([
-  { name: 'image', maxCount: 1 },
   { name: 'idFront', maxCount: 1 },
-  { name: 'idBack', maxCount: 1 },
-  { name: 'workPhotos', maxCount: 5 }
+  { name: 'idBack', maxCount: 1 }
 ]), async (req, res) => {
   try {
     const body = req.body || {};
@@ -112,23 +274,20 @@ app.post('/api/register', upload.fields([
     const trade = String(body.trade || '').trim();
     const area = String(body.area || '').trim();
     const description = String(body.description || '').trim();
+    const password = String(body.password || '').trim();
 
-    if (!name || !phone || !trade || !area) {
-      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية المطلوبة' });
+    if (!name || !phone || !trade || !area || !password || !files.idFront || !files.idBack) {
+      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية، كلمة المرور، وصور البطاقة' });
     }
 
-    // توجيه كل صورة للـ Bucket الخاص بيها[cite: 7]
-    const profileImage = files.image && files.image[0] ? await uploadToSupabase(files.image[0], "uploads") : null;
-    const idFrontImage = files.idFront && files.idFront[0] ? await uploadToSupabase(files.idFront[0], "identity-docs") : null;
-    const idBackImage = files.idBack && files.idBack[0] ? await uploadToSupabase(files.idBack[0], "identity-docs") : null;
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
+    }
+
+    const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
+    const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
     
-    let workPhotosArr = [];
-    if (files.workPhotos && files.workPhotos.length > 0) {
-      for (const file of files.workPhotos) {
-        const uploadedName = await uploadToSupabase(file, "uploads");
-        if (uploadedName) workPhotosArr.push(uploadedName);
-      }
-    }
+    const { salt, hash } = hashAdminPassword(password);
 
     const newWorker = {
       name,
@@ -137,10 +296,15 @@ app.post('/api/register', upload.fields([
       trade,
       area,
       description,
-      image: profileImage,
+      username: phone,
+      password_hash: hash,
+      password_salt: salt,
       id_front: idFrontImage,
       id_back: idBackImage,
-      work_photos: workPhotosArr,
+      id_front_path: idFrontImage,
+      id_back_path: idBackImage,
+      id_submitted_at: new Date().toISOString(),
+      identity_verified: false,
       approved: false,
       active: true,
       created_at: new Date().toISOString()
@@ -157,7 +321,8 @@ app.post('/api/register', upload.fields([
     return res.json({
       success: true,
       id: workerId,
-      registration_code: registrationCode
+      registration_code: registrationCode,
+      message: 'تم التسجيل بنجاح! يمكنك تسجيل الدخول إلى بروفايلك الآن.'
     });
   } catch (err) {
     console.error('Registration Error:', err);
@@ -166,7 +331,397 @@ app.post('/api/register', upload.fields([
 });
 
 // ===============================
-// 5.5. مسارات الحذف، الإيقاف، والتجديد
+// 5.1. مسارات تسجيل الدخول واستعادة كلمة المرور
+// ===============================
+app.post('/api/worker/login', async (req, res) => {
+  try {
+    const { phone, password } = req.body || {};
+    if (!phone || !password) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون وكلمة المرور' });
+    }
+
+    const cleanInput = String(phone).trim();
+    
+    let { data: worker, error } = await supabase
+      .from('workers')
+      .select('*')
+      .eq('phone', cleanInput)
+      .maybeSingle();
+
+    if (error || !worker) {
+      const cleanPhoneDigits = cleanInput.replace(/[^\d]/g, '').slice(-10);
+      const { data: workersList } = await supabase.from('workers').select('*');
+      
+      worker = (workersList || []).find(w => {
+        const wPhone = String(w.phone || '').replace(/[^\d]/g, '').slice(-10);
+        const wWhats = String(w.whatsapp || '').replace(/[^\d]/g, '').slice(-10);
+        return wPhone === cleanPhoneDigits || wWhats === cleanPhoneDigits || String(w.phone).trim() === cleanInput;
+      });
+    }
+
+    if (!worker) {
+      return res.status(401).json({ success: false, error: 'رقم التليفون غير مسجل' });
+    }
+
+    if (!worker.password_hash && password === String(worker.phone || '').slice(-6)) {
+      return res.json({ 
+        success: true, 
+        worker: { id: worker.id, name: worker.name, phone: worker.phone, trade: worker.trade, area: worker.area }, 
+        requirePasswordReset: true 
+      });
+    }
+
+    const isValid = verifyWorkerPassword(worker, password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'كلمة المرور غير صحيحة' });
+    }
+
+    res.json({ 
+      success: true, 
+      worker: { 
+        id: worker.id, 
+        name: worker.name, 
+        phone: worker.phone,
+        trade: worker.trade,
+        area: worker.area 
+      } 
+    });
+  } catch (err) {
+    console.error('Worker Login Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ داخلي في الخادم: ' + (err.message || '') });
+  }
+});
+
+// المسار المعدل لربطه بالواتساب
+app.post('/api/worker/forgot-password', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون' });
+    }
+
+    const { data: worker, error } = await supabase
+      .from('workers')
+      .select('id, name, phone, whatsapp')
+      .eq('phone', phone)
+      .maybeSingle();
+
+    if (error || !worker) {
+      return res.status(404).json({ success: false, error: 'رقم التليفون غير مسجل في قاعدة البيانات' });
+    }
+
+    // توليد كلمة سر مؤقتة جديدة وتشفيرها
+    const tempPassword = 'SN-' + Math.floor(1000 + Math.random() * 9000);
+    const { salt, hash } = hashAdminPassword(tempPassword);
+
+    await supabase.from('workers').update({
+      password_hash: hash,
+      password_salt: salt
+    }).eq('id', worker.id);
+
+    // ==========================================
+    // إرسال كلمة السر الجديدة عبر الواتساب أوتوماتيكياً
+    // ==========================================
+    const WA_TOKEN = process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
+    const WA_PHONE_ID = process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const WA_API_VER = process.env.WHATSAPP_API_VERSION || 'v17.0';
+    
+    if (WA_TOKEN && WA_PHONE_ID) {
+      // تظبيط رقم التليفون ليطابق الصيغة الدولية لمصر (بدون +)
+      let targetPhone = String(worker.whatsapp || worker.phone).replace(/[^\d]/g, '');
+      if (targetPhone.startsWith('01') && targetPhone.length === 11) {
+          targetPhone = '20' + targetPhone.substring(1);
+      } else if (targetPhone.length === 10 && targetPhone.startsWith('1')) {
+          targetPhone = '20' + targetPhone;
+      }
+
+      const msgText = `أهلاً بك يا ${worker.name} في دليل صنايعي مطروح 🛠️\n\nبناءً على طلبك، تم إعادة ضبط كلمة المرور الخاصة بحسابك.\n\n🔑 كلمة المرور الجديدة: *${tempPassword}*\n\nيرجى تسجيل الدخول بها الآن، ولا تشاركها مع أحد للحفاظ على أمان حسابك.`;
+
+      try {
+        const response = await fetch(`https://graph.facebook.com/${WA_API_VER}/${WA_PHONE_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${WA_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: targetPhone,
+                type: 'text',
+                text: { body: msgText }
+            })
+        });
+
+        // طباعة الرد الخاص بميتا في التيرمينال
+        const waResult = await response.json();
+        console.log("=========================================");
+        console.log("رد سيرفر واتساب (Meta API):");
+        console.log(JSON.stringify(waResult, null, 2));
+        console.log("=========================================");
+
+      } catch (waErr) {
+        console.error('Failed to send WhatsApp message:', waErr.message);
+      }
+    } else {
+        console.log("تنبيه: لم يتم إرسال رسالة الواتساب لأن رموز WHATSAPP_TOKEN أو WHATSAPP_PHONE_ID غير موجودة في السيرفر.");
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'تم إرسال كلمة المرور الجديدة في رسالة واتساب إلى رقمك المسجل بنجاح.' 
+    });
+  } catch (err) {
+    console.error('Forgot Password Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء استعادة كلمة المرور' });
+  }
+});
+
+// ===============================
+// مسارات جلب وإرسال رسائل محادثة الصنايعي مع الإدارة
+// ===============================
+app.get('/api/worker-owner-chat/messages', async (req, res) => {
+  try {
+    const workerId = req.query.worker_id;
+    if (!workerId) return res.status(400).json({ success: false, error: 'معرف الصنايعي مطلوب' });
+
+    const { data: messages, error } = await supabase
+      .from('support_chat_messages')
+      .select('*')
+      .eq('conversation_id', workerId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return res.json({ success: true, messages: [], unread_count: 0 });
+    }
+
+    res.json({ success: true, messages: messages || [], unread_count: 0 });
+  } catch (err) {
+    res.json({ success: true, messages: [], unread_count: 0 });
+  }
+});
+
+app.post('/api/worker-owner-chat/messages', upload.single('attachment'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const workerId = body.worker_id;
+    const messageText = String(body.message || '').trim();
+
+    if (!workerId || (!messageText && !req.file)) {
+      return res.status(400).json({ success: false, error: 'بيانات الرسالة غير مكتملة' });
+    }
+
+    let attachmentUrl = null;
+    if (req.file) {
+      const fileName = await uploadToSupabase(req.file, "uploads");
+      if (fileName) attachmentUrl = "/uploads/" + fileName;
+    }
+
+    const newMessage = {
+      conversation_id: workerId,
+      sender_type: 'worker',
+      message_text: messageText,
+      attachment_url: attachmentUrl,
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('support_chat_messages').insert([newMessage]);
+    if (error) throw error;
+
+    res.json({ success: true, message: 'تم إرسال الرسالة بنجاح' });
+  } catch (err) {
+    console.error('Send Worker Message Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'تعذر إرسال الرسالة' });
+  }
+});
+
+// ===============================
+// 5.2. مسارات لوحة تحكم وصور بروفايل الصنايعي
+// ===============================
+app.get('/api/worker/profile/:id', async (req, res) => {
+  try {
+    const { data: worker, error } = await supabase
+      .from('workers')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+    
+    delete worker.password_hash;
+    delete worker.password_salt;
+
+    res.json({ success: true, worker });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/worker/profile/:id', async (req, res) => {
+  try {
+    const { name, whatsapp, description, trade, area } = req.body;
+    const { error } = await supabase
+      .from('workers')
+      .update({ name, whatsapp, description, trade, area })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'تم تحديث البيانات بنجاح' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/worker/profile/:id/password', async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
+    }
+
+    const { salt, hash } = hashAdminPassword(newPassword);
+    const { error } = await supabase
+      .from('workers')
+      .update({ password_hash: hash, password_salt: salt })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'تم تغيير كلمة المرور بنجاح' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/worker/profile/:id/work-photos', upload.array('workPhotos', 5), async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ success: false, error: 'لم يتم اختيار صور' });
+
+    const { data: worker, error: fetchErr } = await supabase
+      .from('workers')
+      .select('work_photos')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    let currentPhotos = worker.work_photos || [];
+    if (!Array.isArray(currentPhotos)) currentPhotos = [];
+
+    if (currentPhotos.length + files.length > 5) {
+      return res.status(400).json({ success: false, error: 'الحد الأقصى لمعرض الأعمال هو 5 صور فقط' });
+    }
+
+    for (const file of files) {
+      const fileName = await uploadToSupabase(file, "uploads");
+      if (fileName) currentPhotos.push(fileName);
+    }
+
+    const { error: updateErr } = await supabase
+      .from('workers')
+      .update({ work_photos: currentPhotos })
+      .eq('id', req.params.id);
+
+    if (updateErr) throw updateErr;
+
+    res.json({ success: true, message: 'تم رفع صور الأعمال بنجاح', work_photos: currentPhotos });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/worker/profile/:id/work-photo', async (req, res) => {
+  try {
+    const { photoName } = req.body;
+    const { data: worker, error: fetchErr } = await supabase
+      .from('workers')
+      .select('work_photos')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    let currentPhotos = worker.work_photos || [];
+    currentPhotos = currentPhotos.filter(p => p !== photoName);
+
+    const { error: updateErr } = await supabase
+      .from('workers')
+      .update({ work_photos: currentPhotos })
+      .eq('id', req.params.id);
+
+    if (updateErr) throw updateErr;
+
+    res.json({ success: true, message: 'تم حذف الصورة بنجاح', work_photos: currentPhotos });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/worker/profile/:id/request-image', upload.single('profileImage'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'يرجى اختيار صورة شخصية جديدة' });
+
+    const fileName = await uploadToSupabase(req.file, "uploads");
+    if (!fileName) throw res.status(500).json({ success: false, error: 'تعذر رفع الصورة' });
+
+    const { error } = await supabase
+      .from('workers')
+      .update({ pending_image: fileName })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+
+    res.json({ success: true, message: 'تم إرسال طلب تغيير الصورة الشخصية للإدارة للمراجعة' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===============================
+// 5.3. مسارات عرض صور البطاقات السرية
+// ===============================
+async function serveIdentityImage(req, res) {
+  try {
+    let fileName = req.params.fileName;
+    if (fileName && fileName.includes('/')) {
+      fileName = fileName.split('/').pop();
+    }
+    const { data, error } = await supabase.storage.from("identity-docs").createSignedUrl(fileName, 300);
+    if (data && data.signedUrl) {
+      return res.redirect(data.signedUrl);
+    }
+    const { data: pubData } = supabase.storage.from("identity-docs").getPublicUrl(fileName);
+    if (pubData && pubData.publicUrl) {
+      return res.redirect(pubData.publicUrl);
+    }
+    res.status(404).send("Image not found");
+  } catch (err) {
+    res.status(404).send("Image not found");
+  }
+}
+
+app.get("/identity-docs/:fileName", serveIdentityImage);
+app.get("/api/identity-docs/:fileName", serveIdentityImage);
+
+app.get("/uploads/:fileName", async (req, res) => {
+  const fileName = req.params.fileName;
+  try {
+    const { data, error } = await supabase.storage.from("identity-docs").createSignedUrl(fileName, 300);
+    if (!error && data && data.signedUrl) {
+      return res.redirect(data.signedUrl);
+    }
+  } catch (e) {}
+
+  const bucket = process.env.SUPABASE_BUCKET || "uploads";
+  const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+  if (data && data.publicUrl) {
+    res.redirect(data.publicUrl);
+  } else {
+    res.status(404).send("Image not found");
+  }
+});
+
+// ===============================
+// 5.5. مسارات الحذف، الإيقاف والتجديد
 // ===============================
 app.delete('/api/workers/:id', adminApiRateLimit, async (req, res) => {
     try {
@@ -294,7 +849,6 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
 // ===============================
 const STATIC_DIR = path.join(__dirname, "..");
 
-// معالجة أخطاء أداة المتصفح (Favicon & Manifest) لمنع ظهور 404 في الـ Console
 app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 app.get("/manifest.json", (req, res) => {
@@ -308,12 +862,10 @@ app.get("/manifest.json", (req, res) => {
   });
 });
 
-// السماح بالوصول لمجلد public الجديد (مهم جداً للـ CSS والـ JS)[cite: 7]
 app.use(express.static(path.join(STATIC_DIR, "public"), {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
 
-// السماح بالوصول للملفات في الجذر القديم[cite: 7]
 app.use(express.static(STATIC_DIR, {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
@@ -347,8 +899,27 @@ app.get("/uploads/:fileName", (req, res) => {
   }
 });
 
+// المسارات الأساسية للصفحات
 app.get("/", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
 app.get("/register", (req, res) => res.sendFile(path.join(STATIC_DIR, "register.html")));
+
+app.get(["/worker-login", "/worker-login.html"], (req, res) => {
+  const filePath = path.join(STATIC_DIR, "worker-login.html");
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send(`
+      <html dir='rtl'>
+        <body style='text-align:center; font-family: Cairo, sans-serif; margin-top:50px; background-color:#f8fafc; color:#0f172a;'>
+          <h2 style='color:#dc2626;'>ملف صفحة تسجيل الدخول مفقود!</h2>
+          <p>يرجى إنشاء ملف <b>worker-login.html</b> في المجلد الرئيسي (نفس المكان اللي فيه index.html).</p>
+        </body>
+      </html>
+    `);
+  }
+});
+
+app.get("/worker-dashboard", (req, res) => res.sendFile(path.join(STATIC_DIR, "worker-dashboard.html")));
 app.get("/status", (req, res) => res.sendFile(path.join(STATIC_DIR, "status.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin.html")));
 app.get("/admin/add-worker", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin-add-worker.html")));
@@ -379,7 +950,11 @@ app.use((err, req, res, next) => {
       return res.status(400).json({ success: false, error: msg });
     }
   }
-  console.error("Server Error:", err.message);
+  
+  if (err.code !== 'ENOENT') {
+     console.error("Server Error:", err.message);
+  }
+  
   res.status(500).json({ success: false, error: "حدث خطأ داخلي في الخادم" });
 });
 

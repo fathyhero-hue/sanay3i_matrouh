@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل دخول الصنايعي | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    body { font-family: 'Cairo', sans-serif; background: #f8fafc; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    .header { width: 100%; background: #061A3D; padding: 15px 20px; text-align: center; position: absolute; top: 0; }
+    .header h1 { color: #fff; margin: 0; font-size: 22px; }
+    .login-wrapper { max-width: 400px; width: 90%; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 80px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #334155; }
+    .form-group input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 15px; box-sizing: border-box; }
+    .btn-main { width: 100%; padding: 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 15px; margin-bottom: 10px; transition: 0.2s; }
+    .btn-main:hover { background: #0369a1; }
+    .btn-alt { width: 100%; padding: 12px; background: #475569; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 14px; transition: 0.2s; }
+    .btn-alt:hover { background: #334155; }
+    .status-msg { margin-top: 15px; font-size: 14px; text-align: center; font-weight: bold; }
+    .status-msg.error { color: #dc2626; }
+    .status-msg.success { color: #16a34a; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1><i class="fa-solid fa-screwdriver-wrench"></i> صنايعي مطروح</h1>
+  </div>
+
+  <div class="login-wrapper">
+    <h2 style="text-align: center; margin-bottom: 20px; color: #0f172a;"><i class="fa-solid fa-right-to-bracket"></i> دخول الصنايعية</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>رقم التليفون (اليوزر)</label>
+        <input type="tel" id="phoneInput" required placeholder="أدخل رقم تليفونك المسجل">
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور">
+      </div>
+      <button type="submit" class="btn-main" id="loginBtn">دخول للوحة التحكم والمراسلة</button>
+      <button type="button" class="btn-alt" id="forgotBtn"><i class="fa-solid fa-key"></i> نسيت / الحصول على كلمة السر</button>
+      <div id="statusMsg" class="status-msg"></div>
+    </form>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById('loginBtn');
+    const forgotBtn = document.getElementById('forgotBtn');
+    const phoneInput = document.getElementById('phoneInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const statusMsg = document.getElementById('statusMsg');
+
+    function showStatus(type, msg) {
+      statusMsg.className = 'status-msg ' + type;
+      statusMsg.textContent = msg;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = phoneInput.value.trim();
+      const password = passwordInput.value.trim();
+      
+      if (!phone || !password) return showStatus('error', 'يرجى إدخال البيانات المطلوبة');
+      
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
+      
+      try {
+        const r = await fetch('/api/worker/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.success) throw new Error(d.error || 'خطأ في تسجيل الدخول');
+        
+        // حفظ التوكن وبيانات الجلسة عشان لوحة التحكم تفتح مباشر
+        localStorage.setItem("sanay3i_owner_chat_token_" + d.worker.id, d.worker.id);
+        localStorage.setItem("sanay3i_current_worker_id", d.worker.id);
+        
+        showStatus('success', 'تم تسجيل الدخول! جاري توجيهك للوحة التحكم...');
+        
+        // التوجيه المباشر لصفحة التعديلات ولوحة التحكم بدلاً من البروفايل العام
+        setTimeout(() => { window.location.href = '/worker-dashboard?id=' + d.worker.id; }, 1200);
+      } catch(err) {
+        showStatus('error', err.message);
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = 'دخول للوحة التحكم والمراسلة';
+      }
+    });
+
+    // الزر الآمن الجديد الذي يرسل الواتساب ولا يعرض كلمة السر
+    forgotBtn.addEventListener('click', async () => {
+      const phone = phoneInput.value.trim();
+      if (!phone) return showStatus('error', 'يرجى إدخال رقم التليفون أولاً في الخانة بالأعلى');
+      
+      forgotBtn.disabled = true;
+      forgotBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري إرسال كلمة السر...';
+      
+      try {
+        const r = await fetch('/api/worker/forgot-password', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const d = await r.json();
+        
+        if (!r.ok || !d.success) throw new Error(d.error || 'حدث خطأ غير متوقع');
+        
+        // إفراغ خانة الباسوورد بدلاً من وضعها (كإجراء أمني إضافي)
+        passwordInput.value = '';
+        
+        // إظهار رسالة النجاح للصنايعي ليفتح الواتساب
+        showStatus('success', 'تم إرسال كلمة المرور الجديدة في رسالة واتساب إلى رقمك المسجل بنجاح 📱');
+      } catch(err) {
+        showStatus('error', err.message);
+      } finally {
+        forgotBtn.disabled = false;
+        forgotBtn.innerHTML = '<i class="fa-solid fa-key"></i> نسيت / الحصول على كلمة السر';
+      }
+    });
+  </script>
+</body>
+</html>

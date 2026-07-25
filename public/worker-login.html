@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+  <title>تسجيل دخول الصنايعي | صنايعي مطروح</title>
+  
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/support.css" />
+  <link rel="stylesheet" href="/css/register.css" />
+
+  <meta name="theme-color" content="#061A3D">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-content">
+      <a class="brand" href="/">
+        <div class="brand-icon">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>بوابة دخول الصنايعية</span>
+        </div>
+      </a>
+      <nav class="main-nav">
+        <a href="/">الرئيسية</a>
+        <a href="/register">تسجيل جديد</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="register-page">
+    <div class="container" style="max-width: 600px;">
+      <section class="panel" style="margin-top: 30px;">
+        <div class="panel-head">
+          <span class="section-label"><i class="fa-solid fa-right-to-bracket"></i> دخول الصنايعي</span>
+          <h3>تسجيل الدخول لبروفايلك</h3>
+          <p>أدخل رقم التليفون وكلمة المرور الخاصة بك لإدارة صورك وبياناتك.</p>
+        </div>
+
+        <div class="panel-body">
+          <form id="workerLoginForm">
+            <div class="form-group">
+              <label for="phone"><i class="fa-solid fa-phone"></i> رقم التليفون</label>
+              <input id="phone" name="phone" placeholder="01xxxxxxxxx" type="tel" required class="form-control" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; margin-top:5px;"/>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+              <label for="password"><i class="fa-solid fa-lock"></i> كلمة المرور</label>
+              <input id="password" name="password" placeholder="كلمة المرور الخاصة بك" type="password" required class="form-control" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; margin-top:5px;"/>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+              <button type="button" onclick="forgotPassword()" style="background: none; border: none; color: #2563eb; cursor: pointer; font-family: 'Cairo'; font-weight: 600;">
+                <i class="fa-solid fa-key"></i> نسيت كلمة المرور؟
+              </button>
+            </div>
+
+            <button type="submit" id="loginBtn" class="btn btn-primary w-100" style="margin-top: 20px; width: 100%; padding: 12px; background: #061A3D; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
+              <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
+            </button>
+
+            <div class="result-box" id="resultBox" style="margin-top: 15px;"></div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById("workerLoginForm");
+    const resultBox = document.getElementById("resultBox");
+    const loginBtn = document.getElementById("loginBtn");
+
+    function showResult(type, message) {
+      resultBox.className = "result-box show " + type;
+      resultBox.innerHTML = message;
+      resultBox.style.padding = "10px";
+      resultBox.style.borderRadius = "6px";
+      resultBox.style.marginTop = "10px";
+      if(type === 'error') {
+        resultBox.style.background = "#fee2e2";
+        resultBox.style.color = "#991b1b";
+      } else {
+        resultBox.style.background = "#d1fae5";
+        resultBox.style.color = "#065f46";
+      }
+    }
+
+    form.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      resultBox.innerHTML = "";
+      
+      const phone = document.getElementById("phone").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!phone || !password) {
+        showResult("error", "يرجى إدخال رقم التليفون وكلمة المرور.");
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+
+      try {
+        const res = await fetch("/api/worker/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "بيانات الدخول غير صحيحة");
+        }
+
+        // حفظ بيانات الصنايعي في الـ LocalStorage لتسهيل التعامل مع بروفايله
+        localStorage.setItem("sanay3i_worker", JSON.stringify(data.worker));
+
+        showResult("success", "تم تسجيل الدخول بنجاح! جاري تحويلك للبروفايل...");
+        setTimeout(() => {
+          window.location.href = "/worker-dashboard"; // هنعملها الخطوة الجاية
+        }, 1200);
+
+      } catch (err) {
+        showResult("error", err.message || "حدث خطأ أثناء تسجيل الدخول");
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول';
+      }
+    });
+
+    async function forgotPassword() {
+      const phone = document.getElementById("phone").value.trim();
+      if (!phone) {
+        alert("من فضلك اكتب رقم التليفون في خانة رقم التليفون أولاً ثم اضغط على نسيت كلمة المرور.");
+        return;
+      }
+
+      if (!confirm("هل تريد حقاً استعادة كلمة المرور وإرسال كلمة سر مؤقتة لرقم التليفون: " + phone + "؟")) return;
+
+      try {
+        const res = await fetch("/api/worker/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "تعذر استعادة كلمة المرور");
+        }
+
+        alert("تم إنشاء كلمة سر مؤقتة جديدة بنجاح:\n" + data.temp_password + "\n\nاستخدمها لتسجيل الدخول ثم قم بتغييرها من بروفايلك.");
+        document.getElementById("password").value = data.temp_password;
+      } catch (err) {
+        alert(err.message || "حدث خطأ");
+      }
+    }
+  </script>
+</body>
+</html>

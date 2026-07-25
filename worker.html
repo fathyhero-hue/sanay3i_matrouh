@@ -32,16 +32,11 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
   />
 
-  <!-- استدعاء ملفات الـ CSS المقسمة والمنظمة -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/support.css" />
   <link rel="stylesheet" href="/css/cards.css" />
-  <!-- استدعاء ملف الـ CSS القديم مؤقتاً للحفاظ على ستايل صفحة التفاصيل (حتى يتم فصله لاحقاً) -->
   <link rel="stylesheet" href="/style.css" />
 
-  
-
-  <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#061A3D">
   <meta name="background-color" content="#061A3D">
@@ -52,8 +47,6 @@
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
   <meta name="msapplication-TileColor" content="#061A3D">
-
-  <link rel="stylesheet" href="/css/worker.css" />
   <link rel="stylesheet" href="/css/worker.css" />
 </head>
 
@@ -351,31 +344,46 @@
                   <i class="fa-solid fa-user-shield"></i>
                   <div>
                     <strong>خاص بالصنايعي</strong>
-                    <span>لو أنت صاحب هذا الحساب، تحقق برقم الهاتف المسجل لفتح رسائل الإدارة داخل التطبيق.</span>
+                    <span>تسجيل الدخول برقم الهاتف وكلمة المرور للتحكم في بروفايلك أو مراسلة الإدارة.</span>
                   </div>
                 </div>
                 <button type="button" class="owner-chat-open-btn" id="ownerChatOpenBtn">
-                  <i class="fa-solid fa-comments"></i>
-                  دخول الصنايعي / مراسلة الإدارة
+                  <i class="fa-solid fa-right-to-bracket"></i>
+                  دخول لوحة التحكم / البروفايل
                   <span class="owner-chat-badge" id="ownerChatBadge">0</span>
                 </button>
 
                 <div class="owner-chat-verify-box" id="ownerChatVerifyBox">
-                  <input type="tel" id="ownerPhoneInput" inputmode="tel" autocomplete="tel" placeholder="اكتب رقم الهاتف المسجل في الإدارة">
-                  <button type="button" class="owner-chat-verify-btn" id="ownerVerifyBtn">
-                    <i class="fa-solid fa-shield-check"></i>
-                    تحقق وافتح المحادثة
-                  </button>
-                  <div class="owner-chat-note">هذا الجزء لا يظهر رسائل الإدارة إلا بعد مطابقة رقم الهاتف المسجل لهذا الصنايعي.</div>
+                  <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #334155;">رقم التليفون (اليوزر):</label>
+                    <input type="tel" id="ownerPhoneInput" inputmode="tel" autocomplete="tel" placeholder="اكتب رقم التليفون المسجل" style="width:100%; padding:10px; margin-bottom:8px; border:1px solid #cbd5e1; border-radius:8px; font-size: 14px;">
+                    
+                    <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #334155;">كلمة المرور:</label>
+                    <input type="password" id="ownerPasswordInput" placeholder="اكتب كلمة المرور الخاصة بك" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #cbd5e1; border-radius:8px; font-size: 14px;">
+                  </div>
+
+                  <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <button type="button" class="owner-chat-verify-btn" id="ownerLoginBtn" style="flex:1; background: #0284c7; color: #fff; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                      <i class="fa-solid fa-arrow-right-to-bracket"></i> دخول لوحة التحكم
+                    </button>
+                    <button type="button" class="owner-chat-verify-btn" id="ownerForgotBtn" style="flex:1; background:#475569; color: #fff; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" title="للصنايعية القدامى أو لمن نسي كلمة المرور">
+                      <i class="fa-solid fa-key"></i> الحصول على كلمة السر
+                    </button>
+                  </div>
+
+                  <div class="owner-chat-note" style="font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.5;">
+                    💡 إذا كنت من الصنايعية القدامى أو لا تملك كلمة مرور، اضغط على <strong>"الحصول على كلمة السر"</strong> لتوليد كلمة سر مؤقتة وتفعيل حسابك فوراً.
+                  </div>
                   <div class="owner-chat-status" id="ownerChatStatus"></div>
                 </div>
 
                 <div class="owner-chat-panel" id="ownerChatPanel">
-                  <div class="owner-chat-toolbar">
-                    <strong><i class="fa-solid fa-message"></i> محادثة الإدارة</strong>
-                    <div>
-                      <button type="button" class="owner-chat-refresh" id="ownerChatRefreshBtn">تحديث</button>
-                      <button type="button" class="owner-chat-logout" id="ownerChatLogoutBtn">خروج</button>
+                  <div class="owner-chat-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #f8fafc; padding: 8px; border-radius: 6px;">
+                    <strong><i class="fa-solid fa-gauge-high"></i> لوحة التحكم والمحادثة</strong>
+                    <div style="display: flex; gap: 6px;">
+                      <a href="/worker-dashboard" class="owner-chat-refresh" style="background:#0284c7; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:12px;" target="_blank">لوحة التحكم</a>
+                      <button type="button" class="owner-chat-refresh" id="ownerChatRefreshBtn" style="padding:4px 8px; font-size:12px;">تحديث</button>
+                      <button type="button" class="owner-chat-logout" id="ownerChatLogoutBtn" style="padding:4px 8px; font-size:12px; background:#dc2626; color:#fff; border:none; border-radius:4px;">خروج</button>
                     </div>
                   </div>
                   <div class="owner-chat-messages" id="ownerChatMessages">
@@ -467,8 +475,6 @@
     <button onclick="closeLightbox()">×</button>
     <img id="lightboxImg" src="">
   </div>
-
-
 
   <div class="report-modal-overlay" id="reportModal" onclick="closeReportModal(event)">
     <div class="report-modal-box" onclick="event.stopPropagation()">
@@ -747,26 +753,10 @@
 
     function convertArabicNumbers(value) {
       const map = {
-        "٠": "0",
-        "١": "1",
-        "٢": "2",
-        "٣": "3",
-        "٤": "4",
-        "٥": "5",
-        "٦": "6",
-        "٧": "7",
-        "٨": "8",
-        "٩": "9",
-        "۰": "0",
-        "۱": "1",
-        "۲": "2",
-        "۳": "3",
-        "۴": "4",
-        "۵": "5",
-        "۶": "6",
-        "۷": "7",
-        "۸": "8",
-        "۹": "9"
+        "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+        "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+        "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+        "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9"
       };
 
       return value.toString().replace(/[٠-٩۰-۹]/g, n => map[n]);
@@ -774,60 +764,24 @@
 
     function waNum(phone) {
       if (!phone) return "";
-
       let d = convertArabicNumbers(phone).replace(/[^\d]/g, "");
-
       if (d.startsWith("00")) d = d.slice(2);
-
-      if (d.startsWith("0") && d.length === 11) {
-        d = "20" + d.slice(1);
-      }
-
-      if (
-        !d.startsWith("20") &&
-        d.length === 10 &&
-        (
-          d.startsWith("10") ||
-          d.startsWith("11") ||
-          d.startsWith("12") ||
-          d.startsWith("15")
-        )
-      ) {
+      if (d.startsWith("0") && d.length === 11) d = "20" + d.slice(1);
+      if (!d.startsWith("20") && d.length === 10 && (d.startsWith("10") || d.startsWith("11") || d.startsWith("12") || d.startsWith("15"))) {
         d = "20" + d;
       }
-
       return d;
     }
 
     function callNum(phone) {
       if (!phone) return "";
-
       let d = convertArabicNumbers(phone).replace(/[^\d]/g, "");
-
-      if (d.startsWith("20") && d.length === 12) {
-        return "0" + d.slice(2);
-      }
-
-      if (d.startsWith("0020")) {
-        return "0" + d.slice(4);
-      }
-
-      if (d.startsWith("0")) {
-        return d;
-      }
-
-      if (
-        d.length === 10 &&
-        (
-          d.startsWith("10") ||
-          d.startsWith("11") ||
-          d.startsWith("12") ||
-          d.startsWith("15")
-        )
-      ) {
+      if (d.startsWith("20") && d.length === 12) return "0" + d.slice(2);
+      if (d.startsWith("0020")) return "0" + d.slice(4);
+      if (d.startsWith("0")) return d;
+      if (d.length === 10 && (d.startsWith("10") || d.startsWith("11") || d.startsWith("12") || d.startsWith("15"))) {
         return "0" + d;
       }
-
       return d;
     }
 
@@ -975,23 +929,13 @@
       document.getElementById("lightbox").classList.remove("show");
     }
 
-
     function showCopyToast(message) {
       const toast = document.getElementById("copyToast");
       if (!toast) return;
-
-      toast.innerHTML = `
-        <i class="fa-solid fa-circle-check"></i>
-        ${message}
-      `;
-
+      toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${message}`;
       toast.classList.add("show");
-
-      setTimeout(() => {
-        toast.classList.remove("show");
-      }, 2200);
+      setTimeout(() => { toast.classList.remove("show"); }, 2200);
     }
-
 
     function setMetaContent(selector, value, attr) {
       const meta = document.querySelector(selector);
@@ -1053,11 +997,7 @@
 
       if (navigator.share) {
         try {
-          await navigator.share({
-            title: workerName + " | صنايعي مطروح",
-            text: shareText,
-            url: workerUrl
-          });
+          await navigator.share({ title: workerName + " | صنايعي مطروح", text: shareText, url: workerUrl });
           return;
         } catch (error) {}
       }
@@ -1078,18 +1018,14 @@
 
     async function loadPhotos(id) {
       const gallery = document.getElementById("workGallery");
-
       try {
         const r = await fetch("/api/workers/" + id + "/photos");
         const photos = r.ok ? await r.json() : [];
-
         gallery.innerHTML = "";
-
         if (!photos.length) {
           gallery.innerHTML = '<div class="gallery-empty">لا توجد صور أعمال مضافة حاليًا.</div>';
           return;
         }
-
         photos.forEach(p => {
           const src = imgPath(p.image);
           const im = document.createElement("img");
@@ -1122,7 +1058,6 @@
         countEl.textContent = summary.count ? "بناءً على " + summary.count + " تقييم" : "لا توجد تقييمات بعد";
 
         list.innerHTML = "";
-
         if (!reviews.length) {
           list.innerHTML = '<div class="review-empty">لا توجد ريفيوهات معتمدة حتى الآن. كن أول من يقيّم هذا الصنايعي.</div>';
           return;
@@ -1131,7 +1066,6 @@
         reviews.forEach(r => {
           const card = document.createElement("div");
           card.className = "review-card";
-
           card.innerHTML = `
             <div class="review-card-head">
               <strong>${r.customer_name || "عميل"}</strong>
@@ -1139,7 +1073,6 @@
             </div>
             <p>${r.comment || ""}</p>
           `;
-
           list.appendChild(card);
         });
       } catch(e) {
@@ -1156,7 +1089,6 @@
     document.addEventListener("submit", async function(e) {
       if (e.target && e.target.id === "reviewForm") {
         e.preventDefault();
-
         const workerId = idFromUrl();
         const name = document.getElementById("reviewerName").value.trim();
         const rating = document.getElementById("reviewRating").value;
@@ -1175,26 +1107,18 @@
           const res = await fetch("/api/workers/" + workerId + "/reviews", {
             method: "POST",
             headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({
-              customer_name: name || "عميل",
-              rating: Number(rating),
-              comment
-            })
+            body: JSON.stringify({ customer_name: name || "عميل", rating: Number(rating), comment })
           });
-
           if (!res.ok) throw new Error();
-
           showReviewMessage("success", "تم إرسال تقييمك بنجاح، وسيظهر بعد مراجعة الإدارة.");
           document.getElementById("reviewForm").reset();
         } catch(err) {
           showReviewMessage("error", "لم يتم إرسال التقييم. حاول مرة أخرى.");
         }
-
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> إرسال التقييم';
       }
     });
-
 
     function showReportMessage(type, text) {
       const msg = document.getElementById("reportMessage");
@@ -1207,7 +1131,7 @@
       const modal = document.getElementById("reportModal");
       if (!modal) return;
       const title = document.getElementById("reportWorkerName");
-      if (title) title.textContent = currentReportWorker.name ? "بلاغ عن: " + currentReportWorker.name : "اكتب تفاصيل البلاغ وسيتم مراجعته من الإدارة. رقم التليفون مطلوب للتأكد من جدية البلاغ.";
+      if (title) title.textContent = currentReportWorker.name ? "بلاغ عن: " + currentReportWorker.name : "اكتب تفاصيل البلاغ وسيتم مراجعته من الإدارة.";
       showReportMessage("", "");
       const form = document.getElementById("reportForm");
       if (form) form.reset();
@@ -1228,10 +1152,7 @@
       if (!currentReportWorker.id) return showReportMessage("error", "بيانات الصنايعي غير متاحة");
       const details = (document.getElementById("reportDetails")?.value || "").trim();
       const phoneRaw = (document.getElementById("reporterPhone")?.value || "").trim();
-      const phoneDigits = phoneRaw
-        .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
-        .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-        .replace(/[^0-9]/g, "");
+      const phoneDigits = phoneRaw.replace(/[^0-9]/g, "");
       if (phoneDigits.length < 8 || phoneDigits.length > 15) {
         return showReportMessage("error", "رقم تليفون صاحب البلاغ مطلوب ويجب أن يكون صحيحًا");
       }
@@ -1259,9 +1180,8 @@
       }
     }
 
-
     // ===============================
-    // Owner verified in-app chat
+    // Owner Login & Chat Integration
     // ===============================
     let ownerChatState = {
       workerId: "",
@@ -1281,7 +1201,9 @@
         badge: document.getElementById("ownerChatBadge"),
         verifyBox: document.getElementById("ownerChatVerifyBox"),
         phoneInput: document.getElementById("ownerPhoneInput"),
-        verifyBtn: document.getElementById("ownerVerifyBtn"),
+        passwordInput: document.getElementById("ownerPasswordInput"),
+        loginBtn: document.getElementById("ownerLoginBtn"),
+        forgotBtn: document.getElementById("ownerForgotBtn"),
         status: document.getElementById("ownerChatStatus"),
         panel: document.getElementById("ownerChatPanel"),
         messages: document.getElementById("ownerChatMessages"),
@@ -1337,9 +1259,9 @@
       const els = ownerChatEls();
       if (els.panel) els.panel.classList.remove("show");
       if (els.verifyBox) els.verifyBox.classList.add("show");
-      if (els.messages) els.messages.innerHTML = '<div class="owner-chat-empty">اكتب رقم الهاتف المسجل لفتح المحادثة.</div>';
+      if (els.messages) els.messages.innerHTML = '<div class="owner-chat-empty">قم بتسجيل الدخول للوصول للوحة التحكم.</div>';
       ownerChatSetBadge(0);
-      ownerChatStatus("", "تم تسجيل الخروج من محادثة الصنايعي على هذا الجهاز.");
+      ownerChatStatus("", "تم تسجيل الخروج بنجاح.");
     }
 
     function ownerChatFormatTime(value) {
@@ -1361,11 +1283,9 @@
       messages.forEach(function (m) {
         const item = document.createElement("div");
         item.className = "owner-chat-msg " + (m.sender_type === "admin" ? "admin" : "worker");
-
         const meta = document.createElement("small");
         meta.textContent = (m.sender_type === "admin" ? "الإدارة" : "أنت") + " • " + ownerChatFormatTime(m.created_at);
         item.appendChild(meta);
-
         if (m.message_text) {
           const text = document.createElement("div");
           text.textContent = m.message_text;
@@ -1397,7 +1317,7 @@
         ownerChatRender(d.messages || []);
         ownerChatSetBadge(d.unread_count || 0);
         ownerChatSendStatus("", "");
-        ownerChatStatus("success", "تم فتح المحادثة. يمكنك مراسلة الإدارة من هنا.");
+        ownerChatStatus("success", "تم تسجيل الدخول بنجاح.");
         ownerChatShowPanel();
         if (ownerChatState.timer) clearInterval(ownerChatState.timer);
         ownerChatState.timer = setInterval(function () { ownerChatLoadMessages(true); }, 15000);
@@ -1412,42 +1332,80 @@
       }
     }
 
-    async function ownerChatVerifyPhone() {
+    async function ownerChatLogin() {
       const els = ownerChatEls();
       const phone = (els.phoneInput && els.phoneInput.value || "").trim();
-      if (!phone) return ownerChatStatus("error", "اكتب رقم الهاتف المسجل في الإدارة أولًا");
-      if (els.verifyBtn) {
-        els.verifyBtn.disabled = true;
-        els.verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+      const password = (els.passwordInput && els.passwordInput.value || "").trim();
+      
+      if (!phone || !password) return ownerChatStatus("error", "يرجى إدخال رقم التليفون (اليوزر) وكلمة المرور");
+      
+      if (els.loginBtn) {
+        els.loginBtn.disabled = true;
+        els.loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
       }
-      ownerChatStatus("", "جاري مطابقة الرقم...");
+      ownerChatStatus("", "جاري التحقق وتسجيل الدخول...");
+      
       try {
-        const r = await fetch("/api/worker-owner-chat/verify", {
+        const r = await fetch("/api/worker/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ worker_id: ownerChatState.workerId, phone: phone })
+          body: JSON.stringify({ phone, password })
         });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok || !d.success) throw new Error(d.error || "فشل التحقق من الرقم");
-        ownerChatState.token = d.token;
+        if (!r.ok || !d.success) throw new Error(d.error || "رقم التليفون أو كلمة المرور غير صحيحة");
+        
+        ownerChatState.token = d.worker.id;
         ownerChatState.ready = true;
-        try { localStorage.setItem(ownerChatStorageKey(ownerChatState.workerId), d.token); } catch (e) {}
-        ownerChatSetBadge(d.unread_count || 0);
-        ownerChatStatus("success", "تم التحقق بنجاح. جاري فتح المحادثة...");
+        try { localStorage.setItem(ownerChatStorageKey(ownerChatState.workerId), d.worker.id); } catch (e) {}
+        
+        ownerChatStatus("success", "تم تسجيل الدخول بنجاح! جاري فتح لوحة التحكم...");
         await ownerChatLoadMessages(false);
       } catch (e) {
-        ownerChatStatus("error", e.message || "رقم الهاتف غير مطابق");
+        ownerChatStatus("error", e.message || "فشل تسجيل الدخول");
       } finally {
-        if (els.verifyBtn) {
-          els.verifyBtn.disabled = false;
-          els.verifyBtn.innerHTML = '<i class="fa-solid fa-shield-check"></i> تحقق وافتح المحادثة';
+        if (els.loginBtn) {
+          els.loginBtn.disabled = false;
+          els.loginBtn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> دخول لوحة التحكم';
+        }
+      }
+    }
+
+    async function ownerChatForgot() {
+      const els = ownerChatEls();
+      const phone = (els.phoneInput && els.phoneInput.value || "").trim();
+      
+      if (!phone) return ownerChatStatus("error", "اكتب رقم التليفون المسجل أولاً للحصول على كلمة السر");
+      
+      if (els.forgotBtn) {
+        els.forgotBtn.disabled = true;
+        els.forgotBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاستعادة...';
+      }
+      ownerChatStatus("", "جاري توليد كلمة سر جديدة...");
+      
+      try {
+        const r = await fetch("/api/worker/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || "تعذر استعادة كلمة المرور");
+        
+        ownerChatStatus("success", "تم التوليد بنجاح! كلمة السر المؤقتة هي: " + d.temp_password + " (تم وضعها في خانة الباسورد تلقائياً)");
+        if (els.passwordInput) els.passwordInput.value = d.temp_password;
+      } catch (e) {
+        ownerChatStatus("error", e.message || "حدث خطأ أثناء استعادة كلمة المرور");
+      } finally {
+        if (els.forgotBtn) {
+          els.forgotBtn.disabled = false;
+          els.forgotBtn.innerHTML = '<i class="fa-solid fa-key"></i> الحصول على كلمة السر';
         }
       }
     }
 
     async function ownerChatSendMessage(e) {
       e.preventDefault();
-      if (!ownerChatState.workerId || !ownerChatState.token) return ownerChatSendStatus("error", "تحقق برقم الهاتف أولًا");
+      if (!ownerChatState.workerId || !ownerChatState.token) return ownerChatSendStatus("error", "قم بتسجيل الدخول أولًا");
       const els = ownerChatEls();
       const text = (els.text && els.text.value || "").trim();
       const file = els.file && els.file.files && els.file.files[0];
@@ -1485,22 +1443,18 @@
       ownerChatState.workerName = workerName || "صنايعي";
       const els = ownerChatEls();
       if (!els.openBtn || !ownerChatState.workerId) return;
+
       if (els.openBtn.dataset.ready !== "1") {
         els.openBtn.dataset.ready = "1";
         els.openBtn.addEventListener("click", ownerChatShowVerify);
       }
-      if (els.verifyBtn && els.verifyBtn.dataset.ready !== "1") {
-        els.verifyBtn.dataset.ready = "1";
-        els.verifyBtn.addEventListener("click", ownerChatVerifyPhone);
+      if (els.loginBtn && els.loginBtn.dataset.ready !== "1") {
+        els.loginBtn.dataset.ready = "1";
+        els.loginBtn.addEventListener("click", ownerChatLogin);
       }
-      if (els.phoneInput && els.phoneInput.dataset.ready !== "1") {
-        els.phoneInput.dataset.ready = "1";
-        els.phoneInput.addEventListener("keydown", function (e) {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            ownerChatVerifyPhone();
-          }
-        });
+      if (els.forgotBtn && els.forgotBtn.dataset.ready !== "1") {
+        els.forgotBtn.dataset.ready = "1";
+        els.forgotBtn.addEventListener("click", ownerChatForgot);
       }
       if (els.form && els.form.dataset.ready !== "1") {
         els.form.dataset.ready = "1";
@@ -1526,7 +1480,6 @@
 
     async function loadWorker() {
       const id = idFromUrl();
-
       const loading = document.getElementById("loadingBox");
       const error = document.getElementById("errorBox");
       const content = document.getElementById("detailsContent");
@@ -1534,9 +1487,7 @@
 
       try {
         const r = await fetch("/api/workers/" + id);
-
         if (!r.ok) throw new Error();
-
         const w = await r.json();
 
         const name = getName(w);
@@ -1556,18 +1507,8 @@
         const shareBtn = document.getElementById("shareBtn");
         const mobileShareBtn = document.getElementById("mobileShareBtn");
 
-        if (shareBtn) {
-          shareBtn.onclick = function () {
-            shareCurrentWorker(name);
-          };
-        }
-
-        if (mobileShareBtn) {
-          mobileShareBtn.onclick = function (e) {
-            e.preventDefault();
-            shareCurrentWorker(name);
-          };
-        }
+        if (shareBtn) shareBtn.onclick = function () { shareCurrentWorker(name); };
+        if (mobileShareBtn) mobileShareBtn.onclick = function (e) { e.preventDefault(); shareCurrentWorker(name); };
 
         const copyPhoneBtn = document.getElementById("copyPhoneBtn");
         if (copyPhoneBtn) {
@@ -1610,13 +1551,8 @@
         document.getElementById("quickVerifyState").textContent = verified(w) ? "موثق من الإدارة" : "بيانات منشورة";
         document.getElementById("quickContactState").textContent = (call && wa) ? "اتصال وواتساب" : (call ? "اتصال مباشر" : (wa ? "واتساب فقط" : "غير متاح"));
 
-        if (featured(w)) {
-          document.getElementById("featuredBadge").classList.add("show");
-        }
-
-        if (verified(w)) {
-          document.getElementById("verifiedBadge").classList.add("show");
-        }
+        if (featured(w)) document.getElementById("featuredBadge").classList.add("show");
+        if (verified(w)) document.getElementById("verifiedBadge").classList.add("show");
 
         const callUrl = call ? "tel:" + call : "#";
         const whatsappUrl = wa ? "https://wa.me/" + wa + "?text=" + txt : "#";
@@ -1668,7 +1604,6 @@
     loadWorker();
   </script>
 
-  <!-- Service Worker -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
