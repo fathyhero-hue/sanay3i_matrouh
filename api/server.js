@@ -289,6 +289,13 @@ app.post('/api/register', upload.fields([
     
     const { salt, hash } = hashAdminPassword(password);
 
+    // ==========================================
+    // تحديد تواريخ الاشتراك (إضافة شهر مجاني عند التسجيل)
+    // ==========================================
+    const now = new Date();
+    const oneMonthLater = new Date();
+    oneMonthLater.setMonth(now.getMonth() + 1);
+
     const newWorker = {
       name,
       phone,
@@ -303,11 +310,13 @@ app.post('/api/register', upload.fields([
       id_back: idBackImage,
       id_front_path: idFrontImage,
       id_back_path: idBackImage,
-      id_submitted_at: new Date().toISOString(),
+      id_submitted_at: now.toISOString(),
       identity_verified: false,
       approved: false,
       active: true,
-      created_at: new Date().toISOString()
+      created_at: now.toISOString(),
+      subscription_start: now.toISOString(),
+      subscription_end: oneMonthLater.toISOString()
     };
 
     const { data, error } = await supabase.from('workers').insert([newWorker]).select().single();
@@ -452,7 +461,6 @@ app.post('/api/worker/forgot-password', async (req, res) => {
             })
         });
 
-        // طباعة الرد الخاص بميتا في التيرمينال
         const waResult = await response.json();
         console.log("=========================================");
         console.log("رد سيرفر واتساب (Meta API):");
@@ -744,6 +752,7 @@ app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
     }
 });
 
+// التعديل هنا: تحديث تاريخ البداية لو كان فاضي
 app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     try {
         const { months, amount, payment_method, payment_status, note } = req.body;
@@ -751,20 +760,28 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
 
         const { data: worker, error: fetchError } = await supabase
             .from('workers')
-            .select('subscription_end')
+            .select('subscription_start, subscription_end')
             .eq('id', req.params.id)
             .single();
 
         if (fetchError) throw fetchError;
 
-        let currentEnd = worker?.subscription_end ? new Date(worker.subscription_end) : new Date();
-        if (currentEnd < new Date()) currentEnd = new Date();
+        const now = new Date();
+        let currentEnd = worker?.subscription_end ? new Date(worker.subscription_end) : new Date(now);
+        if (currentEnd < now) currentEnd = new Date(now);
 
         currentEnd.setMonth(currentEnd.getMonth() + addMonths);
 
+        const updateData = { subscription_end: currentEnd.toISOString() };
+        
+        // لو تاريخ البداية مفقود، ضيف تاريخ اليوم
+        if (!worker?.subscription_start) {
+            updateData.subscription_start = now.toISOString();
+        }
+
         const { error: updateError } = await supabase
             .from('workers')
-            .update({ subscription_end: currentEnd.toISOString() })
+            .update(updateData)
             .eq('id', req.params.id);
 
         if (updateError) throw updateError;
@@ -776,21 +793,30 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     }
 });
 
+// التعديل هنا: تحديث تاريخ البداية للكل لو كان فاضي
 app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
     try {
         const { months } = req.body;
         const addMonths = parseInt(months) || 1;
 
-        const { data: workers, error: fetchError } = await supabase.from('workers').select('id, subscription_end');
+        const { data: workers, error: fetchError } = await supabase.from('workers').select('id, subscription_start, subscription_end');
         if (fetchError) throw fetchError;
 
+        const now = new Date();
         const updatePromises = workers.map(worker => {
-            let currentEnd = worker.subscription_end ? new Date(worker.subscription_end) : new Date();
-            if (currentEnd < new Date()) currentEnd = new Date();
+            let currentEnd = worker.subscription_end ? new Date(worker.subscription_end) : new Date(now);
+            if (currentEnd < now) currentEnd = new Date(now);
             currentEnd.setMonth(currentEnd.getMonth() + addMonths);
 
+            const updateData = { subscription_end: currentEnd.toISOString() };
+            
+            // لو تاريخ البداية مفقود، ضيف تاريخ اليوم
+            if (!worker.subscription_start) {
+                updateData.subscription_start = now.toISOString();
+            }
+
             return supabase.from('workers')
-                .update({ subscription_end: currentEnd.toISOString() })
+                .update(updateData)
                 .eq('id', worker.id);
         });
 
@@ -902,7 +928,7 @@ app.get("/uploads/:fileName", (req, res) => {
 // المسارات الأساسية للصفحات
 app.get("/", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
 app.get("/register", (req, res) => res.sendFile(path.join(STATIC_DIR, "register.html")));
-app.get("/privacy-policy", (req, res) => res.sendFile(path.join(STATIC_DIR, "privacy-policy.html"))); // <--- هذا هو السطر الذي تمت إضافته
+app.get("/privacy-policy", (req, res) => res.sendFile(path.join(STATIC_DIR, "privacy-policy.html")));
 
 app.get(["/worker-login", "/worker-login.html"], (req, res) => {
   const filePath = path.join(STATIC_DIR, "worker-login.html");
