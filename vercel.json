@@ -25,6 +25,10 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/privacy-policy",
+      "destination": "/privacy-policy.html"
+    },
+    {
       "source": "/worker/(.*)",
       "destination": "/worker.html"
     },
