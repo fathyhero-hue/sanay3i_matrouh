@@ -902,6 +902,7 @@ app.get("/uploads/:fileName", (req, res) => {
 // المسارات الأساسية للصفحات
 app.get("/", (req, res) => res.sendFile(path.join(STATIC_DIR, "index.html")));
 app.get("/register", (req, res) => res.sendFile(path.join(STATIC_DIR, "register.html")));
+app.get("/privacy-policy", (req, res) => res.sendFile(path.join(STATIC_DIR, "privacy-policy.html"))); // <--- هذا هو السطر الذي تمت إضافته
 
 app.get(["/worker-login", "/worker-login.html"], (req, res) => {
   const filePath = path.join(STATIC_DIR, "worker-login.html");
