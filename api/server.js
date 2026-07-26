@@ -289,9 +289,6 @@ app.post('/api/register', upload.fields([
     
     const { salt, hash } = hashAdminPassword(password);
 
-    // ==========================================
-    // تحديد تواريخ الاشتراك (إضافة شهر مجاني عند التسجيل)
-    // ==========================================
     const now = new Date();
     const oneMonthLater = new Date();
     oneMonthLater.setMonth(now.getMonth() + 1);
@@ -401,7 +398,6 @@ app.post('/api/worker/login', async (req, res) => {
   }
 });
 
-// المسار المعدل لربطه بالواتساب
 app.post('/api/worker/forgot-password', async (req, res) => {
   try {
     const { phone } = req.body;
@@ -419,7 +415,6 @@ app.post('/api/worker/forgot-password', async (req, res) => {
       return res.status(404).json({ success: false, error: 'رقم التليفون غير مسجل في قاعدة البيانات' });
     }
 
-    // توليد كلمة سر مؤقتة جديدة وتشفيرها
     const tempPassword = 'SN-' + Math.floor(1000 + Math.random() * 9000);
     const { salt, hash } = hashAdminPassword(tempPassword);
 
@@ -428,15 +423,11 @@ app.post('/api/worker/forgot-password', async (req, res) => {
       password_salt: salt
     }).eq('id', worker.id);
 
-    // ==========================================
-    // إرسال كلمة السر الجديدة عبر الواتساب أوتوماتيكياً
-    // ==========================================
     const WA_TOKEN = process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
     const WA_PHONE_ID = process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID;
     const WA_API_VER = process.env.WHATSAPP_API_VERSION || 'v17.0';
     
     if (WA_TOKEN && WA_PHONE_ID) {
-      // تظبيط رقم التليفون ليطابق الصيغة الدولية لمصر (بدون +)
       let targetPhone = String(worker.whatsapp || worker.phone).replace(/[^\d]/g, '');
       if (targetPhone.startsWith('01') && targetPhone.length === 11) {
           targetPhone = '20' + targetPhone.substring(1);
@@ -460,18 +451,9 @@ app.post('/api/worker/forgot-password', async (req, res) => {
                 text: { body: msgText }
             })
         });
-
-        const waResult = await response.json();
-        console.log("=========================================");
-        console.log("رد سيرفر واتساب (Meta API):");
-        console.log(JSON.stringify(waResult, null, 2));
-        console.log("=========================================");
-
       } catch (waErr) {
         console.error('Failed to send WhatsApp message:', waErr.message);
       }
-    } else {
-        console.log("تنبيه: لم يتم إرسال رسالة الواتساب لأن رموز WHATSAPP_TOKEN أو WHATSAPP_PHONE_ID غير موجودة في السيرفر.");
     }
 
     res.json({ 
@@ -485,17 +467,115 @@ app.post('/api/worker/forgot-password', async (req, res) => {
 });
 
 // ===============================
-// مسارات جلب وإرسال رسائل محادثة الصنايعي مع الإدارة
+// مسارات جلب وإرسال رسائل محادثة الصنايعي مع الإدارة (تحديث المحادثات - الجدول الجديد)
 // ===============================
-app.get('/api/worker-owner-chat/messages', async (req, res) => {
+
+// 1. جلب لستة كل المحادثات (للإدارة - متوافقة مع كل احتمالات admin.js)
+app.get('/api/admin/worker-chat/threads', adminApiRateLimit, async (req, res) => {
   try {
-    const workerId = req.query.worker_id;
+    const { data: messages, error } = await supabase
+      .from('worker_chat_messages')
+      .select('worker_id, message_text, created_at, sender_type, attachment_url, is_read')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const { data: workers } = await supabase.from('workers').select('id, name, phone, registration_code, trade, area');
+    const workersMap = {};
+    if (workers) {
+      workers.forEach(w => workersMap[w.id] = w);
+    }
+
+    const threadsMap = {};
+    if (messages) {
+       messages.forEach(msg => {
+          const cid = msg.worker_id;
+          const worker = workersMap[cid];
+
+          if (!worker) return;
+
+          if (!threadsMap[cid]) {
+             const msgText = msg.message_text ? msg.message_text : (msg.attachment_url ? 'صورة مرفقة 📷' : 'رسالة جديدة');
+             
+             threadsMap[cid] = {
+                id: cid,
+                worker_id: cid,
+                workerId: cid,
+                workerID: cid,
+                thread_id: cid,
+                threadId: cid,
+                
+                name: worker.name,
+                worker_name: worker.name,
+                workerName: worker.name,
+                fullName: worker.name,
+                title: worker.name,
+                
+                phone: worker.phone,
+                worker_phone: worker.phone,
+                workerPhone: worker.phone,
+                
+                trade: worker.trade || '',
+                area: worker.area || '',
+                registration_code: worker.registration_code || '',
+                
+                message: msgText,
+                message_text: msgText,
+                last_message: msgText,
+                lastMessage: msgText,
+                text: msgText,
+                
+                date: msg.created_at,
+                created_at: msg.created_at,
+                createdAt: msg.created_at,
+                last_message_date: msg.created_at,
+                updated_at: msg.created_at,
+                
+                unread_count: msg.is_read === false && msg.sender_type === 'worker' ? 1 : 0,
+                unreadCount: msg.is_read === false && msg.sender_type === 'worker' ? 1 : 0
+             };
+          } else {
+             if (msg.is_read === false && msg.sender_type === 'worker') {
+                 threadsMap[cid].unread_count += 1;
+                 threadsMap[cid].unreadCount += 1;
+             }
+          }
+       });
+    }
+
+    const threadsList = Object.values(threadsMap);
+    res.json({ 
+      success: true, 
+      threads: threadsList, 
+      data: threadsList,
+      items: threadsList,
+      list: threadsList
+    });
+  } catch (err) {
+    console.error('Fetch Threads Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب المحادثات' });
+  }
+});
+
+// 2. جلب رسايل محادثة واحدة (للصنايعي والإدارة)
+app.get(['/api/worker-owner-chat/messages', '/api/admin/worker-chat/messages/:id'], async (req, res) => {
+  try {
+    const workerId = req.query.worker_id || req.params.id;
     if (!workerId) return res.status(400).json({ success: false, error: 'معرف الصنايعي مطلوب' });
 
+    // تحديث الرسايل كمقروءة لو الإدارة اللي بتفتحها
+    if (req.path.includes('/admin/')) {
+        await supabase.from('worker_chat_messages')
+          .update({ is_read: true })
+          .eq('worker_id', workerId)
+          .eq('sender_type', 'worker')
+          .eq('is_read', false);
+    }
+
     const { data: messages, error } = await supabase
-      .from('support_chat_messages')
+      .from('worker_chat_messages')
       .select('*')
-      .eq('conversation_id', workerId)
+      .eq('worker_id', workerId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -508,11 +588,14 @@ app.get('/api/worker-owner-chat/messages', async (req, res) => {
   }
 });
 
-app.post('/api/worker-owner-chat/messages', upload.single('attachment'), async (req, res) => {
+// 3. إرسال رسالة (للصنايعي والإدارة)
+app.post(['/api/worker-owner-chat/messages', '/api/admin/worker-chat/messages'], upload.single('attachment'), async (req, res) => {
   try {
     const body = req.body || {};
     const workerId = body.worker_id;
     const messageText = String(body.message || '').trim();
+    
+    const senderType = req.path.includes('/admin/') ? 'admin' : 'worker';
 
     if (!workerId || (!messageText && !req.file)) {
       return res.status(400).json({ success: false, error: 'بيانات الرسالة غير مكتملة' });
@@ -525,20 +608,133 @@ app.post('/api/worker-owner-chat/messages', upload.single('attachment'), async (
     }
 
     const newMessage = {
-      conversation_id: workerId,
-      sender_type: 'worker',
+      worker_id: workerId,
+      sender_type: senderType, 
       message_text: messageText,
       attachment_url: attachmentUrl,
+      is_read: false,
       created_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('support_chat_messages').insert([newMessage]);
+    const { error } = await supabase.from('worker_chat_messages').insert([newMessage]);
     if (error) throw error;
 
     res.json({ success: true, message: 'تم إرسال الرسالة بنجاح' });
   } catch (err) {
     console.error('Send Worker Message Error:', err);
     res.status(500).json({ success: false, error: err.message || 'تعذر إرسال الرسالة' });
+  }
+});
+
+// 4. جلب عدد الرسائل غير المقروءة للإدارة (عشان الـ Badge)
+app.get('/api/admin/worker-chat/unread-count', adminApiRateLimit, async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('worker_chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .eq('sender_type', 'worker');
+      
+    res.json({ success: true, count: count || 0 });
+  } catch (err) {
+    res.json({ success: true, count: 0 });
+  }
+});
+
+// ===============================
+// مسارات جلب وإرسال رسائل خدمة العملاء (للإدارة)
+// ===============================
+
+// 1. جلب لستة محادثات خدمة العملاء
+app.get('/api/admin/support-chat/threads', adminApiRateLimit, async (req, res) => {
+  try {
+    const { data: messages, error } = await supabase
+      .from('support_chat_messages')
+      .select('conversation_id, message_text, created_at, sender_name')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // جلب بيانات العملاء من جدول المحادثات
+    const { data: convos } = await supabase.from('support_chat_conversations').select('id, phone, customer_name');
+    const convosMap = {};
+    if (convos) {
+      convos.forEach(c => convosMap[c.id] = c);
+    }
+
+    const threadsMap = {};
+    if (messages) {
+       messages.forEach(msg => {
+          const cid = msg.conversation_id;
+          const convo = convosMap[cid] || {};
+          
+          if (!threadsMap[cid]) {
+             threadsMap[cid] = {
+                id: cid,
+                customer_name: convo.customer_name || msg.sender_name || 'عميل غير معروف',
+                phone: convo.phone || '',
+                message_text: msg.message_text,
+                created_at: msg.created_at
+             };
+          }
+       });
+    }
+
+    res.json({ success: true, threads: Object.values(threadsMap) });
+  } catch (err) {
+    console.error('Support Threads Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب محادثات خدمة العملاء' });
+  }
+});
+
+// 2. جلب رسائل محادثة خدمة عملاء معينة
+app.get('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, async (req, res) => {
+  try {
+    const threadId = req.params.id;
+    const { data: messages, error } = await supabase
+      .from('support_chat_messages')
+      .select('*')
+      .eq('conversation_id', threadId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    const { data: thread } = await supabase
+      .from('support_chat_conversations')
+      .select('*')
+      .eq('id', threadId)
+      .maybeSingle();
+
+    res.json({ success: true, messages: messages || [], thread: thread || {} });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'حدث خطأ' });
+  }
+});
+
+// 3. إرسال رد من الإدارة لخدمة العملاء
+app.post('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, async (req, res) => {
+  try {
+    const threadId = req.params.id;
+    const { message } = req.body;
+    
+    if (!message) return res.status(400).json({ success: false, error: 'الرسالة فارغة' });
+
+    const newMessage = {
+      conversation_id: threadId,
+      sender_type: 'admin',
+      sender_name: 'الإدارة',
+      message_text: message,
+      is_read: true,
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('support_chat_messages').insert([newMessage]);
+    if (error) throw error;
+
+    res.json({ success: true, message: 'تم إرسال الرد' });
+  } catch (err) {
+    console.error('Send Support Message Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء إرسال الرسالة' });
   }
 });
 
@@ -752,7 +948,6 @@ app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
     }
 });
 
-// التعديل هنا: تحديث تاريخ البداية لو كان فاضي
 app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     try {
         const { months, amount, payment_method, payment_status, note } = req.body;
@@ -774,7 +969,6 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
 
         const updateData = { subscription_end: currentEnd.toISOString() };
         
-        // لو تاريخ البداية مفقود، ضيف تاريخ اليوم
         if (!worker?.subscription_start) {
             updateData.subscription_start = now.toISOString();
         }
@@ -793,7 +987,6 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     }
 });
 
-// التعديل هنا: تحديث تاريخ البداية للكل لو كان فاضي
 app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
     try {
         const { months } = req.body;
@@ -810,7 +1003,6 @@ app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
 
             const updateData = { subscription_end: currentEnd.toISOString() };
             
-            // لو تاريخ البداية مفقود، ضيف تاريخ اليوم
             if (!worker.subscription_start) {
                 updateData.subscription_start = now.toISOString();
             }

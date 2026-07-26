@@ -42,14 +42,39 @@
     .gallery-item button { position: absolute; top: 5px; left: 5px; background: rgba(220,38,38,0.9); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
     .upload-box { border: 2px dashed #cbd5e1; padding: 25px; text-align: center; border-radius: 12px; background: #f8fafc; transition: 0.2s; }
     .upload-box:hover { border-color: #0284c7; background: #f0f9ff; }
+
+    /* ======================================================
+       تصميم الشات العصري داخل لوحة الصنايعي
+       ====================================================== */
+    .modern-chat-wrapper { display: flex; flex-direction: column; height: 500px; background: #f8fafc; border-radius: 12px; border: 1px solid #cbd5e1; overflow: hidden; }
+    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .chat-bubble { max-width: 80%; padding: 10px 14px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     
-    /* Chat */
-    .chat-box { border: 1px solid #cbd5e1; border-radius: 8px; height: 350px; overflow-y: auto; padding: 15px; margin-bottom: 15px; background: #f8fafc; }
-    .msg { margin-bottom: 15px; padding: 12px 15px; border-radius: 8px; max-width: 80%; line-height: 1.5; }
-    .msg.admin { background: #e2e8f0; margin-right: auto; border-bottom-right-radius: 0; }
-    .msg.worker { background: #e0f2fe; margin-left: auto; border: 1px solid #bae6fd; border-bottom-left-radius: 0; }
-    .msg small { display: block; font-size: 11px; color: #64748b; margin-top: 5px; }
+    /* رسائل الصنايعي */
+    .msg-worker { align-self: flex-start; background: #0284c7; color: white; border-radius: 14px 14px 4px 14px; }
+    /* رسائل الإدارة */
+    .msg-admin { align-self: flex-end; background: white; color: #334155; border: 1px solid #e2e8f0; border-radius: 14px 14px 14px 4px; }
     
+    .chat-time { font-size: 10px; display: block; margin-top: 4px; text-align: left; opacity: 0.8; }
+    .chat-img-attachment { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
+    
+    /* منطقة الإدخال */
+    .chat-input-area { background: white; padding: 12px; border-top: 1px solid #e2e8f0; display: flex; align-items: flex-end; gap: 8px; }
+    .chat-input-area textarea { flex: 1; border: 1px solid #cbd5e1; border-radius: 18px; padding: 10px 12px; resize: none; height: 44px; max-height: 100px; outline: none; font-family: inherit; font-size: 14px; transition: 0.2s; background: #f8fafc; }
+    .chat-input-area textarea:focus { border-color: #0284c7; background: white; }
+    
+    /* الأزرار */
+    .chat-action-btn { width: 44px; height: 44px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+    .btn-attach { background: #f1f5f9; color: #475569; }
+    .btn-attach:hover { background: #e2e8f0; color: #0f172a; }
+    .btn-send { background: #10b981; color: white; }
+    .btn-send:hover { background: #059669; }
+    
+    /* معاينة الصورة */
+    #chatImagePreviewContainer { display: none; padding: 10px 15px; background: #f8fafc; border-top: 1px solid #e2e8f0; position: relative; }
+    #chatImagePreviewContainer img { height: 50px; border-radius: 6px; border: 1px solid #cbd5e1; }
+    .remove-img-btn { position: absolute; top: 2px; right: 60px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
@@ -182,14 +207,42 @@
       </div>
     </div>
 
-    <!-- 3. تبويبة الشات -->
+    <!-- 3. تبويبة الشات العصري -->
     <div id="chat" class="tab-content">
-      <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-comments"></i> رسائلك مع الإدارة</h3>
-      <div class="chat-box" id="chatBox">جاري التحميل...</div>
-      <div style="display: flex; gap: 10px;">
-        <input type="text" id="chatInput" placeholder="اكتب رسالتك للإدارة هنا..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;">
-        <button class="btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
-      </div>
+        <h3 style="margin-top:0; color:#0f172a; margin-bottom: 15px;"><i class="fa-solid fa-comments"></i> رسائلك مع الإدارة</h3>
+        
+        <div class="modern-chat-wrapper">
+            <!-- منطقة عرض الرسائل -->
+            <div class="chat-messages" id="modernChatMessages">
+                <div style="text-align:center; color:#94a3b8; font-size:14px; margin-top:30px;">
+                    <i class="fa-solid fa-shield-halved" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                    المحادثة مشفرة ومؤمنة.<br>يمكنك التواصل مع إدارة دليل صنايعي مطروح من هنا.
+                </div>
+            </div>
+            
+            <!-- منطقة معاينة الصورة لو اختار صورة -->
+            <div id="chatImagePreviewContainer">
+                <img id="chatImagePreview" src="" alt="Preview">
+                <button type="button" class="remove-img-btn" onclick="removeChatImage()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- منطقة الإدخال -->
+            <form class="chat-input-area" id="modernChatForm" onsubmit="sendModernWorkerMessage(event)">
+                <!-- زرار إرفاق صورة -->
+                <input type="file" id="modernChatAttachment" accept="image/*" style="display:none" onchange="previewChatImage(this)">
+                <button type="button" class="chat-action-btn btn-attach" onclick="document.getElementById('modernChatAttachment').click()" title="إرفاق صورة">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
+
+                <!-- مربع الكتابة -->
+                <textarea id="modernChatInput" placeholder="اكتب رسالتك للإدارة هنا..." oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendModernWorkerMessage(event); }"></textarea>
+                
+                <!-- زرار الإرسال -->
+                <button type="submit" class="chat-action-btn btn-send" id="modernChatSendBtn" title="إرسال">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
     </div>
   </div>
 
@@ -412,54 +465,106 @@
     }
 
     // ==========================================
-    // 3. الشات والمراسلة
+    // 3. الشات العصري والمراسلة
     // ==========================================
+    
+    // دالة عرض الصورة قبل إرسالها
+    function previewChatImage(input) {
+        const previewContainer = document.getElementById('chatImagePreviewContainer');
+        const previewImg = document.getElementById('chatImagePreview');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewContainer.style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // دالة حذف الصورة من المعاينة
+    function removeChatImage() {
+        document.getElementById('modernChatAttachment').value = "";
+        document.getElementById('chatImagePreviewContainer').style.display = 'none';
+        document.getElementById('chatImagePreview').src = "";
+    }
+
+    // تنسيق الوقت
     function formatTime(dateString) {
         if(!dateString) return '';
         return new Date(dateString).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
     }
 
+    // تحميل المحادثة
     async function loadMessages() {
       try {
         const r = await fetch('/api/worker-owner-chat/messages?worker_id=' + workerId);
         const d = await r.json();
-        const box = document.getElementById('chatBox');
+        const box = document.getElementById('modernChatMessages');
         if(d.success) {
-          if(d.messages.length === 0) {
-            box.innerHTML = '<div style="text-align:center; color:#94a3b8; margin-top:40px;">لا توجد رسائل بينك وبين الإدارة حتى الآن.<br>يمكنك إرسال طلباتك ومقترحاتك من الأسفل.</div>';
+          if(!d.messages || d.messages.length === 0) {
+            box.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:14px; margin-top:30px;"><i class="fa-solid fa-shield-halved" style="font-size: 24px; margin-bottom: 10px;"></i><br>المحادثة مشفرة ومؤمنة.<br>يمكنك التواصل مع إدارة دليل صنايعي مطروح من هنا.</div>';
           } else {
-            box.innerHTML = d.messages.map(m => 
-              '<div class="msg ' + (m.sender_type === "admin" ? "admin" : "worker") + '">' + 
-              '<strong style="color: #0f172a;">' + (m.sender_type === "admin" ? '<i class="fa-solid fa-headset"></i> الدعم الفني' : '<i class="fa-solid fa-user"></i> أنت') + '</strong><br>' + 
-              '<div style="margin-top:5px;">' + (m.message_text || '') + '</div>' + 
-              '<small>' + formatTime(m.created_at) + '</small>' +
-              '</div>'
-            ).join('');
+            box.innerHTML = d.messages.map(m => {
+              const isWorker = m.sender_type === "worker";
+              const bubbleClass = isWorker ? "msg-worker" : "msg-admin";
+              
+              let contentHtml = '';
+              if (m.message_text) {
+                  contentHtml += `<div>${m.message_text.replace(/\n/g, '<br>')}</div>`;
+              }
+              if (m.attachment_url) {
+                  const imgUrl = m.attachment_url.startsWith('http') ? m.attachment_url : '/uploads/' + m.attachment_url.split('/').pop();
+                  contentHtml += `<img src="${imgUrl}" class="chat-img-attachment" onclick="window.open('${imgUrl}', '_blank')">`;
+              }
+
+              return `
+              <div class="chat-bubble ${bubbleClass}">
+                ${contentHtml}
+                <span class="chat-time">${formatTime(m.created_at)}</span>
+              </div>`;
+            }).join('');
           }
           box.scrollTop = box.scrollHeight;
         }
       } catch(e) { console.error('Error loading chat:', e); }
     }
 
-    async function sendMessage() {
-      const input = document.getElementById('chatInput');
+    // إرسال الرسالة
+    async function sendModernWorkerMessage(e) {
+      if(e) e.preventDefault();
+      const input = document.getElementById('modernChatInput');
+      const fileInput = document.getElementById('modernChatAttachment');
       const text = input.value.trim();
-      if(!text) return;
+      const file = fileInput.files[0];
+      
+      if(!text && !file) return;
+      
+      const btn = document.getElementById('modernChatSendBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
       try {
         const formData = new FormData();
         formData.append('worker_id', workerId);
-        formData.append('message', text);
+        if(text) formData.append('message', text);
+        if(file) formData.append('attachment', file);
+
         await fetch('/api/worker-owner-chat/messages', { method: 'POST', body: formData });
+        
         input.value = '';
+        input.style.height = '44px'; // Reset height
+        removeChatImage();
         loadMessages();
       } catch(e) {
           alert('تعذر إرسال الرسالة، جرب مرة أخرى');
       }
+      
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
     }
 
-    document.getElementById('chatInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') sendMessage();
-    });
 
     // ==========================================
     // التنقل بين التبويبات وتسجيل الخروج
@@ -472,7 +577,6 @@
       else document.querySelector(`.tab[onclick*="${tabId}"]`).classList.add('active');
       
       if(tabId === 'chat') {
-          document.getElementById('chatBox').innerHTML = 'جاري التحميل...';
           loadMessages();
       }
     }

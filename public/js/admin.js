@@ -1022,43 +1022,54 @@ async function loadAdminChatThreads(){
     renderAdminChatThreads(); updateAdminChatBadge();
   }catch(e){ if(box)box.innerHTML='<div class="chat-empty">'+chatAdminEsc(e.message||'تعذر تحميل المحادثات')+'</div>'; }
 }
+
+// 1. دالة عرض المحادثات في القائمة الجانبية
 function renderAdminChatThreads(){
   const box = document.getElementById('adminChatThreads'); if(!box) return;
   const q = String(document.getElementById('adminChatSearch')?.value || '').trim().toLowerCase();
   let list = adminChatThreadsData;
   if(q){
     list = list.filter(t => {
-      const w = t.worker || {};
-      return [w.name, w.registration_code, w.phone, w.whatsapp, w.trade, w.area, t.latest && t.latest.message_text].join(' ').toLowerCase().includes(q);
+      return [t.name, t.registration_code, t.phone, t.whatsapp, t.trade, t.area, t.message].join(' ').toLowerCase().includes(q);
     });
   }
   if(!list.length){ box.innerHTML = '<div class="chat-empty">لا توجد محادثات مطابقة</div>'; return; }
   box.innerHTML = list.map(t => {
-    const w = t.worker || {}, latest = t.latest || {}, unread = Number(t.unread_count || 0);
-    return `<div class="chat-thread ${unread ? 'unread' : ''} ${String(w.id) === String(adminChatCurrentWorkerId) ? 'active' : ''}" onclick="loadAdminChatMessages('${chatAdminEsc(w.id)}')"><h4>${chatAdminEsc(w.name || 'صنايعي')}</h4><p>${chatAdminEsc(w.registration_code || '')} - ${chatAdminEsc(w.trade || '')} - ${chatAdminEsc(w.area || '')}</p><p>${chatAdminEsc((latest.message_text || latest.attachment_url || '').slice(0, 90))}</p><span class="chat-badge"><i class="fa-solid ${unread ? 'fa-bell' : 'fa-clock'}"></i> ${unread ? unread + ' غير مقروء' : chatAdminTime(latest.created_at)}</span></div>`;
+    const unread = Number(t.unread_count || 0);
+    return `<div class="chat-thread ${unread ? 'unread' : ''} ${String(t.id) === String(adminChatCurrentWorkerId) ? 'active' : ''}" onclick="loadAdminChatMessages('${chatAdminEsc(t.id)}')"><h4>${chatAdminEsc(t.name || 'صنايعي')}</h4><p>${chatAdminEsc(t.registration_code || '')} - ${chatAdminEsc(t.trade || '')} - ${chatAdminEsc(t.area || '')}</p><p>${chatAdminEsc((t.message || '').slice(0, 90))}</p><span class="chat-badge"><i class="fa-solid ${unread ? 'fa-bell' : 'fa-clock'}"></i> ${unread ? unread + ' غير مقروء' : chatAdminTime(t.date)}</span></div>`;
   }).join('');
 }
 
+// 2. دالة جلب وفتح محادثة محددة
 async function loadAdminChatMessages(workerId){
   if(!workerId)return;
   adminChatCurrentWorkerId=workerId;
   const box=document.getElementById('adminChatMessages'); if(box)box.innerHTML='<div class="chat-empty">جاري تحميل الرسائل...</div>';
   try{
-    const r=await fetch(`/api/admin/worker-chat/threads/${encodeURIComponent(workerId)}/messages`,{credentials:'include'});
+    // تم تعديل المسار ليتوافق مع السيرفر الجديد
+    const r=await fetch(`/api/admin/worker-chat/messages/${encodeURIComponent(workerId)}`,{credentials:'include'});
     const d=await r.json().catch(()=>({}));
     if(r.status===401){showLogin();return}
     if(!r.ok||!d.success)throw new Error(d.error||'تعذر تحميل المحادثة');
-    const w=d.worker||{};
-    document.getElementById('adminChatTitle').textContent=w.name||'محادثة صنايعي';
-    document.getElementById('adminChatSub').textContent=[w.registration_code,w.trade,w.area,w.phone||w.whatsapp].filter(Boolean).join(' - ');
+    
+    // جلب بيانات الصنايعي من لستة المحادثات 
+    const t = adminChatThreadsData.find(x => String(x.id) === String(workerId)) || {};
+    
+    document.getElementById('adminChatTitle').textContent=t.name||'محادثة صنايعي';
+    document.getElementById('adminChatSub').textContent=[t.registration_code,t.trade,t.area,t.phone].filter(Boolean).join(' - ');
     document.getElementById('adminChatForm').style.display='grid';
+    
     renderAdminChatMessages(d.messages||[]);
+    
+    // تحديث اللستة عشان نشيل العلامة الحمرا (تمت القراءة)
     await loadAdminChatThreads();
+    
     if(adminChatTimer)clearInterval(adminChatTimer);
     adminChatTimer=setInterval(()=>{ if(document.getElementById('chatSection')?.classList.contains('active') && adminChatCurrentWorkerId) loadAdminChatMessages(adminChatCurrentWorkerId); },20000);
   }catch(e){ if(box)box.innerHTML='<div class="chat-empty">'+chatAdminEsc(e.message||'تعذر تحميل المحادثة')+'</div>'; }
 }
 
+// 3. دالة إرسال الرد من الإدارة
 async function sendAdminChatMessage(e){
   e.preventDefault();
   if(!adminChatCurrentWorkerId){toast('error','اختر محادثة أولًا');return;}
@@ -1068,24 +1079,37 @@ async function sendAdminChatMessage(e){
   const btn=e.currentTarget.querySelector('button[type="submit"]'); const old=btn?btn.innerHTML:'';
   if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
   try{
-    const fd=new FormData(); fd.set('message',msg); if(file&&file.files&&file.files[0])fd.set('attachment',file.files[0]);
-    const r=await fetch(`/api/admin/worker-chat/threads/${encodeURIComponent(adminChatCurrentWorkerId)}/messages`,{method:'POST',credentials:'include',body:fd});
+    const fd=new FormData(); 
+    fd.set('message',msg); 
+    fd.set('worker_id', adminChatCurrentWorkerId); // إرسال رقم الصنايعي للسيرفر
+    if(file&&file.files&&file.files[0])fd.set('attachment',file.files[0]);
+    
+    // تم تعديل المسار ليتوافق مع السيرفر الجديد
+    const r=await fetch(`/api/admin/worker-chat/messages`,{method:'POST',credentials:'include',body:fd});
     const d=await r.json().catch(()=>({}));
     if(r.status===401){showLogin();return}
     if(!r.ok||!d.success)throw new Error(d.error||'تعذر إرسال الرد');
-    if(input)input.value=''; if(file)file.value=''; toast('success',d.message||'تم إرسال الرد'); loadAdminChatMessages(adminChatCurrentWorkerId);
+    
+    if(input)input.value=''; if(file)file.value=''; toast('success',d.message||'تم إرسال الرد'); 
+    loadAdminChatMessages(adminChatCurrentWorkerId);
   }catch(err){ toast('error',err.message||'تعذر إرسال الرد'); }
   finally{ if(btn){btn.disabled=false;btn.innerHTML=old;} }
 }
 
+// 4. دالة عرض الرسايل ورسمها على الشاشة بشكل سليم (مع الصور)
 function renderAdminChatMessages(messages){
   const box = document.getElementById('adminChatMessages'); if(!box) return;
   if(!messages || !messages.length){ box.innerHTML = '<div class="chat-empty">لا توجد رسائل في هذه المحادثة</div>'; return; }
   box.innerHTML = messages.map(m => {
     const cls = m.sender_type === 'admin' ? 'admin' : 'worker';
     const who = m.sender_type === 'admin' ? 'الإدارة' : 'الصنايعي';
-    const img = m.attachment_url ? `<img src="${chatAdminEsc(m.attachment_url)}" alt="مرفق">` : '';
-    return `<div class="admin-chat-msg ${cls}"><b>${who}</b><br>${chatAdminEsc(m.message_text || '')}${img}<small>${chatAdminEsc(chatAdminTime(m.created_at))}</small></div>`;
+    
+    // تظبيط مسار الصورة لو موجودة
+    let imgUrl = m.attachment_url;
+    if(imgUrl && !imgUrl.startsWith('http') && !imgUrl.startsWith('/uploads')) imgUrl = '/uploads/' + imgUrl;
+    const img = imgUrl ? `<a href="${chatAdminEsc(imgUrl)}" target="_blank"><img src="${chatAdminEsc(imgUrl)}" alt="مرفق" style="max-width:200px;border-radius:8px;margin-top:5px;display:block;border:1px solid #cbd5e1"></a>` : '';
+    
+    return `<div class="admin-chat-msg ${cls}"><b>${who}</b><br>${chatAdminEsc(m.message_text || '').replace(/\n/g, '<br>')}${img}<small>${chatAdminEsc(chatAdminTime(m.created_at))}</small></div>`;
   }).join('');
   box.scrollTop = box.scrollHeight;
 }
