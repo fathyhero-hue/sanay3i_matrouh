@@ -301,6 +301,13 @@ document.addEventListener("click", function(ev){
 
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeForceModal(); }, true);
 
+// ==========================================
+// دالة حماية النصوص (ضرورية لرسم كروت الصنايعية)
+// ==========================================
+function adminActionsEscapeAttr(v){
+  return String(v ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
 function adminWorkerQuickButton(w){
   const id=adminActionsEscapeAttr(wid(w)); const reg=adminActionsEscapeAttr(registrationCodeText(w));
   const phone=adminActionsEscapeAttr(wphone(w)||""); const wa=adminActionsEscapeAttr(wwhatsapp(w)||wphone(w)||"");
@@ -624,13 +631,10 @@ async function loadAnalytics() {
     const formattedPages = (d.top_pages || []).map(page => {
       let friendlyName = page.name;
       try {
-        // فك التشفير بتاع الروابط العربي
         const decodedPath = decodeURIComponent(page.name);
-        
         if (decodedPath === '/' || decodedPath === '') {
           friendlyName = '🏠 الصفحة الرئيسية';
         } else if (decodedPath.startsWith('/worker/')) {
-          // استخراج رقم الصنايعي والبحث عن اسمه
           const wId = decodedPath.split('/')[2];
           const worker = allWorkers.find(w => String(wid(w)) === String(wId));
           friendlyName = worker ? `👷‍♂️ ${wname(worker)}` : `صنايعي رقم ${wId}`;
@@ -641,10 +645,9 @@ async function loadAnalytics() {
           const areaName = decodedPath.split('/')[2];
           friendlyName = `📍 منطقة: ${areaName.replace(/-/g, ' ')}`;
         } else {
-           friendlyName = decodedPath; // لو رابط تاني
+           friendlyName = decodedPath;
         }
       } catch(e) {}
-      
       return { name: friendlyName, count: page.count };
     });
 
@@ -1044,3 +1047,26 @@ async function sendAdminSupportMessage(e) {
 }
 
 window.onload = checkLogin;
+
+// ==========================================
+// دالة حماية النصوص (ضرورية لرسم كروت الصنايعية)
+// ==========================================
+function adminActionsEscapeAttr(v){
+  return String(v ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ==========================================
+// دوال التقييمات (النجوم) لروت الصنايعية
+// ==========================================
+function getRatingSummary(workerId) {
+  if (!ratingsByWorker[workerId]) return { average: 0, count: 0 };
+  return ratingsByWorker[workerId];
+}
+
+function renderAdminRating(id) {
+  const summary = getRatingSummary(id);
+  if (!summary.count) {
+    return '<div class="admin-card-rating no-rating"><i class="fa-regular fa-star"></i> لا توجد تقييمات</div>';
+  }
+  return `<div class="admin-card-rating"><i class="fa-solid fa-star"></i> ${summary.average} من 5 (${summary.count})</div>`;
+}
