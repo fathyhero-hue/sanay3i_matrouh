@@ -1022,22 +1022,6 @@ app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
 });
 
 // ===============================
-// 6. استدعاء وتفعيل المسارات الأخرى
-// ===============================
-const adminRoutes = require("./routes/admin");
-const workersRoutes = require("./routes/workers");
-const whatsappRoutes = require("./routes/whatsapp");
-const supportRoutes = require("./routes/support");
-const coreRoutes = require("./routes/core");
-
-app.use("/api/admin", adminRoutes);
-app.use("/api/workers", workersRoutes);
-app.use("/api/sanaieya", workersRoutes);
-app.use("/api", whatsappRoutes);
-app.use("/api/support-chat", supportRoutes);
-app.use("/api", coreRoutes);
-
-// ===============================
 // 7. مسارات التحليلات والإحصائيات
 // ===============================
 app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
@@ -1061,6 +1045,136 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
     return res.json({ success: true, tracked: false });
   }
 });
+
+// ==========================================
+// مسار التحليلات الاحترافي (Dashboard Analytics)
+// ==========================================
+app.get('/api/admin/analytics', adminApiRateLimit, async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - days);
+
+    // 1. جلب كل الأحداث في الفترة المحددة
+    const { data: events, error } = await supabase
+      .from('analytics_events')
+      .select('*')
+      .gte('created_at', dateLimit.toISOString());
+
+    if (error) throw error;
+
+    // 2. تجهيز الإحصائيات الأساسية
+    const totals = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: events?.length || 0 };
+    const workerStats = {};
+    const tradeStats = {};
+    const areaStats = {};
+    const pageStats = {};
+    const dailyStats = {};
+    const filterTradeStats = {};
+    const filterAreaStats = {};
+
+    (events || []).forEach(ev => {
+      const type = ev.event_type;
+      const wid = ev.worker_id;
+      const date = new Date(ev.created_at).toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+      // حساب الإجماليات
+      if (type === 'call') { totals.call++; totals.total_contacts++; }
+      if (type === 'whatsapp') { totals.whatsapp++; totals.total_contacts++; }
+      if (type === 'profile_view') totals.profile_view++;
+
+      // إحصائيات الصفحات
+      if (ev.page_path) {
+        pageStats[ev.page_path] = (pageStats[ev.page_path] || 0) + 1;
+      }
+      
+      // إحصائيات اختيارات الزوار للحرف والمناطق (الفلاتر)
+      if (type === 'filter_trade' && ev.source) {
+         filterTradeStats[ev.source] = (filterTradeStats[ev.source] || 0) + 1;
+      }
+      if (type === 'filter_area' && ev.source) {
+         filterAreaStats[ev.source] = (filterAreaStats[ev.source] || 0) + 1;
+      }
+
+      // إحصائيات الأيام
+      if (!dailyStats[date]) dailyStats[date] = { date, call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: 0 };
+      dailyStats[date].total_events++;
+      if (type === 'call') { dailyStats[date].call++; dailyStats[date].total_contacts++; }
+      if (type === 'whatsapp') { dailyStats[date].whatsapp++; dailyStats[date].total_contacts++; }
+      if (type === 'profile_view') dailyStats[date].profile_view++;
+
+      // إحصائيات الصنايعية
+      if (wid && wid !== 'undefined' && wid !== 'null') {
+        if (!workerStats[wid]) workerStats[wid] = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0 };
+        if (type === 'call') { workerStats[wid].call++; workerStats[wid].total_contacts++; }
+        if (type === 'whatsapp') { workerStats[wid].whatsapp++; workerStats[wid].total_contacts++; }
+        if (type === 'profile_view') workerStats[wid].profile_view++;
+      }
+    });
+
+    // 3. جلب بيانات الصنايعية لدمجها مع التحليلات (لمعرفة الحرف والمناطق)
+    const workerIds = Object.keys(workerStats);
+    let workersData = [];
+    if (workerIds.length > 0) {
+      const { data: wData } = await supabase.from('workers').select('id, name, trade, area, image').in('id', workerIds);
+      workersData = wData || [];
+    }
+
+    // دمج البيانات واستخراج إحصائيات الحرف والمناطق (المبنية على أرقام التواصل الفعلية)
+    const topWorkers = [];
+    workersData.forEach(w => {
+      const stats = workerStats[w.id];
+      if (stats) {
+        topWorkers.push({ worker_id: w.id, worker: w, ...stats });
+        
+        // حساب أكثر الحرف والمناطق اللي بيجيلها تواصل فعلي
+        if (w.trade) tradeStats[w.trade] = (tradeStats[w.trade] || 0) + stats.total_contacts;
+        if (w.area) areaStats[w.area] = (areaStats[w.area] || 0) + stats.total_contacts;
+      }
+    });
+
+    // ترتيب البيانات
+    topWorkers.sort((a, b) => b.total_contacts - a.total_contacts);
+    
+    const formatTop = (obj) => Object.entries(obj).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+
+    // نسبة التحويل (كم واحد شاف البروفايل وكلم الصنايعي)
+    totals.conversion_rate = totals.profile_view > 0 ? ((totals.total_contacts / totals.profile_view) * 100).toFixed(1) : 0;
+
+    res.json({
+      success: true,
+      totals,
+      top_workers: topWorkers.slice(0, 10),
+      top_trades: formatTop(tradeStats),
+      top_areas: formatTop(areaStats),
+      filter_trades: formatTop(filterTradeStats),
+      filter_areas: formatTop(filterAreaStats),
+      top_pages: formatTop(pageStats),
+      daily: Object.values(dailyStats).sort((a, b) => new Date(a.date) - new Date(b.date)),
+      missing_trade_area: [] // يمكن برمجتها لاحقاً إذا دعت الحاجة
+    });
+  } catch (err) {
+    console.error('Analytics Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===============================
+// 6. استدعاء وتفعيل المسارات الأخرى
+// ===============================
+const adminRoutes = require("./routes/admin");
+const workersRoutes = require("./routes/workers");
+const whatsappRoutes = require("./routes/whatsapp");
+const supportRoutes = require("./routes/support");
+const coreRoutes = require("./routes/core");
+
+app.use("/api/admin", adminRoutes);
+app.use("/api/workers", workersRoutes);
+app.use("/api/sanaieya", workersRoutes);
+app.use("/api", whatsappRoutes);
+app.use("/api/support-chat", supportRoutes);
+app.use("/api", coreRoutes);
+
 
 // ===============================
 // 8. الملفات الثابتة والصفحات

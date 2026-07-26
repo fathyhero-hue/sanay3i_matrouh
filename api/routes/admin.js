@@ -17,9 +17,6 @@ const { logAdminActivity } = require("../utils/activityLogger");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456";
 const ADMIN_PASSWORD_ITERATIONS = 120000;
 
-// ===============================
-// دوال مساعدة لإنشاء وفحص كلمات المرور
-// ===============================
 function hashAdminPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
   const hash = crypto.pbkdf2Sync(String(password || ""), salt, ADMIN_PASSWORD_ITERATIONS, 64, "sha256").toString("hex");
   return { salt, hash };
@@ -41,9 +38,6 @@ function safePasswordEqual(input, expected) {
   return crypto.timingSafeEqual(a, b);
 }
 
-// ===============================
-// 1. مسارات تسجيل الدخول والخروج
-// ===============================
 router.post("/login", async (req, res) => {
   try {
     if (!process.env.ADMIN_SESSION_SECRET) {
@@ -53,7 +47,6 @@ router.post("/login", async (req, res) => {
     const username = String(req.body?.username || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
 
-    // 1. تسجيل الدخول باستخدام مستخدمين قاعدة البيانات (إذا تم إدخال اسم مستخدم)
     if (username) {
       try {
         if (isSupabaseReady()) {
@@ -76,7 +69,6 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    // 2. تسجيل الدخول لحالة الطوارئ / المدير الرئيسي (عند ترك اسم المستخدم فارغاً)
     const envPassword = process.env.ADMIN_PASSWORD || "123456";
     if (password && (password === envPassword || safePasswordEqual(password, envPassword))) {
       const admin = publicAdmin({ id: null, username: "env_admin", display_name: "المدير الرئيسي", role: "super_admin" });
@@ -101,9 +93,6 @@ router.get("/me", (req, res) => {
   return res.json({ authenticated: !!admin, admin: publicAdmin(admin), roles: ADMIN_ROLES });
 });
 
-// ===============================
-// 2. إدارة المستخدمين (المديرين)
-// ===============================
 router.get("/users", requirePermission("admin_users:manage"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const { data, error } = await supabase
@@ -148,9 +137,6 @@ router.delete("/users/:id", requirePermission("admin_users:manage"), async (req,
   res.json({ success: true });
 });
 
-// ===============================
-// 3. الإحصائيات (Dashboard Stats)
-// ===============================
 router.get("/dashboard-stats", requirePermission("analytics:read"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const t = today();
@@ -190,8 +176,86 @@ router.get("/dashboard-stats", requirePermission("analytics:read"), async (req, 
 });
 
 // ===============================
-// 4. سجل نشاط الإدارة
+// 4. مسار التحليلات الاحترافي (Smart Analytics)
 // ===============================
+router.get('/analytics', requirePermission("analytics:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - days);
+
+    // 1. جلب كل الأحداث
+    const { data: events, error } = await supabase
+      .from('analytics_events')
+      .select('*')
+      .gte('created_at', dateLimit.toISOString());
+
+    if (error) throw error;
+
+    // 2. تجميع الإحصائيات
+    const totals = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: events?.length || 0 };
+    const workerStats = {};
+    const tradeStats = {};
+    const areaStats = {};
+    const pageStats = {};
+
+    (events || []).forEach(ev => {
+      const type = ev.event_type;
+      const wid = String(ev.worker_id).trim();
+
+      if (type === 'call') { totals.call++; totals.total_contacts++; }
+      if (type === 'whatsapp') { totals.whatsapp++; totals.total_contacts++; }
+      if (type === 'profile_view') totals.profile_view++;
+
+      if (ev.page_path) pageStats[ev.page_path] = (pageStats[ev.page_path] || 0) + 1;
+
+      if (wid && wid !== 'undefined' && wid !== 'null') {
+        if (!workerStats[wid]) workerStats[wid] = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0 };
+        if (type === 'call') { workerStats[wid].call++; workerStats[wid].total_contacts++; }
+        if (type === 'whatsapp') { workerStats[wid].whatsapp++; workerStats[wid].total_contacts++; }
+        if (type === 'profile_view') workerStats[wid].profile_view++;
+      }
+    });
+
+    // 3. جلب بيانات الصنايعية لدمجها مع التحليلات واستخراج الحرف (استخدام select * لضمان جلب كل البيانات)
+    const workerIds = Object.keys(workerStats);
+    let workersData = [];
+    if (workerIds.length > 0) {
+      const { data: wData } = await supabase.from('workers').select('*').in('id', workerIds);
+      workersData = wData || [];
+    }
+
+    const topWorkers = [];
+    workersData.forEach(w => {
+      const stats = workerStats[String(w.id)];
+      if (stats) {
+        topWorkers.push({ worker_id: w.id, worker: w, ...stats });
+        if (w.trade) tradeStats[w.trade] = (tradeStats[w.trade] || 0) + stats.total_contacts;
+        if (w.area) areaStats[w.area] = (areaStats[w.area] || 0) + stats.total_contacts;
+      }
+    });
+
+    // الترتيب من الأكبر للأصغر
+    topWorkers.sort((a, b) => b.total_contacts - a.total_contacts);
+    const formatTop = (obj) => Object.entries(obj).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+
+    totals.conversion_rate = totals.profile_view > 0 ? ((totals.total_contacts / totals.profile_view) * 100).toFixed(1) : 0;
+
+    res.json({
+      success: true,
+      totals,
+      top_workers: topWorkers.slice(0, 10), // إرسال أول 10 فقط عشان ميعرضش 30 كارت
+      top_trades: formatTop(tradeStats),
+      top_areas: formatTop(areaStats),
+      top_pages: formatTop(pageStats)
+    });
+  } catch (err) {
+    console.error('Analytics Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.get("/activity-log", requirePermission("activity_log:read"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const limit = Math.max(10, Math.min(500, Number(req.query.limit) || 150));
@@ -202,83 +266,38 @@ router.get("/activity-log", requirePermission("activity_log:read"), async (req, 
   res.json({ success: true, items: data || [] });
 });
 
-// ===============================
-// 5. مسار جلب الروابط الآمنة لصور البطاقة (لمدة 60 ثانية) - التحديث الشامل
-// ===============================
 router.get('/workers/:id/id-card/:side', async (req, res) => {
   if (!isSupabaseReady(res)) return;
-  
   try {
     const { id, side } = req.params;
+    const { data: worker, error: dbError } = await supabase.from('workers').select('*').eq('id', id).single();
 
-    // 1. نستخدم select('*') لتجنب أي أخطاء لو في عمود مش موجود في الجدول
-    const { data: worker, error: dbError } = await supabase
-      .from('workers')
-      .select('*')
-      .eq('id', id)
-      .single();
+    if (dbError || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
 
-    if (dbError || !worker) {
-      console.error("DB Error:", dbError);
-      return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
-    }
+    let rawFileName = side === 'front' ? (worker.id_front || worker.id_front_path || worker.id_front_url) : (worker.id_back || worker.id_back_path || worker.id_back_url);
+    if (!rawFileName) return res.status(404).json({ success: false, error: 'لم يتم رفع صورة لهذا الجانب' });
 
-    // 2. نحدد اسم الصورة أياً كان العمود اللي متسجلة فيه
-    let rawFileName = side === 'front' 
-      ? (worker.id_front || worker.id_front_path || worker.id_front_url)
-      : (worker.id_back || worker.id_back_path || worker.id_back_url);
-
-    if (!rawFileName) {
-      return res.status(404).json({ success: false, error: 'لم يتم رفع صورة لهذا الجانب' });
-    }
-
-    // تنظيف اسم الملف (لو كان متخزن كمسار كامل ناخده من غير الزيادات)
     let fileName = rawFileName;
-    if (fileName.includes('/')) {
-        fileName = fileName.split('/').pop(); 
-    }
-
-    // تجهيز المسار اللي ظاهر عندك في الصورة (جوه فولدر id-cards)
+    if (fileName.includes('/')) fileName = fileName.split('/').pop(); 
     const folderPath = `id-cards/${fileName}`;
 
-    // 3. نطلب من Supabase رابط مؤقت من الباكيت السري (المسار الداخلي)
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('identity-docs')
-      .createSignedUrl(folderPath, 60);
+    const { data: signedData, error: signedError } = await supabase.storage.from('identity-docs').createSignedUrl(folderPath, 60);
 
     if (signedError || !signedData?.signedUrl) {
-      // محاولة 2: لو الصورة مش جوه الفولدر، نجرب من الجذر مباشرة (للتسجيلات الجديدة)
-      const { data: rootData } = await supabase.storage
-        .from('identity-docs')
-        .createSignedUrl(fileName, 60);
-        
-      if (rootData && rootData.signedUrl) {
-        return res.json({ success: true, url: rootData.signedUrl });
-      }
+      const { data: rootData } = await supabase.storage.from('identity-docs').createSignedUrl(fileName, 60);
+      if (rootData && rootData.signedUrl) return res.json({ success: true, url: rootData.signedUrl });
 
-      // محاولة 3: لو ملهاش أثر، نجرب نجيبها من فولدر uploads القديم
-      const { data: fallbackData } = await supabase.storage
-        .from('uploads')
-        .createSignedUrl(folderPath, 60);
-        
-      if (fallbackData && fallbackData.signedUrl) {
-        return res.json({ success: true, url: fallbackData.signedUrl });
-      }
+      const { data: fallbackData } = await supabase.storage.from('uploads').createSignedUrl(folderPath, 60);
+      if (fallbackData && fallbackData.signedUrl) return res.json({ success: true, url: fallbackData.signedUrl });
 
       return res.status(404).json({ success: false, error: 'الصورة غير موجودة في التخزين' });
     }
-
-    // إرسال الرابط الآمن للفرونت إند
     res.json({ success: true, url: signedData.signedUrl });
   } catch (error) {
-    console.error('Signed URL Error:', error);
     res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب الصورة' });
   }
 });
 
-// ===============================
-// 6. مسار إشعارات لوحة التحكم (Notifications)
-// ===============================
 router.get("/notifications", async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const t = today();
@@ -294,35 +313,19 @@ router.get("/notifications", async (req, res) => {
     const pendingWorkers = workers.filter(w => !bool(w.approved)).length;
     const pendingReviews = reviews.filter(r => !bool(r.approved)).length;
 
-    let subscriptionsSoon = 0;
-    let subscriptionsExpired = 0;
+    let subscriptionsSoon = 0, subscriptionsExpired = 0;
 
     workers.forEach(w => {
       if (!w.subscription_end) return;
-      const end = new Date(w.subscription_end);
-      const now = new Date();
-      now.setHours(0,0,0,0);
-      end.setHours(0,0,0,0);
+      const end = new Date(w.subscription_end), now = new Date();
+      now.setHours(0,0,0,0); end.setHours(0,0,0,0);
       const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-      if (days < 0) subscriptionsExpired++;
-      else if (days <= 7) subscriptionsSoon++;
+      if (days < 0) subscriptionsExpired++; else if (days <= 7) subscriptionsSoon++;
     });
 
-    res.json({
-      success: true,
-      pendingWorkers,
-      pendingReviews,
-      subscriptionsSoon,
-      subscriptionsExpired
-    });
+    res.json({ success: true, pendingWorkers, pendingReviews, subscriptionsSoon, subscriptionsExpired });
   } catch (e) {
-    res.json({ 
-      success: true, 
-      pendingWorkers: 0, 
-      pendingReviews: 0, 
-      subscriptionsSoon: 0, 
-      subscriptionsExpired: 0 
-    });
+    res.json({ success: true, pendingWorkers: 0, pendingReviews: 0, subscriptionsSoon: 0, subscriptionsExpired: 0 });
   }
 });
 
