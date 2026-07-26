@@ -1070,3 +1070,31 @@ function renderAdminRating(id) {
   }
   return `<div class="admin-card-rating"><i class="fa-solid fa-star"></i> ${summary.average} من 5 (${summary.count})</div>`;
 }
+// ==========================================
+// دالة ترتيب الصنايعية في لوحة الإدارة (ضرورية للفلترة)
+// ==========================================
+function sortAdminWorkers(workers){
+  const sortEl = document.getElementById("adminSortFilter");
+  const sortValue = sortEl ? sortEl.value : "default";
+  const sorted = [...workers];
+
+  if(sortValue === "rating"){
+    sorted.sort((a, b) => {
+      const ar = (typeof getRatingSummary === "function") ? getRatingSummary(wid(a)) : { average: 0, count: 0 };
+      const br = (typeof getRatingSummary === "function") ? getRatingSummary(wid(b)) : { average: 0, count: 0 };
+      if(br.average !== ar.average) return br.average - ar.average;
+      return br.count - ar.count;
+    });
+  } else if(sortValue === "newest"){
+    sorted.sort((a, b) => (Number(wid(b)) || 0) - (Number(wid(a)) || 0));
+  } else if(sortValue === "featured"){
+    sorted.sort((a, b) => {
+      const af = isFeatured(a) ? 1 : 0;
+      const bf = isFeatured(b) ? 1 : 0;
+      if(bf !== af) return bf - af;
+      return (Number(wid(b)) || 0) - (Number(wid(a)) || 0);
+    });
+  }
+
+  return sorted;
+}
