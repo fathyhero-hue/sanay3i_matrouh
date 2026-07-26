@@ -237,9 +237,45 @@ function openRenew(w){
   };
 }
 
+function openWhatsapp(w){
+  const id=String(wid(w)); const phone=wwhatsapp(w)||wphone(w);
+  openForceModal('رسائل واتساب', `${workerSummary(w)}
+    <label style="${cssField}"><b>نص الرسالة</b><textarea id="v8_wa_message" style="${cssInput};min-height:220px">${esc(buildWhatsAppTemplate('approved', w))}</textarea></label>
+    <div style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:16px;padding:12px;margin-top:14px;font-weight:900;line-height:1.8">الإرسال التلقائي يستخدم WhatsApp Cloud API. لو فشل بسبب نافذة المحادثة، استخدم زر فتح واتساب يدويًا.</div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <button type="button" id="v8_wa_auto" style="${cssBtn}background:#2563eb;color:#fff;">إرسال تلقائي</button>
+      <button type="button" id="v8_wa_manual" style="${cssBtn}background:#dcfce7;color:#166534;">فتح واتساب يدويًا</button>
+      <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إغلاق</button>
+    </div>`);
+  document.getElementById('v8_wa_manual').onclick=function(){ const num=adminWhatsAppNumber(phone); if(!num){toast('error','لا يوجد رقم واتساب صالح'); return;} window.open('https://wa.me/'+num+'?text='+encodeURIComponent(document.getElementById('v8_wa_message').value.trim()),'_blank'); };
+  document.getElementById('v8_wa_auto').onclick=async function(){
+    try{
+      const msg=document.getElementById('v8_wa_message').value.trim(); if(!phone){toast('error','لا يوجد رقم واتساب');return;} if(!msg){toast('error','اكتب نص الرسالة');return;}
+      this.disabled=true; this.textContent='جاري الإرسال...';
+      const r=await fetch('/api/admin/whatsapp/send-worker',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({worker_id:id,phone,message:msg,mode:'text',message_type:'admin_message'})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok || d.success===false) throw new Error(d.error||'فشل إرسال واتساب');
+      toast('success','تم إرسال واتساب تلقائيًا');
+    }catch(ex){ toast('error', ex.message||'فشل إرسال واتساب'); }
+    finally{ this.disabled=false; this.textContent='إرسال تلقائي'; }
+  };
+}
+
 window.openIdentityReviewModal = function(id) { const w = allWorkers.find(x => String(wid(x)) === String(id)); if(w) openIdentity(w); };
 window.openEditModal = function(id) { const w = allWorkers.find(x => String(wid(x)) === String(id)); if(w) openEdit(w); };
 window.openRenewModal = function(id) { const w = allWorkers.find(x => String(wid(x)) === String(id)); if(w) openRenew(w); };
+window.openWhatsAppModal = function(id) { const w = allWorkers.find(x => String(wid(x)) === String(id)); if(w) openWhatsapp(w); };
+
+window.openIdentityDoc = async function(id, side){
+  try{
+    toast("success", "جاري تحميل الصورة...");
+    const r=await fetch(`/api/admin/workers/${id}/id-card/${side}`,{credentials:"include"});
+    const data=await r.json();
+    if(r.status===401){ showLogin(); return;}
+    if(!r.ok||!data.success) throw new Error(data.error||"تعذر فتح صورة البطاقة");
+    openForceModal('صورة البطاقة (' + (side==='front'?'وجه':'ظهر') + ')', `<div style="text-align:center;"><img src="${esc(data.url)}" style="max-width:100%;max-height:60vh;object-fit:contain;border-radius:16px;border:1px solid #e5e7eb;"><br><br><a href="${esc(data.url)}" target="_blank" style="${cssBtn}background:#0f172a;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-top:14px"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح في نافذة جديدة</a></div>`);
+  }catch(e){ toast("error", e.message||"تعذر فتح صورة البطاقة"); }
+};
 
 window.adminWorkerCardActionDirectV7 = function(ev, btn){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
@@ -251,6 +287,7 @@ window.adminWorkerCardActionDirectV7 = function(ev, btn){
   if(action === 'full' || action === 'edit') openEdit(worker);
   else if(action === 'identity') openIdentity(worker);
   else if(action === 'renew') openRenew(worker);
+  else if(action === 'whatsapp') openWhatsapp(worker);
   else if(action === 'active') toggleActive(id, isActive(worker));
   else if(action === 'delete') deleteWorker(id);
   else if(action === 'approve') toggleApprove(id, isApproved(worker));
@@ -582,7 +619,36 @@ async function loadAnalytics() {
 
     renderModernBars("analyticsTopTrades", d.top_trades, "fill-blue");
     renderModernBars("analyticsTopAreas", d.top_areas, "fill-emerald");
-    renderModernBars("analyticsTopPages", d.top_pages, "fill-purple");
+
+    // --- التعديل هنا: تحويل مسارات الصفحات لأسماء مقروءة ---
+    const formattedPages = (d.top_pages || []).map(page => {
+      let friendlyName = page.name;
+      try {
+        // فك التشفير بتاع الروابط العربي
+        const decodedPath = decodeURIComponent(page.name);
+        
+        if (decodedPath === '/' || decodedPath === '') {
+          friendlyName = '🏠 الصفحة الرئيسية';
+        } else if (decodedPath.startsWith('/worker/')) {
+          // استخراج رقم الصنايعي والبحث عن اسمه
+          const wId = decodedPath.split('/')[2];
+          const worker = allWorkers.find(w => String(wid(w)) === String(wId));
+          friendlyName = worker ? `👷‍♂️ ${wname(worker)}` : `صنايعي رقم ${wId}`;
+        } else if (decodedPath.startsWith('/trade/')) {
+          const tradeName = decodedPath.split('/')[2];
+          friendlyName = `🛠️ حرفة: ${tradeName.replace(/-/g, ' ')}`;
+        } else if (decodedPath.startsWith('/area/')) {
+          const areaName = decodedPath.split('/')[2];
+          friendlyName = `📍 منطقة: ${areaName.replace(/-/g, ' ')}`;
+        } else {
+           friendlyName = decodedPath; // لو رابط تاني
+        }
+      } catch(e) {}
+      
+      return { name: friendlyName, count: page.count };
+    });
+
+    renderModernBars("analyticsTopPages", formattedPages, "fill-purple");
 
   } catch (e) {
     boxTopWorkers.innerHTML = "";
@@ -620,6 +686,25 @@ function previewWhatsappSingle(){
 رابط الحالة: ${registrationStatusLink(w)}
 حالة الرقم: ${valid?"صالح للإرسال":"لا يوجد رقم صالح"}`;
 }
+async function syncWaSingleRequiredAction(w,type){
+  if(!document.getElementById("waSingleSyncStatus")?.checked)return true;
+  const map={
+    registration_id_reupload:{identity_status:"needs_id_reupload",reason:"مطلوب إعادة رفع صورة البطاقة وجه وظهر بوضوح"},
+    registration_update_data:{identity_status:"needs_data",reason:"مطلوب تعديل أو استكمال البيانات المطلوبة مثل رقم الهاتف أو الحرفة أو المنطقة"},
+    registration_work_photos:{identity_status:"needs_data",reason:"مطلوب رفع صور أعمال واضحة من شغلك"},
+    identity_needs_id_reupload:{identity_status:"needs_id_reupload",reason:"مطلوب إعادة رفع صورة البطاقة وجه وظهر بوضوح"},
+    identity_needs_data:{identity_status:"needs_data",reason:"مطلوب تعديل أو استكمال البيانات المطلوبة"},
+    need_data:{identity_status:"needs_data",reason:"مطلوب استكمال أو تعديل بعض البيانات قبل الاعتماد"}
+  };
+  const payload=map[type]; if(!payload)return true;
+  try{
+    const r=await fetch(`/api/admin/workers/${wid(w)}/identity-review`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,note:"تم تحديد الإجراء من تبويب رسائل واتساب الفردية."})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"لم يتم تحديث حالة الطلب");
+    await loadAllData(); return true;
+  }catch(e){ toast("error",e.message||"لم يتم تحديث حالة الطلب، سيتم محاولة إرسال واتساب فقط"); return false; }
+}
+
 async function sendWhatsappSingle(){
   if(!can("whatsapp:send")){toast("error","ليس لديك صلاحية إرسال واتساب");return}
   const w=getWaSingleWorker(); if(!w){toast("error","اختر الصنايعي أولًا");return}
@@ -629,6 +714,7 @@ async function sendWhatsappSingle(){
   if(!adminWhatsAppNumber(phone)){toast("error","لا يوجد رقم واتساب صالح لهذا الصنايعي");return}
   if(mode!=="template"&&!msg){toast("error","اكتب نص الرسالة أولًا");return}
   if(mode==="template"&&!templateName){toast("error","اكتب اسم Template");return}
+  await syncWaSingleRequiredAction(w,type);
   const btn=document.getElementById("waSingleSendBtn"),old=btn?btn.innerHTML:"";
   if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...'}
   try{
@@ -642,7 +728,9 @@ async function sendWhatsappSingle(){
 async function openWhatsappSingleManual(){
   const w=getWaSingleWorker(); if(!w){toast("error","اختر الصنايعي أولًا");return}
   const num=adminWhatsAppNumber(wwhatsapp(w)||wphone(w)); const msg=(document.getElementById("waSingleMessageText")?.value||"").trim();
+  const type=document.getElementById("waSingleTemplateType")?.value||"admin_message";
   if(!num){toast("error","لا يوجد رقم واتساب صالح");return}
+  await syncWaSingleRequiredAction(w,type);
   window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg),"_blank");
 }
 
@@ -662,6 +750,7 @@ function waBulkEligibleWorkers(){
     return true;
   });
 }
+
 function waBulkMessageForWorker(w){
   const type=document.getElementById("waBulkTemplateType")?.value||"approved";
   if(type==="custom"){
@@ -670,6 +759,7 @@ function waBulkMessageForWorker(w){
   }
   return buildWhatsAppTemplate(type,w);
 }
+
 function previewWhatsappBulk(){
   const box=document.getElementById("waBulkSummary"); if(!box)return;
   const workers=waBulkEligibleWorkers(); const mode=document.getElementById("waBulkMode")?.value||"text"; const type=document.getElementById("waBulkTemplateType")?.value||"approved";
@@ -680,6 +770,7 @@ function previewWhatsappBulk(){
   else text+=`\nلا يوجد مستلمون مطابقون.`;
   box.textContent=text;
 }
+
 async function sendWhatsappBulk(){
   if(!can("whatsapp:send")){toast("error","ليس لديك صلاحية إرسال واتساب");return}
   const workers=waBulkEligibleWorkers().slice(0,100); if(!workers.length){toast("error","لا يوجد مستلمون صالحون");return}
@@ -701,7 +792,10 @@ async function sendWhatsappBulk(){
   finally{if(btn){btn.disabled=false;btn.innerHTML=old}setTimeout(()=>{if(bar)bar.style.width="0%"},1200)}
 }
 
+let waInboxTimer=null;
+function loadWhatsappInboxDebounced(){clearTimeout(waInboxTimer);waInboxTimer=setTimeout(()=>loadWhatsappInbox(),350);}
 function waInboxDefaultReply(row){const name=row.worker_name||row.profile_name||""; return `السلام عليكم${name?" أستاذ/ "+name:""}\n\nتم استلام رسالتك، وسيتم مراجعة الطلب والرد عليك من إدارة صنايعي مطروح.`;}
+
 async function loadWhatsappInbox(){
   if(!can("whatsapp:send"))return;
   const list=document.getElementById("waInboxList"),stats=document.getElementById("waInboxStats"); if(!list)return;
@@ -725,6 +819,7 @@ async function loadWhatsappInbox(){
     }).join("");
   }catch(e){list.innerHTML=`<div class="empty-state">${waEscape(e.message||"تعذر تحميل الوارد")}</div>`}
 }
+
 async function updateWhatsappInboxStatus(id,status){
   try{
     const r=await fetch(`/api/admin/whatsapp/inbox/${encodeURIComponent(id)}/status`,{method:"PUT",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});
@@ -733,6 +828,7 @@ async function updateWhatsappInboxStatus(id,status){
     toast("success",status==="archived"?"تمت الأرشفة":"تم التحديث"); loadWhatsappInbox();
   }catch(e){toast("error",e.message||"تعذر تحديث حالة الرسالة")}
 }
+
 async function sendWhatsappInboxReply(id){
   if(!can("whatsapp:send")){toast("error","ليس لديك صلاحية إرسال واتساب");return}
   const el=document.getElementById(`waInboxReply_${id}`); const msg=(el?.value||"").trim();
@@ -744,6 +840,7 @@ async function sendWhatsappInboxReply(id){
     toast("success","تم إرسال الرد إلى واتساب"); loadWhatsappInbox(); loadWhatsappLogs();
   }catch(e){toast("error",e.message||"فشل إرسال الرد")}
 }
+
 async function loadWhatsappLogs(){
   if(!can("whatsapp:send"))return;
   const list=document.getElementById("waLogsList"),stats=document.getElementById("waLogsStats"); if(!list)return;
