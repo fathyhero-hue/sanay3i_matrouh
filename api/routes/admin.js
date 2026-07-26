@@ -176,7 +176,7 @@ router.get("/dashboard-stats", requirePermission("analytics:read"), async (req, 
 });
 
 // ===============================
-// 4. مسار التحليلات الاحترافي (Smart Analytics)
+// مسار التحليلات الاحترافي (Smart Analytics)
 // ===============================
 router.get('/analytics', requirePermission("analytics:read"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
@@ -185,7 +185,6 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - days);
 
-    // 1. جلب كل الأحداث
     const { data: events, error } = await supabase
       .from('analytics_events')
       .select('*')
@@ -193,7 +192,6 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
 
     if (error) throw error;
 
-    // 2. تجميع الإحصائيات
     const totals = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: events?.length || 0 };
     const workerStats = {};
     const tradeStats = {};
@@ -218,7 +216,6 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
       }
     });
 
-    // 3. جلب بيانات الصنايعية لدمجها مع التحليلات واستخراج الحرف (استخدام select * لضمان جلب كل البيانات)
     const workerIds = Object.keys(workerStats);
     let workersData = [];
     if (workerIds.length > 0) {
@@ -236,7 +233,6 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
       }
     });
 
-    // الترتيب من الأكبر للأصغر
     topWorkers.sort((a, b) => b.total_contacts - a.total_contacts);
     const formatTop = (obj) => Object.entries(obj).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
 
@@ -245,7 +241,7 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     res.json({
       success: true,
       totals,
-      top_workers: topWorkers.slice(0, 10), // إرسال أول 10 فقط عشان ميعرضش 30 كارت
+      top_workers: topWorkers.slice(0, 10),
       top_trades: formatTop(tradeStats),
       top_areas: formatTop(areaStats),
       top_pages: formatTop(pageStats)
@@ -253,6 +249,59 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
   } catch (err) {
     console.error('Analytics Error:', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===============================
+// مسارات البلاغات والشكاوى (Reports API) [تمت الإضافة هنا]
+// ===============================
+router.get("/reports", requirePermission("reports:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const { data: reports, error } = await supabase
+      .from("reports")
+      .select("*, worker:workers(id, name, trade, area)")
+      .order("id", { ascending: false });
+
+    if (error) {
+      return res.json({ success: true, items: [], stats: { total: 0, new: 0, reviewing: 0, resolved: 0, rejected: 0 } });
+    }
+
+    const items = reports || [];
+    const stats = {
+      total: items.length,
+      new: items.filter(r => r.status === 'new').length,
+      reviewing: items.filter(r => r.status === 'reviewing').length,
+      resolved: items.filter(r => r.status === 'resolved').length,
+      rejected: items.filter(r => r.status === 'rejected').length
+    };
+
+    res.json({ success: true, items, stats });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "تعذر تحميل البلاغات" });
+  }
+});
+
+router.put("/reports/:id", requirePermission("reports:manage"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const reportId = req.params.id;
+    const { status, admin_note } = req.body;
+
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (admin_note !== undefined) updateData.admin_note = admin_note;
+
+    const { error } = await supabase
+      .from("reports")
+      .update(updateData)
+      .eq("id", reportId);
+
+    if (error) throw error;
+
+    res.json({ success: true, message: "تم تحديث البلاغ بنجاح" });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "تعذر تحديث البلاغ" });
   }
 });
 

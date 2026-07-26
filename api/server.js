@@ -170,6 +170,50 @@ app.put('/api/admin/workers/:id/identity-review', adminApiRateLimit, handleIdent
 app.post('/api/admin/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
 
 // ===============================
+// مسار استقبال البلاغات والشكاوى من العملاء (Public Reports API)
+// ===============================
+app.post("/api/reports", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const workerId = body.worker_id || body.workerId;
+    const reportType = String(body.report_type || body.type || "other").trim();
+    const reporterName = String(body.reporter_name || body.name || "زائر").trim();
+    const reporterPhone = String(body.reporter_phone || body.phone || "").trim();
+    const message = String(body.message || body.notes || "").trim();
+
+    if (!workerId) {
+      return res.status(400).json({ success: false, error: "معرف الصنايعي مطلوب" });
+    }
+
+    // جلب بيانات الصنايعي لعمل Snapshot (حفظ نسختها وقت البلاغ)
+    const { data: worker } = await supabase
+      .from("workers")
+      .select("id, name, trade, area, phone")
+      .eq("id", workerId)
+      .maybeSingle();
+
+    const newReport = {
+      worker_id: workerId,
+      report_type: reportType,
+      reporter_name: reporterName,
+      reporter_phone: reporterPhone,
+      message: message,
+      status: 'new', // حالة البلاغ جديد
+      worker_snapshot: worker || null,
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from("reports").insert([newReport]);
+    if (error) throw error;
+
+    res.json({ success: true, message: "تم إرسال البلاغ بنجاح وشكراً لمساعدتنا في تحسين الدليل." });
+  } catch (err) {
+    console.error("Submit Report Error:", err);
+    res.status(500).json({ success: false, error: err.message || "تعذر إرسال البلاغ حالياً" });
+  }
+});
+
+// ===============================
 // مسار التحقق وتسجيل الدخول المباشر لبروفايل الصنايعي
 // ===============================
 app.post(['/api/worker-owner-chat/verify', '/api/workers/:id/verify-chat', '/api/support-chat/verify', '/api/worker/verify-chat'], async (req, res) => {
