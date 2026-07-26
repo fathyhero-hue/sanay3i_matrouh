@@ -327,8 +327,27 @@ app.post('/api/register', upload.fields([
     if (password.length < 6) {
       return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
     }
+if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
+    }
 
-    const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
+    // 🚨 حط الكود هنا:
+    const { data: existingWorkers, error: checkErr } = await supabase
+      .from('workers')
+      .select('id, phone, whatsapp')
+      .or(`phone.eq.${phone},whatsapp.eq.${whatsapp},phone.eq.${whatsapp},whatsapp.eq.${phone}`);
+
+    if (checkErr) console.error("Check duplicate error:", checkErr);
+
+    if (existingWorkers && existingWorkers.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: '⚠️ رقم الهاتف أو الواتساب مسجل بالفعل لصنايعي آخر! لا يمكن إتمام التسجيل برقم مكرر.'
+      });
+    }
+
+    // بعده يبدأ رفع الصور عندك:
+   const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
     const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
     
     const { salt, hash } = hashAdminPassword(password);
