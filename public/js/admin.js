@@ -1049,13 +1049,6 @@ async function sendAdminSupportMessage(e) {
 window.onload = checkLogin;
 
 // ==========================================
-// دالة حماية النصوص (ضرورية لرسم كروت الصنايعية)
-// ==========================================
-function adminActionsEscapeAttr(v){
-  return String(v ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-// ==========================================
 // دوال التقييمات (النجوم) لروت الصنايعية
 // ==========================================
 function getRatingSummary(workerId) {
@@ -1098,3 +1091,66 @@ function sortAdminWorkers(workers){
 
   return sorted;
 }
+
+// ==========================================
+// نظام التحديث التلقائي والإشعارات الصوتية بالخلفية
+// ==========================================
+const notifySound = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=message-incoming-132057.mp3');
+let lastPendingWorkers = null;
+let lastUnreadChats = null;
+
+async function fetchAutoUpdates() {
+    if (typeof currentAdmin === 'undefined' || !currentAdmin) return;
+    try {
+        if(typeof fetchJson === 'function') {
+            const notifData = await fetchJson(["/api/admin/notifications"]);
+            if (notifData) {
+                const currentPending = notifData.pendingWorkers || 0;
+                if (lastPendingWorkers !== null && currentPending > lastPendingWorkers) {
+                    notifySound.play().catch(e => console.log("الصوت محظور مؤقتاً بواسطة المتصفح"));
+                    if(typeof toast === 'function') toast('success', '🔔 انتباه: طلب تسجيل صنايعي جديد بانتظار الموافقة!');
+                    if(typeof loadWorkers === 'function' && typeof filterAdminWorkers === 'function') { await loadWorkers(); filterAdminWorkers(); }
+                }
+                lastPendingWorkers = currentPending;
+                if(typeof adminNotifications !== 'undefined') adminNotifications = notifData;
+                if(typeof renderNotifications === 'function') renderNotifications();
+            }
+        }
+        let totalUnread = 0;
+        try {
+            const chatRes = await fetch('/api/admin/worker-chat/unread-count', {credentials: 'include'});
+            if (chatRes.ok) {
+                const chatData = await chatRes.json();
+                const workerUnread = Number(chatData.unread_count || 0);
+                totalUnread += workerUnread;
+                const chatBadge = document.getElementById('adminChatTabBadge');
+                if(chatBadge) { chatBadge.textContent = workerUnread; chatBadge.style.display = workerUnread > 0 ? 'inline-flex' : 'none'; }
+            }
+        } catch(e) {}
+        try {
+            const supportRes = await fetch('/api/admin/support-chat/unread-count', {credentials: 'include'}); 
+            if (supportRes.ok) {
+                const supportData = await supportRes.json();
+                const supportUnread = Number(supportData.unread_count || 0);
+                totalUnread += supportUnread;
+                const supportBadge = document.getElementById('adminSupportTabBadge');
+                if(supportBadge) { supportBadge.textContent = supportUnread; supportBadge.style.display = supportUnread > 0 ? 'inline-flex' : 'none'; }
+            }
+        } catch(e) {}
+
+        if (lastUnreadChats !== null && totalUnread > lastUnreadChats) {
+            notifySound.play().catch(e => console.log("الصوت محظور مؤقتاً بواسطة المتصفح"));
+            if(typeof toast === 'function') toast('success', '💬 رسالة جديدة في المحادثات!');
+            if(typeof loadAdminChatThreads === 'function') loadAdminChatThreads();
+            if(typeof loadAdminSupportThreads === 'function') loadAdminSupportThreads();
+            if (document.getElementById('chatSection')?.classList.contains('active') && typeof adminChatCurrentWorkerId !== 'undefined' && adminChatCurrentWorkerId) {
+                if(typeof loadAdminChatMessages === 'function') loadAdminChatMessages(adminChatCurrentWorkerId);
+            }
+            if (document.getElementById('supportSection')?.classList.contains('active') && typeof adminSupportCurrentId !== 'undefined' && adminSupportCurrentId) {
+                if(typeof loadAdminSupportMessages === 'function') loadAdminSupportMessages(adminSupportCurrentId);
+            }
+        }
+        lastUnreadChats = totalUnread;
+    } catch (err) { console.error("Auto-update check failed:", err); }
+}
+setInterval(fetchAutoUpdates, 10000); setTimeout(fetchAutoUpdates, 2000);

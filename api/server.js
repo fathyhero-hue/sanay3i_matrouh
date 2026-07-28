@@ -327,11 +327,7 @@ app.post('/api/register', upload.fields([
     if (password.length < 6) {
       return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
     }
-if (password.length < 6) {
-      return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
-    }
 
-    // 🚨 حط الكود هنا:
     const { data: existingWorkers, error: checkErr } = await supabase
       .from('workers')
       .select('id, phone, whatsapp')
@@ -346,8 +342,7 @@ if (password.length < 6) {
       });
     }
 
-    // بعده يبدأ رفع الصور عندك:
-   const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
+    const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
     const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
     
     const { salt, hash } = hashAdminPassword(password);
@@ -750,10 +745,19 @@ app.get('/api/admin/support-chat/threads', adminApiRateLimit, async (req, res) =
   }
 });
 
-// 2. جلب رسائل محادثة خدمة عملاء معينة
+// 2. جلب رسائل محادثة خدمة عملاء معينة (وتحديثها كمقروءة)
 app.get('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, async (req, res) => {
   try {
     const threadId = req.params.id;
+
+    // تحديث الرسائل غير المقروءة إلى مقروءة بمجرد فتح الإدارة لها
+    await supabase
+      .from('support_chat_messages')
+      .update({ is_read: true })
+      .eq('conversation_id', threadId)
+      .neq('sender_type', 'admin') // رسائل العميل فقط
+      .eq('is_read', false);
+
     const { data: messages, error } = await supabase
       .from('support_chat_messages')
       .select('*')
@@ -798,6 +802,26 @@ app.post('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, asyn
   } catch (err) {
     console.error('Send Support Message Error:', err);
     res.status(500).json({ success: false, error: 'حدث خطأ أثناء إرسال الرسالة' });
+  }
+});
+
+// 4. جلب عدد رسائل خدمة العملاء غير المقروءة للإدارة (الـ Badge)
+app.get('/api/admin/support-chat/unread-count', adminApiRateLimit, async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('support_chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .neq('sender_type', 'admin');
+
+    if (error) {
+      return res.json({ success: true, unread_count: 0 });
+    }
+
+    res.json({ success: true, unread_count: count || 0 });
+  } catch (err) {
+    console.error("Error fetching support unread count:", err);
+    res.json({ success: true, unread_count: 0 });
   }
 });
 
