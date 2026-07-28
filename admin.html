@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   
- <!-- استدعاء ملفات الـ CSS الخاصة بالإدارة -->
+  <!-- استدعاء ملفات الـ CSS الخاصة بالإدارة -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/admin-base.css" />
   <link rel="stylesheet" href="/css/admin-login.css" />
@@ -265,18 +265,15 @@
         .chart-card { background: #fff; border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
         .chart-card h3 { font-size: 16px; color: #0f172a; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
         
-        /* تصميم الـ Progress Bar */
         .bar-item { margin-bottom: 15px; }
         .bar-info { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px; }
         .bar-track { width: 100%; height: 8px; background: #f1f5f9; border-radius: 10px; overflow: hidden; }
         .bar-fill { height: 100%; border-radius: 10px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
         
-        /* ألوان مختلفة للأعمدة */
         .fill-blue { background: linear-gradient(90deg, #3b82f6, #2563eb); }
         .fill-purple { background: linear-gradient(90deg, #8b5cf6, #6d28d9); }
         .fill-emerald { background: linear-gradient(90deg, #10b981, #059669); }
         
-        /* كروت الإحصائيات العلوية */
         .stats-hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .stat-hero-card { background: #fff; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; text-align: center; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: transform 0.2s;}
         .stat-hero-card:hover { transform: translateY(-3px); }
@@ -285,7 +282,6 @@
         .stat-hero-card h2 { font-size: 28px; margin: 0; font-weight: 900; color: #0f172a; }
         .stat-hero-card p { font-size: 13px; color: #64748b; margin: 5px 0 0; font-weight: 700; }
 
-        /* كارت الصنايعي المتميز */
         .top-worker-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-radius: 14px; background: #f8fafc; margin-bottom: 10px; border: 1px solid #e2e8f0; transition: 0.2s; }
         .top-worker-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #cbd5e1; }
         .top-worker-info { display: flex; align-items: center; gap: 12px; }
@@ -568,6 +564,84 @@
     document.getElementById('frontIdImg').src = '';
     document.getElementById('backIdImg').src = '';
   }
+</script>
+
+<!-- ====================================================== -->
+<!-- نظام التحديث التلقائي والإشعارات الصوتية بالخلفية -->
+<!-- ====================================================== -->
+<script>
+(function() {
+    // 1. رابط صوت الإشعار (صوت خفيف ومناسب لبيئة العمل)
+// استبدل السطر القديم بهذا السطر:
+const notifySound = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=message-incoming-132057.mp3');
+    // 2. متغيرات لحفظ الأرقام القديمة للمقارنة
+    let lastPendingWorkers = null;
+    let lastUnreadChats = null;
+
+    async function fetchAutoUpdates() {
+        // التأكد من أن المدير مسجل الدخول قبل الفحص
+        if (typeof currentAdmin === 'undefined' || !currentAdmin) return;
+
+        try {
+            // --- أولاً: فحص طلبات الصنايعية الجديدة ---
+            if(typeof fetchJson === 'function') {
+                const notifData = await fetchJson(["/api/admin/notifications"]);
+                if (notifData) {
+                    const currentPending = notifData.pendingWorkers || 0;
+                    
+                    if (lastPendingWorkers !== null && currentPending > lastPendingWorkers) {
+                        notifySound.play().catch(e => console.log("الصوت محظور مؤقتاً بواسطة المتصفح"));
+                        if(typeof toast === 'function') toast('success', '🔔 انتباه: طلب تسجيل صنايعي جديد بانتظار الموافقة!');
+                        
+                        if(typeof loadWorkers === 'function' && typeof filterAdminWorkers === 'function') {
+                            await loadWorkers();
+                            filterAdminWorkers(); 
+                        }
+                    }
+                    lastPendingWorkers = currentPending;
+                    
+                    if(typeof adminNotifications !== 'undefined') adminNotifications = notifData;
+                    if(typeof renderNotifications === 'function') renderNotifications();
+                }
+            }
+
+            // --- ثانياً: فحص رسائل خدمة العملاء والمحادثات ---
+            const chatRes = await fetch('/api/admin/worker-chat/unread-count', {credentials: 'include'});
+            if (chatRes.ok) {
+                const chatData = await chatRes.json();
+                const currentUnread = Number(chatData.unread_count || 0);
+
+                if (lastUnreadChats !== null && currentUnread > lastUnreadChats) {
+                    notifySound.play().catch(e => console.log("الصوت محظور مؤقتاً بواسطة المتصفح"));
+                    if(typeof toast === 'function') toast('success', '💬 رسالة جديدة من صنايعي أو عميل!');
+                    
+                    if(typeof loadAdminChatThreads === 'function') loadAdminChatThreads();
+                    if(typeof loadAdminSupportThreads === 'function') loadAdminSupportThreads();
+                    
+                    if (document.getElementById('chatSection')?.classList.contains('active') && typeof adminChatCurrentWorkerId !== 'undefined' && adminChatCurrentWorkerId) {
+                        if(typeof loadAdminChatMessages === 'function') loadAdminChatMessages(adminChatCurrentWorkerId);
+                    }
+                }
+                lastUnreadChats = currentUnread;
+
+                const chatBadge = document.getElementById('adminChatTabBadge');
+                if(chatBadge) {
+                    chatBadge.textContent = currentUnread;
+                    chatBadge.style.display = currentUnread > 0 ? 'inline-flex' : 'none';
+                }
+            }
+
+        } catch (err) {
+            console.error("Auto-update check failed:", err);
+        }
+    }
+
+    // 3. تشغيل الفحص التلقائي كل 10 ثواني (10000 مللي ثانية)
+    setInterval(fetchAutoUpdates, 10000);
+    
+    // تشغيل الفحص فوراً عند فتح اللوحة
+    setTimeout(fetchAutoUpdates, 2000);
+})();
 </script>
 
 <!-- استدعاء ملف الـ JS الموحد للإدارة -->

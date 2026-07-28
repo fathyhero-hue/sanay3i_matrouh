@@ -45,9 +45,13 @@ self.addEventListener('activate', (event) => {
 
 // التعامل مع طلبات الشبكة (Fetch)
 self.addEventListener('fetch', (event) => {
-  // استثناء طلبات الـ API لكي يتم جلبها دائماً من السيرفر مباشرة
-  if (event.request.url.includes('/api/')) {
-    return;
+  // استثناء طلبات الـ API ولوحة الإدارة والطلبات التي ليست GET لتعمل من السيرفر مباشرة
+  if (
+    event.request.method !== 'GET' ||
+    event.request.url.includes('/api/') || 
+    event.request.url.includes('/admin')
+  ) {
+    return; // ترك المتصفح يتعامل معها بشكل طبيعي دون تدخل الكاش
   }
 
   event.respondWith(
@@ -60,6 +64,10 @@ self.addEventListener('fetch', (event) => {
         if (event.request.mode === 'navigate') {
           return caches.match('/offline.html');
         }
+        
+        // حل المشكلة الحمراء (Failed to convert value to 'Response') 
+        // بإرجاع استجابة فارغة بدلاً من (undefined) للملفات الأخرى المفقودة
+        return new Response('', { status: 408, statusText: 'Offline' });
       });
     })
   );
