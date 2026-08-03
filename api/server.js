@@ -27,10 +27,10 @@ app.use((req, res, next) => {
 // ===============================
 // 2. تفعيل حراس الأمان (Rate Limiters)
 // ===============================
-const { adminApiRateLimit, analyticsRateLimit } = require("./middlewares/rateLimit");
+const { adminApiRateLimit, analyticsRateLimit, adminLoginRateLimit, workerLoginRateLimit } = require("./middlewares/rateLimit");
 
 app.use("/api/admin", (req, res, next) => {
-  if (req.path === "/login") return next();
+  if (req.path === "/login") return adminLoginRateLimit(req, res, next);
   return adminApiRateLimit(req, res, next);
 });
 
@@ -61,6 +61,7 @@ const upload = multer({
 });
 
 const { supabase } = require("./config/supabase");
+const { requirePermission, createWorkerToken, requireWorkerOwnership } = require("./middlewares/auth");
 
 async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
@@ -82,43 +83,8 @@ async function uploadToSupabase(file, targetBucket = "uploads") {
 }
 
 // ===============================
-// دوال معالجة الاعتماد والمراجعة
+// دالة معالجة اعتماد ومراجعة البطاقة الشخصية
 // ===============================
-async function handleWorkerVerify(req, res) {
-    try {
-        const { approved } = req.body;
-        const updateData = { 
-          approved: Boolean(approved),
-          identity_verified: Boolean(approved)
-        };
-
-        if (approved) {
-          const { data: workerData } = await supabase
-            .from('workers')
-            .select('pending_image')
-            .eq('id', req.params.id)
-            .maybeSingle();
-            
-          if (workerData && workerData.pending_image) {
-            updateData.image = workerData.pending_image;
-            updateData.pending_image = null;
-          }
-        }
-
-        const { error } = await supabase
-          .from('workers')
-          .update(updateData)
-          .eq('id', req.params.id);
-
-        if (error) throw error;
-
-        res.json({ success: true, message: 'تم تحديث حالة التحقيق والاعتماد بنجاح' });
-    } catch (err) {
-        console.error('Verify Worker Error:', err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-}
-
 async function handleIdentityReview(req, res) {
     try {
         const body = req.body || {};
@@ -158,16 +124,8 @@ async function handleIdentityReview(req, res) {
     }
 }
 
-// تسجيل مسارات الاعتماد والمراجعة
-app.put('/api/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
-app.post('/api/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
-app.put('/api/admin/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
-app.post('/api/admin/workers/:id/verify', adminApiRateLimit, handleWorkerVerify);
-
-app.put('/api/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
-app.post('/api/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
-app.put('/api/admin/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
-app.post('/api/admin/workers/:id/identity-review', adminApiRateLimit, handleIdentityReview);
+// تسجيل مسار الاعتماد والمراجعة (المسار الوحيد اللي بيستخدمه admin.js فعليًا)
+app.put('/api/admin/workers/:id/identity-review', adminApiRateLimit, requirePermission("workers:review"), handleIdentityReview);
 
 // ===============================
 // مسار استقبال البلاغات والشكاوى من العملاء (Public Reports API)
@@ -210,64 +168,6 @@ app.post("/api/reports", async (req, res) => {
   } catch (err) {
     console.error("Submit Report Error:", err);
     res.status(500).json({ success: false, error: err.message || "تعذر إرسال البلاغ حالياً" });
-  }
-});
-
-// ===============================
-// مسار التحقق وتسجيل الدخول المباشر لبروفايل الصنايعي
-// ===============================
-app.post(['/api/worker-owner-chat/verify', '/api/workers/:id/verify-chat', '/api/support-chat/verify', '/api/worker/verify-chat'], async (req, res) => {
-  try {
-    const workerId = req.params.id || req.body.workerId || req.body.worker_id;
-    const body = req.body || {};
-    const inputPhone = String(body.phone || body.whatsapp || '').trim();
-
-    if (!inputPhone) {
-      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم الهاتف للتحقق' });
-    }
-
-    let query = supabase.from('workers').select('id, phone, whatsapp, name');
-    if (workerId) {
-      query = query.eq('id', workerId);
-    } else {
-      query = query.or(`phone.eq.${inputPhone},whatsapp.eq.${inputPhone}`);
-    }
-
-    const { data: worker, error } = await query.maybeSingle();
-
-    let targetWorker = worker;
-    if (error || !targetWorker) {
-      const { data: workerByPhone } = await supabase
-        .from('workers')
-        .select('id, phone, whatsapp, name')
-        .or(`phone.eq.${inputPhone},whatsapp.eq.${inputPhone}`)
-        .maybeSingle();
-        
-      if (!workerByPhone) {
-        return res.status(404).json({ success: false, error: 'رقم الهاتف غير مسجل في النظام' });
-      }
-      targetWorker = workerByPhone;
-    }
-
-    const workerPhone = String(targetWorker.phone || '').trim();
-    const workerWhatsapp = String(targetWorker.whatsapp || '').trim();
-
-    if (inputPhone === workerPhone || inputPhone === workerWhatsapp || inputPhone.slice(-9) === workerPhone.slice(-9)) {
-      const sessionToken = crypto.randomBytes(32).toString('hex');
-      return res.json({ 
-        success: true, 
-        verified: true, 
-        token: sessionToken,
-        unread_count: 0,
-        message: 'تم التحقق بنجاح',
-        worker: { id: targetWorker.id, name: targetWorker.name }
-      });
-    } else {
-      return res.status(401).json({ success: false, verified: false, error: 'رقم الهاتف غير مطابق للرقم المسجل لهذا الصنايعي' });
-    }
-  } catch (err) {
-    console.error('Verify Owner/Chat Error:', err);
-    res.status(500).json({ success: false, error: 'حدث خطأ داخلي أثناء التحقق' });
   }
 });
 
@@ -397,7 +297,7 @@ app.post('/api/register', upload.fields([
 // ===============================
 // 5.1. مسارات تسجيل الدخول واستعادة كلمة المرور
 // ===============================
-app.post('/api/worker/login', async (req, res) => {
+app.post('/api/worker/login', workerLoginRateLimit, async (req, res) => {
   try {
     const { phone, password } = req.body || {};
     if (!phone || !password) {
@@ -428,10 +328,11 @@ app.post('/api/worker/login', async (req, res) => {
     }
 
     if (!worker.password_hash && password === String(worker.phone || '').slice(-6)) {
-      return res.json({ 
-        success: true, 
-        worker: { id: worker.id, name: worker.name, phone: worker.phone, trade: worker.trade, area: worker.area }, 
-        requirePasswordReset: true 
+      return res.json({
+        success: true,
+        worker: { id: worker.id, name: worker.name, phone: worker.phone, trade: worker.trade, area: worker.area },
+        token: createWorkerToken(worker.id),
+        requirePasswordReset: true
       });
     }
 
@@ -440,15 +341,16 @@ app.post('/api/worker/login', async (req, res) => {
       return res.status(401).json({ success: false, error: 'كلمة المرور غير صحيحة' });
     }
 
-    res.json({ 
-      success: true, 
-      worker: { 
-        id: worker.id, 
-        name: worker.name, 
+    res.json({
+      success: true,
+      worker: {
+        id: worker.id,
+        name: worker.name,
         phone: worker.phone,
         trade: worker.trade,
-        area: worker.area 
-      } 
+        area: worker.area
+      },
+      token: createWorkerToken(worker.id)
     });
   } catch (err) {
     console.error('Worker Login Error:', err);
@@ -456,7 +358,7 @@ app.post('/api/worker/login', async (req, res) => {
   }
 });
 
-app.post('/api/worker/forgot-password', async (req, res) => {
+app.post('/api/worker/forgot-password', workerLoginRateLimit, async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) {
@@ -529,7 +431,7 @@ app.post('/api/worker/forgot-password', async (req, res) => {
 // ===============================
 
 // 1. جلب لستة كل المحادثات (للإدارة - متوافقة مع كل احتمالات admin.js)
-app.get('/api/admin/worker-chat/threads', adminApiRateLimit, async (req, res) => {
+app.get('/api/admin/worker-chat/threads', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
   try {
     const { data: messages, error } = await supabase
       .from('worker_chat_messages')
@@ -616,7 +518,7 @@ app.get('/api/admin/worker-chat/threads', adminApiRateLimit, async (req, res) =>
 });
 
 // 2. جلب رسايل محادثة واحدة (للصنايعي والإدارة)
-app.get(['/api/worker-owner-chat/messages', '/api/admin/worker-chat/messages/:id'], async (req, res) => {
+async function getWorkerChatMessages(req, res) {
   try {
     const workerId = req.query.worker_id || req.params.id;
     if (!workerId) return res.status(400).json({ success: false, error: 'معرف الصنايعي مطلوب' });
@@ -644,10 +546,13 @@ app.get(['/api/worker-owner-chat/messages', '/api/admin/worker-chat/messages/:id
   } catch (err) {
     res.json({ success: true, messages: [], unread_count: 0 });
   }
-});
+}
+
+app.get('/api/worker-owner-chat/messages', requireWorkerOwnership, getWorkerChatMessages);
+app.get('/api/admin/worker-chat/messages/:id', adminApiRateLimit, requirePermission("workers:read"), getWorkerChatMessages);
 
 // 3. إرسال رسالة (للصنايعي والإدارة)
-app.post(['/api/worker-owner-chat/messages', '/api/admin/worker-chat/messages'], upload.single('attachment'), async (req, res) => {
+async function sendWorkerChatMessage(req, res) {
   try {
     const body = req.body || {};
     const workerId = body.worker_id;
@@ -682,10 +587,13 @@ app.post(['/api/worker-owner-chat/messages', '/api/admin/worker-chat/messages'],
     console.error('Send Worker Message Error:', err);
     res.status(500).json({ success: false, error: err.message || 'تعذر إرسال الرسالة' });
   }
-});
+}
+
+app.post('/api/worker-owner-chat/messages', upload.single('attachment'), requireWorkerOwnership, sendWorkerChatMessage);
+app.post('/api/admin/worker-chat/messages', adminApiRateLimit, requirePermission("workers:read"), upload.single('attachment'), sendWorkerChatMessage);
 
 // 4. جلب عدد الرسائل غير المقروءة للإدارة (عشان الـ Badge)
-app.get('/api/admin/worker-chat/unread-count', adminApiRateLimit, async (req, res) => {
+app.get('/api/admin/worker-chat/unread-count', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
   try {
     const { count, error } = await supabase
       .from('worker_chat_messages')
@@ -704,7 +612,7 @@ app.get('/api/admin/worker-chat/unread-count', adminApiRateLimit, async (req, re
 // ===============================
 
 // 1. جلب لستة محادثات خدمة العملاء
-app.get('/api/admin/support-chat/threads', adminApiRateLimit, async (req, res) => {
+app.get('/api/admin/support-chat/threads', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
   try {
     const { data: messages, error } = await supabase
       .from('support_chat_messages')
@@ -746,7 +654,7 @@ app.get('/api/admin/support-chat/threads', adminApiRateLimit, async (req, res) =
 });
 
 // 2. جلب رسائل محادثة خدمة عملاء معينة (وتحديثها كمقروءة)
-app.get('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, async (req, res) => {
+app.get('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
   try {
     const threadId = req.params.id;
 
@@ -779,7 +687,7 @@ app.get('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, async
 });
 
 // 3. إرسال رد من الإدارة لخدمة العملاء
-app.post('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, async (req, res) => {
+app.post('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
   try {
     const threadId = req.params.id;
     const { message } = req.body;
@@ -806,7 +714,7 @@ app.post('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, asyn
 });
 
 // 4. جلب عدد رسائل خدمة العملاء غير المقروءة للإدارة (الـ Badge)
-app.get('/api/admin/support-chat/unread-count', adminApiRateLimit, async (req, res) => {
+app.get('/api/admin/support-chat/unread-count', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
   try {
     const { count, error } = await supabase
       .from('support_chat_messages')
@@ -828,7 +736,7 @@ app.get('/api/admin/support-chat/unread-count', adminApiRateLimit, async (req, r
 // ===============================
 // 5.2. مسارات لوحة تحكم وصور بروفايل الصنايعي
 // ===============================
-app.get('/api/worker/profile/:id', async (req, res) => {
+app.get('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
   try {
     const { data: worker, error } = await supabase
       .from('workers')
@@ -847,7 +755,7 @@ app.get('/api/worker/profile/:id', async (req, res) => {
   }
 });
 
-app.put('/api/worker/profile/:id', async (req, res) => {
+app.put('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
   try {
     const { name, whatsapp, description, trade, area } = req.body;
     const { error } = await supabase
@@ -862,7 +770,7 @@ app.put('/api/worker/profile/:id', async (req, res) => {
   }
 });
 
-app.put('/api/worker/profile/:id/password', async (req, res) => {
+app.put('/api/worker/profile/:id/password', requireWorkerOwnership, async (req, res) => {
   try {
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 6) {
@@ -882,7 +790,7 @@ app.put('/api/worker/profile/:id/password', async (req, res) => {
   }
 });
 
-app.post('/api/worker/profile/:id/work-photos', upload.array('workPhotos', 5), async (req, res) => {
+app.post('/api/worker/profile/:id/work-photos', requireWorkerOwnership, upload.array('workPhotos', 5), async (req, res) => {
   try {
     const files = req.files || [];
     if (!files.length) return res.status(400).json({ success: false, error: 'لم يتم اختيار صور' });
@@ -920,7 +828,7 @@ app.post('/api/worker/profile/:id/work-photos', upload.array('workPhotos', 5), a
   }
 });
 
-app.delete('/api/worker/profile/:id/work-photo', async (req, res) => {
+app.delete('/api/worker/profile/:id/work-photo', requireWorkerOwnership, async (req, res) => {
   try {
     const { photoName } = req.body;
     const { data: worker, error: fetchErr } = await supabase
@@ -947,7 +855,7 @@ app.delete('/api/worker/profile/:id/work-photo', async (req, res) => {
   }
 });
 
-app.post('/api/worker/profile/:id/request-image', upload.single('profileImage'), async (req, res) => {
+app.post('/api/worker/profile/:id/request-image', requireWorkerOwnership, upload.single('profileImage'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: 'يرجى اختيار صورة شخصية جديدة' });
 
@@ -1012,19 +920,9 @@ app.get("/uploads/:fileName", async (req, res) => {
 });
 
 // ===============================
-// 5.5. مسارات الحذف، الإيقاف والتجديد
+// 5.5. مسارات الإيقاف والتجديد (الحذف موجود في routes/workers.js)
 // ===============================
-app.delete('/api/workers/:id', adminApiRateLimit, async (req, res) => {
-    try {
-        const { error } = await supabase.from('workers').delete().eq('id', req.params.id);
-        if (error) throw error;
-        res.json({ success: true, message: 'تم الحذف بنجاح' });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
+app.put('/api/workers/:id/active', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
     try {
         const { active } = req.body;
         const { error } = await supabase.from('workers').update({ active }).eq('id', req.params.id);
@@ -1035,7 +933,7 @@ app.put('/api/workers/:id/active', adminApiRateLimit, async (req, res) => {
     }
 });
 
-app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
+app.put('/api/workers/:id/renew', adminApiRateLimit, requirePermission("subscriptions:manage"), async (req, res) => {
     try {
         const { months, amount, payment_method, payment_status, note } = req.body;
         const addMonths = parseInt(months) || 1;
@@ -1074,7 +972,7 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, async (req, res) => {
     }
 });
 
-app.put('/api/admin/workers/renew-all', adminApiRateLimit, async (req, res) => {
+app.put('/api/admin/workers/renew-all', adminApiRateLimit, requirePermission("subscriptions:manage"), async (req, res) => {
     try {
         const { months } = req.body;
         const addMonths = parseInt(months) || 1;
@@ -1133,118 +1031,7 @@ app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
   }
 });
 
-// ==========================================
-// مسار التحليلات الاحترافي (Dashboard Analytics)
-// ==========================================
-app.get('/api/admin/analytics', adminApiRateLimit, async (req, res) => {
-  try {
-    const days = parseInt(req.query.days) || 30;
-    const dateLimit = new Date();
-    dateLimit.setDate(dateLimit.getDate() - days);
-
-    // 1. جلب كل الأحداث في الفترة المحددة
-    const { data: events, error } = await supabase
-      .from('analytics_events')
-      .select('*')
-      .gte('created_at', dateLimit.toISOString());
-
-    if (error) throw error;
-
-    // 2. تجهيز الإحصائيات الأساسية
-    const totals = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: events?.length || 0 };
-    const workerStats = {};
-    const tradeStats = {};
-    const areaStats = {};
-    const pageStats = {};
-    const dailyStats = {};
-    const filterTradeStats = {};
-    const filterAreaStats = {};
-
-    (events || []).forEach(ev => {
-      const type = ev.event_type;
-      const wid = ev.worker_id;
-      const date = new Date(ev.created_at).toLocaleDateString('en-CA'); // YYYY-MM-DD format
-
-      // حساب الإجماليات
-      if (type === 'call') { totals.call++; totals.total_contacts++; }
-      if (type === 'whatsapp') { totals.whatsapp++; totals.total_contacts++; }
-      if (type === 'profile_view') totals.profile_view++;
-
-      // إحصائيات الصفحات
-      if (ev.page_path) {
-        pageStats[ev.page_path] = (pageStats[ev.page_path] || 0) + 1;
-      }
-      
-      // إحصائيات اختيارات الزوار للحرف والمناطق (الفلاتر)
-      if (type === 'filter_trade' && ev.source) {
-         filterTradeStats[ev.source] = (filterTradeStats[ev.source] || 0) + 1;
-      }
-      if (type === 'filter_area' && ev.source) {
-         filterAreaStats[ev.source] = (filterAreaStats[ev.source] || 0) + 1;
-      }
-
-      // إحصائيات الأيام
-      if (!dailyStats[date]) dailyStats[date] = { date, call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: 0 };
-      dailyStats[date].total_events++;
-      if (type === 'call') { dailyStats[date].call++; dailyStats[date].total_contacts++; }
-      if (type === 'whatsapp') { dailyStats[date].whatsapp++; dailyStats[date].total_contacts++; }
-      if (type === 'profile_view') dailyStats[date].profile_view++;
-
-      // إحصائيات الصنايعية
-      if (wid && wid !== 'undefined' && wid !== 'null') {
-        if (!workerStats[wid]) workerStats[wid] = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0 };
-        if (type === 'call') { workerStats[wid].call++; workerStats[wid].total_contacts++; }
-        if (type === 'whatsapp') { workerStats[wid].whatsapp++; workerStats[wid].total_contacts++; }
-        if (type === 'profile_view') workerStats[wid].profile_view++;
-      }
-    });
-
-    // 3. جلب بيانات الصنايعية لدمجها مع التحليلات (لمعرفة الحرف والمناطق)
-    const workerIds = Object.keys(workerStats);
-    let workersData = [];
-    if (workerIds.length > 0) {
-      const { data: wData } = await supabase.from('workers').select('id, name, trade, area, image').in('id', workerIds);
-      workersData = wData || [];
-    }
-
-    // دمج البيانات واستخراج إحصائيات الحرف والمناطق (المبنية على أرقام التواصل الفعلية)
-    const topWorkers = [];
-    workersData.forEach(w => {
-      const stats = workerStats[w.id];
-      if (stats) {
-        topWorkers.push({ worker_id: w.id, worker: w, ...stats });
-        
-        // حساب أكثر الحرف والمناطق اللي بيجيلها تواصل فعلي
-        if (w.trade) tradeStats[w.trade] = (tradeStats[w.trade] || 0) + stats.total_contacts;
-        if (w.area) areaStats[w.area] = (areaStats[w.area] || 0) + stats.total_contacts;
-      }
-    });
-
-    // ترتيب البيانات
-    topWorkers.sort((a, b) => b.total_contacts - a.total_contacts);
-    
-    const formatTop = (obj) => Object.entries(obj).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-
-    // نسبة التحويل (كم واحد شاف البروفايل وكلم الصنايعي)
-    totals.conversion_rate = totals.profile_view > 0 ? ((totals.total_contacts / totals.profile_view) * 100).toFixed(1) : 0;
-
-    res.json({
-      success: true,
-      totals,
-      top_workers: topWorkers.slice(0, 10),
-      top_trades: formatTop(tradeStats),
-      top_areas: formatTop(areaStats),
-      filter_trades: formatTop(filterTradeStats),
-      filter_areas: formatTop(filterAreaStats),
-      top_pages: formatTop(pageStats),
-      daily: Object.values(dailyStats).sort((a, b) => new Date(a.date) - new Date(b.date)),
-      missing_trade_area: [] // يمكن برمجتها لاحقاً إذا دعت الحاجة
-    });
-  } catch (err) {
-    console.error('Analytics Error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// (مسار التحليلات /api/admin/analytics موجود في routes/admin.js فقط)
 
 // ===============================
 // 6. استدعاء وتفعيل المسارات الأخرى

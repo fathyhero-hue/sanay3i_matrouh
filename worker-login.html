@@ -79,6 +79,7 @@
         // حفظ التوكن وبيانات الجلسة عشان لوحة التحكم تفتح مباشر
         localStorage.setItem("sanay3i_owner_chat_token_" + d.worker.id, d.worker.id);
         localStorage.setItem("sanay3i_current_worker_id", d.worker.id);
+        localStorage.setItem("sanay3i_worker_token", d.token);
         
         showStatus('success', 'تم تسجيل الدخول! جاري توجيهك للوحة التحكم...');
         

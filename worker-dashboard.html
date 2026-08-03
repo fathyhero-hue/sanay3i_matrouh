@@ -250,11 +250,16 @@
     // الإعدادات والتوثيق
     const urlParams = new URLSearchParams(window.location.search);
     let workerId = urlParams.get('id') || localStorage.getItem('sanay3i_current_worker_id');
+    let workerToken = localStorage.getItem('sanay3i_worker_token');
     let currentWorkPhotos = [];
 
-    if (!workerId) {
+    if (!workerId || !workerToken) {
       alert('يجب تسجيل الدخول أولاً');
       window.location.href = '/worker-login';
+    }
+
+    function authHeaders(extra) {
+      return Object.assign({ 'Authorization': 'Bearer ' + workerToken }, extra || {});
     }
 
     document.getElementById('viewProfileBtn').href = '/worker/' + workerId;
@@ -273,7 +278,7 @@
     // ==========================================
     async function loadProfile() {
       try {
-        const r = await fetch('/api/worker/profile/' + workerId);
+        const r = await fetch('/api/worker/profile/' + workerId, { headers: authHeaders() });
         const d = await r.json();
         if(d.success) {
           // تعبئة البيانات
@@ -311,7 +316,7 @@
         };
         const r = await fetch('/api/worker/profile/' + workerId, {
           method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
+          headers: authHeaders({'Content-Type': 'application/json'}),
           body: JSON.stringify(data)
         });
         const d = await r.json();
@@ -340,7 +345,7 @@
         alert('جاري إرسال الصورة...');
         try {
             const r = await fetch('/api/worker/profile/' + workerId + '/request-image', {
-                method: 'POST', body: formData
+                method: 'POST', headers: authHeaders(), body: formData
             });
             const d = await r.json();
             if(d.success) {
@@ -360,7 +365,7 @@
             const formData = new FormData();
             formData.append('worker_id', workerId);
             formData.append('message', 'برجاء حذف صورتي الشخصية الحالية والعودة للصورة الافتراضية للموقع.');
-            await fetch('/api/worker-owner-chat/messages', { method: 'POST', body: formData });
+            await fetch('/api/worker-owner-chat/messages', { method: 'POST', headers: authHeaders(), body: formData });
             alert('تم إرسال الطلب للإدارة بنجاح! سيتم التنفيذ قريباً.');
             switchTab('chat'); // تحويله للشات ليرى طلبه
         } catch(e) {
@@ -414,7 +419,7 @@
         
         try {
             const r = await fetch('/api/worker/profile/' + workerId + '/work-photos', {
-                method: 'POST', body: formData
+                method: 'POST', headers: authHeaders(), body: formData
             });
             const d = await r.json();
             if(d.success) {
@@ -444,7 +449,7 @@
         try {
             const r = await fetch('/api/worker/profile/' + workerId + '/work-photo', {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ photoName })
             });
             const d = await r.json();
@@ -499,7 +504,7 @@
     // تحميل المحادثة
     async function loadMessages() {
       try {
-        const r = await fetch('/api/worker-owner-chat/messages?worker_id=' + workerId);
+        const r = await fetch('/api/worker-owner-chat/messages?worker_id=' + workerId, { headers: authHeaders() });
         const d = await r.json();
         const box = document.getElementById('modernChatMessages');
         if(d.success) {
@@ -551,8 +556,8 @@
         if(text) formData.append('message', text);
         if(file) formData.append('attachment', file);
 
-        await fetch('/api/worker-owner-chat/messages', { method: 'POST', body: formData });
-        
+        await fetch('/api/worker-owner-chat/messages', { method: 'POST', headers: authHeaders(), body: formData });
+
         input.value = '';
         input.style.height = '44px'; // Reset height
         removeChatImage();
@@ -584,6 +589,7 @@
     function logout() {
       localStorage.removeItem('sanay3i_current_worker_id');
       localStorage.removeItem('sanay3i_owner_chat_token_' + workerId);
+      localStorage.removeItem('sanay3i_worker_token');
       window.location.href = '/worker-login';
     }
 

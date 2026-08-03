@@ -114,6 +114,61 @@ function getAdminFromRequest(req) {
   return decodeAdminToken(parseCookies(req)[ADMIN_COOKIE_NAME]);
 }
 
+// ===============================
+// تذكرة جلسة الصنايعي (يثبت إنه صاحب الحساب فعلاً قبل أي تعديل)
+// ===============================
+const WORKER_SESSION_DAYS = 30;
+
+function createWorkerToken(workerId) {
+  const maxAgeMs = WORKER_SESSION_DAYS * 24 * 60 * 60 * 1000;
+  const payload = base64url(JSON.stringify({
+    purpose: "worker-session",
+    worker_id: Number(workerId),
+    exp: Date.now() + maxAgeMs
+  }));
+  return `${payload}.${sign(payload)}`;
+}
+
+function verifyWorkerToken(token) {
+  if (!ADMIN_SESSION_SECRET || !token || !token.includes(".")) return null;
+  const [payload, signature] = token.split(".");
+  const expected = sign(payload);
+
+  try {
+    const a = Buffer.from(signature || "");
+    const b = Buffer.from(expected || "");
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (data.purpose !== "worker-session") return null;
+    if (Number(data.exp) <= Date.now()) return null;
+    return Number(data.worker_id);
+  } catch (e) {
+    return null;
+  }
+}
+
+function workerTokenFromRequest(req) {
+  const auth = String(req.headers.authorization || "");
+  if (auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  return String(req.body?.worker_token || req.query?.worker_token || "").trim();
+}
+
+// المسارات بتحدد الصنايعي المستهدف إما برقم في الرابط (:id) أو query/body (worker_id)
+function resolveTargetWorkerId(req) {
+  return req.params?.id || req.query?.worker_id || req.body?.worker_id || null;
+}
+
+// 🛡️ الحارس اللي بيتأكد إن صاحب التوكن هو نفسه الصنايعي المستهدف بالطلب 🛡️
+function requireWorkerOwnership(req, res, next) {
+  const workerId = verifyWorkerToken(workerTokenFromRequest(req));
+  const targetId = resolveTargetWorkerId(req);
+  if (!workerId || !targetId || String(workerId) !== String(targetId)) {
+    return res.status(401).json({ success: false, error: "يجب تسجيل الدخول أولاً للتعديل على هذا الحساب" });
+  }
+  req.workerId = workerId;
+  return next();
+}
+
 // 🛡️ الميدل وير الأساسي: الحارس الذي نضعه على أي مسار نريد حمايته 🛡️
 function requirePermission(permission) {
   return (req, res, next) => {
@@ -161,5 +216,8 @@ module.exports = {
   getAdminFromRequest,
   requirePermission,
   setAdminCookie,
-  clearAdminCookie
+  clearAdminCookie,
+  createWorkerToken,
+  verifyWorkerToken,
+  requireWorkerOwnership
 };

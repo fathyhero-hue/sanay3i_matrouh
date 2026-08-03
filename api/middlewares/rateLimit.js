@@ -1,66 +1,129 @@
 const { clientIp } = require("../utils/helpers");
+const { supabase } = require("../config/supabase");
 
-// هذه الدالة تصنع حارس أمن يمنع المستخدم من إرسال طلبات كثيرة في وقت قصير
-// ملحوظة: تعمل حالياً في الذاكرة، وهي مناسبة لمنع الضغط المفاجئ
+// حارس بالذاكرة المحلية: بسيط لكن كل instance من السيرفر (على Vercel)
+// عنده عداده الخاص، فمش بيحمي فعليًا لما يبقى فيه أكتر من instance شغال.
+// بنستخدمه هنا كخط دفاع احتياطي بس لو قاعدة البيانات مش متاحة.
 function createMemoryRateLimiter({ windowMs, max, keyFn, message }) {
   const hits = new Map();
   return (req, res, next) => {
     const now = Date.now();
     const key = keyFn ? keyFn(req) : clientIp(req);
     const item = hits.get(key) || { count: 0, resetAt: now + windowMs };
-    
+
     // لو الوقت المسموح خلص، صفر العداد
     if (now > item.resetAt) {
       item.count = 0;
       item.resetAt = now + windowMs;
     }
-    
+
     item.count += 1;
     hits.set(key, item);
-    
+
     res.setHeader("X-RateLimit-Limit", String(max));
     res.setHeader("X-RateLimit-Remaining", String(Math.max(0, max - item.count)));
-    
+
     // لو تجاوز الحد المسموح، نرفض الطلب
     if (item.count > max) {
       return res.status(429).json({ success: false, error: message || "طلبات كثيرة جدًا. حاول مرة أخرى بعد قليل" });
     }
-    
+
     // لو كله تمام، اسمح للطلب يمر للخطوة اللي بعدها
     return next();
   };
 }
 
+// الحارس الحقيقي: العداد متخزن في Supabase (rl_hit RPC) عشان يشتغل صح
+// مهما كان عدد الـ instances. لو الجدول/الفانكشن لسه متعملوش في قاعدة
+// البيانات (شوف docs/sql/rate_limit.sql)، بيرجع تلقائيًا لحماية الذاكرة
+// بدل ما يوقف الموقع بالكامل.
+let dbRateLimitWarned = false;
+
+function createDbRateLimiter({ windowMs, max, keyFn, message, prefix }) {
+  const fallback = createMemoryRateLimiter({ windowMs, max, keyFn, message });
+  return async (req, res, next) => {
+    const key = (prefix ? prefix + ":" : "") + (keyFn ? keyFn(req) : clientIp(req));
+    try {
+      const { data, error } = await supabase.rpc("rl_hit", {
+        p_key: key,
+        p_window_ms: windowMs,
+        p_max: max
+      });
+      if (error) throw error;
+
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) throw new Error("rl_hit: لا يوجد رد من قاعدة البيانات");
+
+      res.setHeader("X-RateLimit-Limit", String(max));
+      res.setHeader("X-RateLimit-Remaining", String(row.remaining ?? 0));
+
+      if (!row.allowed) {
+        return res.status(429).json({ success: false, error: message || "طلبات كثيرة جدًا. حاول مرة أخرى بعد قليل" });
+      }
+      return next();
+    } catch (e) {
+      // قاعدة البيانات مش جاهزة أو حصل خطأ اتصال - استخدم حماية الذاكرة المؤقتة كبديل
+      if (!dbRateLimitWarned) {
+        dbRateLimitWarned = true;
+        console.warn("⚠️ rate limiter: rl_hit RPC غير متاحة، بيتم استخدام حماية الذاكرة المؤقتة. شغّل docs/sql/rate_limit.sql على Supabase. (" + (e.message || e) + ")");
+      }
+      return fallback(req, res, next);
+    }
+  };
+}
+
 // حارس لتسجيل الإحصائيات (لمنع السبام الوهمي)
-const analyticsRateLimit = createMemoryRateLimiter({
+const analyticsRateLimit = createDbRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 دقائق
   max: Number(process.env.ANALYTICS_RATE_LIMIT || 180),
-  keyFn: req => `analytics:${clientIp(req)}`,
+  keyFn: req => clientIp(req),
+  prefix: "analytics",
   message: "تم تجاوز الحد المسموح لتسجيل الأحداث مؤقتًا"
 });
 
 // حارس للبلاغات (عشان مفيش حد يبعت 100 بلاغ في ثانية)
-const reportsRateLimit = createMemoryRateLimiter({
+const reportsRateLimit = createDbRateLimiter({
   windowMs: 10 * 60 * 1000,
   max: Number(process.env.REPORTS_RATE_LIMIT || 20),
-  keyFn: req => `reports:${clientIp(req)}`,
+  keyFn: req => clientIp(req),
+  prefix: "reports",
   message: "تم إرسال بلاغات كثيرة مؤقتًا. حاول مرة أخرى بعد قليل"
 });
 
 // حارس لتحديث بيانات التسجيل من الصنايعية
-const registrationUpdateRateLimit = createMemoryRateLimiter({
+const registrationUpdateRateLimit = createDbRateLimiter({
   windowMs: 10 * 60 * 1000,
   max: Number(process.env.REGISTRATION_UPDATE_RATE_LIMIT || 12),
-  keyFn: req => `registration-update:${clientIp(req)}`,
+  keyFn: req => clientIp(req),
+  prefix: "registration-update",
   message: "تم إرسال تعديلات كثيرة مؤقتًا. حاول مرة أخرى بعد قليل"
 });
 
 // حارس لطلبات لوحة الإدارة (حماية من محاولات التخمين والاختراق)
-const adminApiRateLimit = createMemoryRateLimiter({
+const adminApiRateLimit = createDbRateLimiter({
   windowMs: 60 * 1000,
   max: Number(process.env.ADMIN_API_RATE_LIMIT || 240),
-  keyFn: req => `admin-api:${clientIp(req)}`,
+  keyFn: req => clientIp(req),
+  prefix: "admin-api",
   message: "طلبات لوحة الإدارة كثيرة جدًا. انتظر دقيقة ثم حاول مرة أخرى"
+});
+
+// حارس صارم على تسجيل دخول الأدمن (منع تخمين كلمة السر بالتكرار)
+const adminLoginRateLimit = createDbRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 دقيقة
+  max: Number(process.env.ADMIN_LOGIN_RATE_LIMIT || 10),
+  keyFn: req => clientIp(req),
+  prefix: "admin-login",
+  message: "محاولات دخول كثيرة جدًا. انتظر شوية وحاول تاني"
+});
+
+// حارس صارم على تسجيل دخول الصنايعي (منع تخمين كلمة السر بالتكرار)
+const workerLoginRateLimit = createDbRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.WORKER_LOGIN_RATE_LIMIT || 15),
+  keyFn: req => clientIp(req),
+  prefix: "worker-login",
+  message: "محاولات دخول كثيرة جدًا. انتظر شوية وحاول تاني"
 });
 
 module.exports = {
@@ -68,5 +131,8 @@ module.exports = {
   reportsRateLimit,
   registrationUpdateRateLimit,
   adminApiRateLimit,
-  createMemoryRateLimiter
+  adminLoginRateLimit,
+  workerLoginRateLimit,
+  createMemoryRateLimiter,
+  createDbRateLimiter
 };
