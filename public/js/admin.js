@@ -160,7 +160,7 @@ function openEdit(w){
     </form>`);
   document.getElementById('forceEditFormV8').onsubmit = async function(e){
     e.preventDefault();
-    const body={name:v8_name.value.trim(),phone:v8_phone.value.trim(),whatsapp:v8_whatsapp.value.trim(),trade:v8_trade.value.trim(),area:v8_area.value.trim(),description:v8_description.value.trim()};
+    const body={name:document.getElementById('v8_name').value.trim(),phone:document.getElementById('v8_phone').value.trim(),whatsapp:document.getElementById('v8_whatsapp').value.trim(),trade:document.getElementById('v8_trade').value.trim(),area:document.getElementById('v8_area').value.trim(),description:document.getElementById('v8_description').value.trim()};
     try{
       const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
       const r=await fetch('/api/workers/'+id,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -194,7 +194,7 @@ function openIdentity(w){
     </form>`);
   document.getElementById('forceIdentityFormV8').onsubmit = async function(e){
     e.preventDefault();
-    const body={identity_status:v8_identity_status.value,reason:v8_identity_reason.value.trim(),note:v8_identity_note.value.trim()};
+    const body={identity_status:document.getElementById('v8_identity_status').value,reason:document.getElementById('v8_identity_reason').value.trim(),note:document.getElementById('v8_identity_note').value.trim()};
     try{
       const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
       const r=await fetch('/api/admin/workers/'+id+'/identity-review',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -662,6 +662,35 @@ async function loadAnalytics() {
 // ==========================================
 // رسائل الواتساب
 // ==========================================
+
+// بيحوّل أي رقم لصيغة واتساب دولية (زي normalizeWhatsAppRecipient في الباك إند)، وبيرجع "" لو الرقم مش صالح
+function adminWhatsAppNumber(phone){
+  let d=String(phone||"").replace(/[٠-٩]/g,c=>"٠١٢٣٤٥٦٧٨٩".indexOf(c)).replace(/[۰-۹]/g,c=>"۰۱۲۳۴۵۶۷۸۹".indexOf(c)).replace(/[^0-9]/g,"");
+  if(!d)return"";
+  if(d.startsWith("00"))d=d.slice(2);
+  if(d.startsWith("0")&&d.length>=10)d="20"+d.slice(1);
+  if(d.length===10&&/^(10|11|12|15)/.test(d))d="20"+d;
+  return d.length>=11?d:"";
+}
+
+// رابط بروفايل الصنايعي العام
+function workerDisplayLink(id){return location.origin+"/worker/"+id}
+
+// رابط صفحة متابعة حالة الطلب (status.html بتقرأ ?code=)
+function registrationStatusLink(w){return location.origin+"/status?code="+encodeURIComponent(registrationCodeText(w))}
+
+// نص رسالة الواتساب الجاهز حسب نوع الحالة
+function buildWhatsAppTemplate(type,w){
+  const name=wname(w),trade=wtrade(w),area=warea(w);
+  const templates={
+    registration_id_reupload:`أهلاً ${name} 👋\n\nطلب تسجيلك في دليل صنايعي مطروح محتاج إعادة رفع صورة البطاقة الشخصية (وجه وظهر) بشكل واضح.\n\nتقدر ترفعها من هنا:\n${registrationStatusLink(w)}`,
+    registration_update_data:`أهلاً ${name} 👋\n\nطلب تسجيلك في دليل صنايعي مطروح محتاج تعديل أو استكمال بعض البيانات (زي رقم الهاتف أو الحرفة أو المنطقة) قبل الاعتماد.\n\nتابع طلبك من هنا:\n${registrationStatusLink(w)}`,
+    registration_work_photos:`أهلاً ${name} 👋\n\nعشان بروفايلك يبان بشكل أحسن للعملاء، محتاجين ترفع صور من شغلك السابق (حتى لو صورة أو اتنين).\n\nارفعها من هنا:\n${registrationStatusLink(w)}`,
+    approved:`مبروك يا ${name}! 🎉\n\nتم اعتماد بروفايلك في دليل صنايعي مطروح، وبقيت ظاهر للعملاء دلوقتي كـ ${trade} في ${area}.\n\nشوف بروفايلك من هنا:\n${workerDisplayLink(wid(w))}`
+  };
+  return templates[type]||`أهلاً ${name}، رسالة من إدارة دليل صنايعي مطروح.`;
+}
+
 function waSingleWorkerMatches(w, q){
   const text=[wname(w),registrationCodeText(w),wphone(w),wwhatsapp(w),wtrade(w),warea(w)].join(" ").toLowerCase();
   return !q || text.includes(String(q||"").toLowerCase());
