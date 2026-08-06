@@ -53,6 +53,12 @@
 .wa-preview { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 16px; padding: 12px; font-weight: 800; line-height: 1.8; white-space: pre-wrap; }
 .wa-progress { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
 .wa-progress > span { display: block; height: 100%; background: #2563eb; width: 0%; }
+
+.wa-queue-panel { margin-top: 14px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 20px; padding: 16px; }
+.wa-queue-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: #166534; }
+.wa-queue-close { background: #fff; border: 1px solid #86efac; color: #166534; width: 32px; height: 32px; border-radius: 10px; cursor: pointer; }
+.wa-queue-info { background: #fff; border: 1px solid #bbf7d0; border-radius: 14px; padding: 12px; font-weight: 800; margin-bottom: 12px; }
+.wa-queue-note { margin-top: 10px; font-size: 12.5px; color: #166534; font-weight: 700; line-height: 1.8; }
 .wa-inbox-item { border: 1px solid var(--border); border-radius: 18px; background: #fff; padding: 14px; box-shadow: var(--shadow-sm); }
 .wa-inbox-item.unread { border-color: #86efac; background: #f0fdf4; }
 .wa-inbox-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap; }

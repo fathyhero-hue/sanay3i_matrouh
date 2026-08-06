@@ -439,16 +439,34 @@
               <option value="approved">موافق عليهم</option>
               <option value="pending">بانتظار الموافقة</option>
               <option value="active">النشطون فقط</option>
+              <option value="no_email">بدون بريد إلكتروني</option>
             </select>
             <select id="waBulkTemplateType" onchange="previewWhatsappBulk()">
               <option value="custom">رسالة مخصصة</option>
+              <option value="request_email">طلب إضافة بريد إلكتروني</option>
             </select>
             <textarea id="waBulkCustomText" oninput="previewWhatsappBulk()" placeholder="اكتب رسالة جماعية..."></textarea>
             <div id="waBulkSummary" class="wa-preview">اضغط معاينة لحساب عدد المستلمين.</div>
             <div class="wa-progress"><span id="waBulkProgress"></span></div>
             <div class="whatsapp-actions">
               <button class="big-btn btn-dark" onclick="previewWhatsappBulk()"><i class="fa-solid fa-eye"></i> معاينة</button>
-              <button class="big-btn btn-blue" id="waBulkSendBtn" onclick="sendWhatsappBulk()"><i class="fa-solid fa-paper-plane"></i> إرسال جماعي</button>
+              <button class="big-btn btn-blue" id="waBulkSendBtn" onclick="sendWhatsappBulk()"><i class="fa-solid fa-paper-plane"></i> إرسال جماعي (API)</button>
+            </div>
+            <div class="whatsapp-actions" style="margin-top:8px;">
+              <button class="big-btn btn-whatsapp" onclick="startWaQueue()"><i class="fa-brands fa-whatsapp"></i> طابور إرسال يدوي (شغال دلوقتي)</button>
+            </div>
+
+            <div id="waQueuePanel" class="wa-queue-panel" style="display:none;">
+              <div class="wa-queue-head">
+                <strong><i class="fa-solid fa-list-check"></i> طابور الإرسال اليدوي</strong>
+                <button type="button" class="wa-queue-close" onclick="closeWaQueue()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <div id="waQueueInfo" class="wa-queue-info">جاري التجهيز...</div>
+              <div class="whatsapp-actions">
+                <button class="big-btn btn-whatsapp" id="waQueueOpenBtn" onclick="waQueueOpenCurrent()"><i class="fa-brands fa-whatsapp"></i> فتح واتساب وإرسال</button>
+                <button class="big-btn btn-dark" id="waQueueNextBtn" onclick="waQueueNext()">التالي <i class="fa-solid fa-arrow-left"></i></button>
+              </div>
+              <div class="wa-queue-note">أُرسلت يدويًا حتى الآن: <b id="waQueueDoneCount">0</b> — دوس "فتح واتساب وإرسال" ثم أرسل الرسالة من واتساب نفسه، وبعدين دوس "التالي".</div>
             </div>
           </div>
         </div>

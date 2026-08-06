@@ -773,6 +773,9 @@ function workerDisplayLink(id){return location.origin+"/worker/"+id}
 // رابط صفحة متابعة حالة الطلب (status.html بتقرأ ?code=)
 function registrationStatusLink(w){return location.origin+"/status?code="+encodeURIComponent(registrationCodeText(w))}
 
+// رابط صفحة تسجيل دخول الصنايعي (نفس الرابط لكل الصنايعية)
+function workerLoginLink(){return location.origin+"/worker-login"}
+
 // نص رسالة الواتساب الجاهز حسب نوع الحالة
 function buildWhatsAppTemplate(type,w){
   const name=wname(w),trade=wtrade(w),area=warea(w);
@@ -780,7 +783,8 @@ function buildWhatsAppTemplate(type,w){
     registration_id_reupload:`أهلاً ${name} 👋\n\nطلب تسجيلك في دليل صنايعي مطروح محتاج إعادة رفع صورة البطاقة الشخصية (وجه وظهر) بشكل واضح.\n\nتقدر ترفعها من هنا:\n${registrationStatusLink(w)}`,
     registration_update_data:`أهلاً ${name} 👋\n\nطلب تسجيلك في دليل صنايعي مطروح محتاج تعديل أو استكمال بعض البيانات (زي رقم الهاتف أو الحرفة أو المنطقة) قبل الاعتماد.\n\nتابع طلبك من هنا:\n${registrationStatusLink(w)}`,
     registration_work_photos:`أهلاً ${name} 👋\n\nعشان بروفايلك يبان بشكل أحسن للعملاء، محتاجين ترفع صور من شغلك السابق (حتى لو صورة أو اتنين).\n\nارفعها من هنا:\n${registrationStatusLink(w)}`,
-    approved:`مبروك يا ${name}! 🎉\n\nتم اعتماد بروفايلك في دليل صنايعي مطروح، وبقيت ظاهر للعملاء دلوقتي كـ ${trade} في ${area}.\n\nشوف بروفايلك من هنا:\n${workerDisplayLink(wid(w))}`
+    approved:`مبروك يا ${name}! 🎉\n\nتم اعتماد بروفايلك في دليل صنايعي مطروح، وبقيت ظاهر للعملاء دلوقتي كـ ${trade} في ${area}.\n\nشوف بروفايلك من هنا:\n${workerDisplayLink(wid(w))}`,
+    request_email:`أهلاً ${name}\n\nمحتاجين بريدك الإلكتروني عشان تقدر تستقبل رسايل مهمة من إدارة صنايعي مطروح (زي تحديثات حسابك واستعادة كلمة المرور).\n\nسجّل دخولك من هنا وضيفه من لوحة تحكمك:\n${workerLoginLink()}`
   };
   return templates[type]||`أهلاً ${name}، رسالة من إدارة دليل صنايعي مطروح.`;
 }
@@ -873,6 +877,7 @@ function waBulkEligibleWorkers(){
     if(f==="sub_expired")return sub.daysLeft!==null&&sub.daysLeft<0;
     if(f==="identity_pending")return idStatus==="pending"; if(f==="identity_verified")return idStatus==="verified";
     if(f==="has_whatsapp")return !!adminWhatsAppNumber(wwhatsapp(w)||wphone(w));
+    if(f==="no_email")return !w.email;
     return true;
   });
 }
@@ -916,6 +921,64 @@ async function sendWhatsappBulk(){
     previewWhatsappBulk(); await loadWhatsappLogs();
   }catch(e){toast("error",e.message||"فشل الإرسال الجماعي");if(bar)bar.style.width="0%"}
   finally{if(btn){btn.disabled=false;btn.innerHTML=old}setTimeout(()=>{if(bar)bar.style.width="0%"},1200)}
+}
+
+// ==========================================
+// طابور الإرسال اليدوي عبر واتساب (wa.me) - بديل موثوق لحد ما توثيق ميتا يخلص
+// ==========================================
+let waQueueState = { workers: [], index: 0, sent: [] };
+
+function startWaQueue(){
+  const workers = waBulkEligibleWorkers();
+  if(!workers.length){ toast("error","لا يوجد مستلمون مطابقون للفلتر الحالي"); return; }
+  waQueueState = { workers, index: 0, sent: [] };
+  document.getElementById("waQueuePanel").style.display = "block";
+  renderWaQueueStep();
+  document.getElementById("waQueuePanel").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function renderWaQueueStep(){
+  const { workers, index, sent } = waQueueState;
+  const info = document.getElementById("waQueueInfo");
+  const openBtn = document.getElementById("waQueueOpenBtn");
+  const nextBtn = document.getElementById("waQueueNextBtn");
+  const doneCount = document.getElementById("waQueueDoneCount");
+
+  if(doneCount) doneCount.textContent = String(sent.length);
+
+  if(index >= workers.length){
+    info.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#16a34a"></i> <b>تم الانتهاء من الطابور</b> - أُرسلت ${sent.length} من ${workers.length}`;
+    if(openBtn) openBtn.style.display = "none";
+    if(nextBtn) nextBtn.style.display = "none";
+    return;
+  }
+
+  const w = workers[index];
+  const num = adminWhatsAppNumber(wwhatsapp(w)||wphone(w));
+  info.innerHTML = `<b>${index+1} من ${workers.length}</b> &nbsp;-&nbsp; ${esc(wname(w))} &nbsp;-&nbsp; ${esc(num||"بدون رقم واتساب صالح")}`;
+  if(openBtn){ openBtn.style.display = ""; openBtn.disabled = !num; }
+  if(nextBtn) nextBtn.style.display = "";
+}
+
+function waQueueOpenCurrent(){
+  const { workers, index, sent } = waQueueState;
+  const w = workers[index];
+  if(!w) return;
+  const num = adminWhatsAppNumber(wwhatsapp(w)||wphone(w));
+  if(!num){ toast("error","لا يوجد رقم واتساب صالح لهذا الصنايعي"); return; }
+  const msg = waBulkMessageForWorker(w);
+  window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg), "_blank");
+  sent.push(String(wid(w)));
+}
+
+function waQueueNext(){
+  waQueueState.index++;
+  renderWaQueueStep();
+}
+
+function closeWaQueue(){
+  waQueueState = { workers: [], index: 0, sent: [] };
+  document.getElementById("waQueuePanel").style.display = "none";
 }
 
 let waInboxTimer=null;
