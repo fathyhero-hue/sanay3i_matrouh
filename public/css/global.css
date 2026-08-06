@@ -67,12 +67,22 @@ button, input, select, textarea { font-family: inherit; }
 .mobile-nav a { padding: 12px 14px; border-radius: 14px; color: #fff !important; background: rgba(255,255,255,.08) !important; font-weight: 900; }
 
 /* Footer */
-.footer { background: var(--primary); color: #fff; padding: 30px 0; }
-.footer-content { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
-.footer h3 { margin: 0 0 6px; font-weight: 900; }
-.footer p { margin: 0; color: rgba(255,255,255,.75); font-weight: 700; }
-.footer-links { display: flex; gap: 10px; flex-wrap: wrap; }
-.footer-links a { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); padding: 9px 13px; border-radius: 999px; font-weight: 900; color: #fff; }
+.footer { background: var(--primary); color: #fff; }
+.footer-content { padding: 32px 0 26px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.footer-brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.footer-logo { width: 34px; height: 34px; border-radius: 11px; display: block; }
+.footer h3 { margin: 0; font-size: 17px; font-weight: 900; }
+.footer-brand p { margin: 0; max-width: 320px; color: rgba(255,255,255,.68); font-weight: 700; font-size: 13.5px; line-height: 1.8; }
+.footer-links { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.footer-links a { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); padding: 9px 14px; border-radius: 999px; font-weight: 800; font-size: 13px; color: #fff; transition: 0.2s ease; }
+.footer-links a:hover { background: rgba(255,255,255,.16); }
+.footer-link-cta { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #fbbf24, #f59e0b) !important; border-color: transparent !important; color: var(--sanay3i-navy) !important; font-weight: 900; box-shadow: 0 10px 22px rgba(245,158,11,.28); }
+.footer-link-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 26px rgba(245,158,11,.36); }
+.footer-bottom { border-top: 1px solid rgba(255,255,255,.12); }
+.footer-bottom-content { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0; flex-wrap: wrap; }
+.footer-bottom-content span { color: rgba(255,255,255,.58); font-size: 12px; font-weight: 700; }
+.footer-bottom-content a { color: rgba(255,255,255,.72); font-size: 12px; font-weight: 800; }
+.footer-bottom-content a:hover { color: #fff; }
 
 /* Toast & Loaders */
 .copy-toast {
@@ -93,8 +103,15 @@ button, input, select, textarea { font-family: inherit; }
   .mobile-menu-btn { display: flex; }
 }
 @media (max-width: 640px) {
-  .footer-content { display: block; text-align: center; }
-  .footer-links { justify-content: center; margin-top: 16px; }
+  .footer-content { display: block; text-align: center; padding: 20px 0 16px; }
+  .footer-brand-row { justify-content: center; margin-bottom: 5px; }
+  .footer-logo { width: 28px; height: 28px; border-radius: 9px; }
+  .footer h3 { font-size: 15px; }
+  .footer-brand p { max-width: none; font-size: 12px; }
+  .footer-links { flex-wrap: nowrap; justify-content: center; gap: 5px; margin-top: 12px; }
+  .footer-links a { flex: 1 1 0; padding: 7px 4px; font-size: 10px; text-align: center; white-space: nowrap; }
+  .footer-bottom-content { flex-direction: column; text-align: center; gap: 5px; padding: 10px 0; }
+  .footer-bottom-content span, .footer-bottom-content a { font-size: 10.5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

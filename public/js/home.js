@@ -2,9 +2,7 @@ let allWorkers = [];
 let allTrades = [];
 let allAreas = [];
 let ratingsByWorker = {};
-let currentWorkersForRender = [];
-let visibleWorkersLimit = 24;
-const WORKERS_PAGE_SIZE = 24;
+let expandedTradeKey = "";
 
 function toggleMobileMenu() {
   const nav = document.getElementById("mobileNav");
@@ -176,12 +174,13 @@ function applyFilterFromUrl() {
   if (!tradeName && !areaName) return false;
   setTradeFilterValue(tradeName);
   setAreaFilterValue(areaName);
-  filterWorkers();
+  if (tradeName) expandedTradeKey = normalizeText(tradeName);
+  renderTradeGroups();
   return true;
 }
 
-function onTradeFilterChanged() { filterWorkers(); }
-function onAreaFilterChanged() { filterWorkers(); }
+function onTradeFilterChanged() { renderTradeGroups(); }
+function onAreaFilterChanged() { renderTradeGroups(); }
 
 function tradeIconClass(tradeName) {
   const text = normalizeText(tradeName);
@@ -208,31 +207,6 @@ function countWorkersForTrade(tradeName) {
   return allWorkers.filter(w => normalizeText(getWorkerTrade(w)) === target).length;
 }
 
-function createTradeIconCard(tradeName, count, isAll) {
-  const button = document.createElement("button");
-  button.type = "button"; button.className = "trade-icon-card";
-  button.dataset.trade = tradeName || "";
-  const icon = isAll ? "fa-layer-group" : tradeIconClass(tradeName);
-  const label = isAll ? "كل الحرف" : tradeName;
-  button.innerHTML = `<span class="trade-icon-bubble"><i class="fa-solid ${icon}"></i></span><strong>${escapeHtml(label)}</strong><small>${count} صنايعي</small>`;
-
-  button.addEventListener("click", () => {
-    setTradeFilterValue(tradeName);
-    filterWorkers();
-    scrollToWorkersSection();
-  });
-
-  return button;
-}
-
-function renderTradeIcons() {
-  const grid = document.getElementById("tradeIconsGrid"); if (!grid) return;
-  const trades = getUniqueTradeNames(); grid.innerHTML = "";
-  if (!trades.length) { grid.innerHTML = '<div class="trade-icons-empty">لا توجد حرف.</div>'; return; }
-  grid.appendChild(createTradeIconCard("", allWorkers.length, true));
-  trades.forEach(t => grid.appendChild(createTradeIconCard(t, countWorkersForTrade(t), false)));
-}
-
 function renderAreaIcons() {
   const grid = document.getElementById("areaIconsGrid"); if (!grid) return;
   const seen = new Set(); const areas = [];
@@ -244,23 +218,28 @@ function renderAreaIcons() {
   if (!areas.length) { grid.innerHTML = '<div class="area-icons-empty">لا توجد مناطق.</div>'; return; }
   
   const allBtn = document.createElement("button");
-  allBtn.type = "button"; allBtn.className = "area-icon-card";
-  allBtn.innerHTML = `<span class="area-icon-bubble"><i class="fa-solid fa-map"></i></span><strong>كل المناطق</strong><small>${allWorkers.length} صنايعي</small>`;
+  allBtn.type = "button"; allBtn.className = "area-chip";
+  allBtn.innerHTML = `<i class="fa-solid fa-map"></i> كل المناطق <small>(${allWorkers.length})</small>`;
   allBtn.addEventListener("click", () => {
     setAreaFilterValue("");
-    filterWorkers();
+    renderTradeGroups();
     scrollToWorkersSection();
   });
   grid.appendChild(allBtn);
 
-  areas.forEach(a => {
-    const count = allWorkers.filter(w => normalizeText(getWorkerArea(w)) === normalizeText(a)).length;
+  const areasWithCounts = areas.map(a => ({
+    name: a,
+    count: allWorkers.filter(w => normalizeText(getWorkerArea(w)) === normalizeText(a)).length
+  }));
+  areasWithCounts.sort((x, y) => y.count - x.count);
+
+  areasWithCounts.forEach(({ name: a, count }) => {
     const btn = document.createElement("button");
-    btn.type = "button"; btn.className = "area-icon-card";
-    btn.innerHTML = `<span class="area-icon-bubble"><i class="fa-solid fa-location-dot"></i></span><strong>${escapeHtml(a)}</strong><small>${count} صنايعي</small>`;
+    btn.type = "button"; btn.className = "area-chip";
+    btn.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${escapeHtml(a)} <small>(${count})</small>`;
     btn.addEventListener("click", () => {
       setAreaFilterValue(a);
-      filterWorkers();
+      renderTradeGroups();
       scrollToWorkersSection();
     });
     grid.appendChild(btn);
@@ -279,7 +258,7 @@ function renderTopDemandWorkers() {
     .map(worker => ({ worker, score: getWorkerDemandScore(worker) }))
     .filter(entry => entry.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+    .slice(0, 4);
 
   grid.innerHTML = "";
   if (!ranked.length) {
@@ -292,17 +271,11 @@ function renderTopDemandWorkers() {
     const id = getWorkerId(worker);
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "demand-item";
+    btn.className = "demand-chip";
     btn.innerHTML = `
-      <div class="demand-item-main">
-        <span class="demand-rank">#${index + 1}</span>
-        <img class="demand-worker-avatar" src="${escapeHtml(getWorkerImage(worker))}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
-        <div class="demand-item-title">
-          <strong>${escapeHtml(getWorkerName(worker))}</strong>
-          <small>${escapeHtml(getWorkerTrade(worker))} · ${escapeHtml(getWorkerArea(worker))}</small>
-        </div>
-      </div>
-      <span class="demand-score-pill"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
+      <span class="demand-chip-rank">${index + 1}</span>
+      <span class="demand-chip-name">${escapeHtml(getWorkerName(worker))}</span>
+      <span class="demand-chip-score"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
     `;
     btn.addEventListener("click", () => { if (id) location.href = "/worker/" + id; });
     grid.appendChild(btn);
@@ -322,7 +295,7 @@ function renderTopDemandTrades() {
     }))
     .filter(entry => entry.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+    .slice(0, 4);
 
   grid.innerHTML = "";
   if (!ranked.length) {
@@ -333,20 +306,16 @@ function renderTopDemandTrades() {
   ranked.forEach((entry, index) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "demand-item";
+    btn.className = "demand-chip";
     btn.innerHTML = `
-      <div class="demand-item-main">
-        <span class="demand-rank">#${index + 1}</span>
-        <div class="demand-item-title">
-          <strong>${escapeHtml(entry.trade)}</strong>
-          <small>${entry.count} صنايعي</small>
-        </div>
-      </div>
-      <span class="demand-score-pill"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
+      <span class="demand-chip-rank">${index + 1}</span>
+      <span class="demand-chip-name">${escapeHtml(entry.trade)}</span>
+      <span class="demand-chip-score"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
     `;
     btn.addEventListener("click", () => {
       setTradeFilterValue(entry.trade);
-      filterWorkers();
+      expandedTradeKey = normalizeText(entry.trade);
+      renderTradeGroups();
       scrollToWorkersSection();
     });
     grid.appendChild(btn);
@@ -366,7 +335,6 @@ async function loadTrades() {
   }
   const tCount = document.getElementById("tradesCount");
   if(tCount) tCount.textContent = allTrades.length;
-  renderTradeIcons();
 }
 
 async function loadAreas() {
@@ -400,9 +368,8 @@ async function loadWorkers() {
 
   await loadRatingsForWorkers();
   if(loadingBox) loadingBox.style.display = "none";
-  filterWorkers();
+  renderTradeGroups();
   updateStats();
-  renderTradeIcons();
   renderAreaIcons();
   renderTopDemandTrades();
   renderTopDemandWorkers();
@@ -489,93 +456,139 @@ function getWorkerId(worker) { return worker.id || worker._id; }
 function isFeatured(worker) { return ok(worker.featured || worker.special); }
 function isVerified(worker) { return ok(worker.identity_verified || worker.verified); }
 
-function renderWorkers(workers) {
-  const grid = document.getElementById("workersGrid");
-  const emptyBox = document.getElementById("emptyBox");
-  if(!grid) return;
-  currentWorkersForRender = Array.isArray(workers) ? workers : [];
-  grid.innerHTML = "";
+function createWorkerCardElement(worker) {
+  const name = getWorkerName(worker);
+  const area = getWorkerArea(worker);
+  const desc = getWorkerDescription(worker);
+  const phone = getWorkerPhone(worker);
+  const wa = getWorkerWhatsapp(worker);
+  const id = getWorkerId(worker);
+  const image = getWorkerImage(worker);
+  const featured = isFeatured(worker);
+  const verified = isVerified(worker);
 
-  if (!currentWorkersForRender.length) {
-    if(emptyBox) emptyBox.style.display = "block";
-    return;
-  }
-  if(emptyBox) emptyBox.style.display = "none";
+  const callNum = phone.replace(/[^\d]/g, "");
+  const waNum = wa.replace(/[^\d]/g, "");
 
-  const fragment = document.createDocumentFragment();
-  currentWorkersForRender.slice(0, visibleWorkersLimit).forEach(worker => {
-    const name = getWorkerName(worker);
-    const trade = getWorkerTrade(worker);
-    const area = getWorkerArea(worker);
-    const desc = getWorkerDescription(worker);
-    const phone = getWorkerPhone(worker);
-    const wa = getWorkerWhatsapp(worker);
-    const id = getWorkerId(worker);
-    const image = getWorkerImage(worker);
-    const featured = isFeatured(worker);
-    const verified = isVerified(worker);
+  const card = document.createElement("article");
+  card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
+  card.style.cursor = "pointer";
+  card.addEventListener("click", () => { if(id) location.href = "/worker/" + id; });
 
-    const callNum = phone.replace(/[^\d]/g, "");
-    const waNum = wa.replace(/[^\d]/g, "");
-
-    const card = document.createElement("article");
-    card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
-    card.style.cursor = "pointer";
-    card.addEventListener("click", () => { if(id) location.href = "/worker/" + id; });
-
-    card.innerHTML = `
-      <div class="worker-image-wrap">
-        <img loading="lazy" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
-        ${featured ? '<div class="featured-badge"><i class="fa-solid fa-star"></i> مميز</div>' : ''}
-        ${verified ? '<div class="verified-badge"><i class="fa-solid fa-shield-halved"></i> موثّق</div>' : ''}
+  card.innerHTML = `
+    <div class="worker-image-wrap">
+      <img loading="lazy" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+      ${featured ? '<div class="featured-badge"><i class="fa-solid fa-star"></i> مميز</div>' : ''}
+      ${verified ? '<div class="verified-badge"><i class="fa-solid fa-shield-halved"></i> موثّق</div>' : ''}
+    </div>
+    <div class="worker-content">
+      <h3>${escapeHtml(name)}</h3>
+      ${verified ? '<div class="worker-trust-line"><i class="fa-solid fa-shield-halved"></i> موثّق من الإدارة</div>' : ''}
+      ${renderSmartBadge(worker)}
+      ${renderDemandBadge(worker)}
+      ${renderRatingBadge(id)}
+      <div class="worker-meta">
+        <span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(area)}</span>
       </div>
-      <div class="worker-content">
-        <h3>${escapeHtml(name)}</h3>
-        ${verified ? '<div class="worker-trust-line"><i class="fa-solid fa-shield-halved"></i> موثّق من الإدارة</div>' : ''}
-        ${renderSmartBadge(worker)}
-        ${renderDemandBadge(worker)}
-        ${renderRatingBadge(id)}
-        <div class="worker-meta">
-          <span><i class="fa-solid fa-screwdriver-wrench"></i> ${escapeHtml(trade)}</span>
-          <span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(area)}</span>
-        </div>
-        <p class="worker-desc">${escapeHtml(desc)}</p>
-        <div class="worker-actions">
-          <a href="tel:${callNum}" onclick="event.stopPropagation()" class="call-btn ${!callNum ? 'disabled' : ''}"><i class="fa-solid fa-phone"></i> اتصال</a>
-          <a href="https://wa.me/2${waNum}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!waNum ? 'disabled' : ''}"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
-        </div>
+      <p class="worker-desc">${escapeHtml(desc)}</p>
+      <div class="worker-actions">
+        <a href="tel:${callNum}" onclick="event.stopPropagation()" class="call-btn ${!callNum ? 'disabled' : ''}"><i class="fa-solid fa-phone"></i> اتصال</a>
+        <a href="https://wa.me/2${waNum}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!waNum ? 'disabled' : ''}"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
       </div>
-    `;
-    fragment.appendChild(card);
+    </div>
+  `;
+  return card;
+}
+
+function createTradeGroupElement(trade, workers, isExpanded) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "trade-group" + (isExpanded ? " expanded" : "");
+
+  const header = document.createElement("button");
+  header.type = "button";
+  header.className = "trade-group-header";
+  header.innerHTML = `
+    <span class="trade-group-icon"><i class="fa-solid ${tradeIconClass(trade)}"></i></span>
+    <span class="trade-group-title">
+      <strong>${escapeHtml(trade)}</strong>
+      <small>${workers.length} صنايعي</small>
+    </span>
+    <i class="fa-solid fa-chevron-down trade-group-chevron"></i>
+  `;
+  header.addEventListener("click", () => {
+    const key = normalizeText(trade);
+    expandedTradeKey = (expandedTradeKey === key) ? "" : key;
+    renderTradeGroups();
+    if (expandedTradeKey) wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  grid.appendChild(fragment);
+  wrapper.appendChild(header);
+
+  if (isExpanded) {
+    const body = document.createElement("div");
+    body.className = "trade-group-body";
+    const grid = document.createElement("div");
+    grid.className = "workers-grid";
+    sortWorkers(workers).forEach(worker => grid.appendChild(createWorkerCardElement(worker)));
+    body.appendChild(grid);
+    wrapper.appendChild(body);
+  }
+
+  return wrapper;
 }
 
-function setQuickTrade(tradeName, btn) {
-  setTradeFilterValue(tradeName);
-  document.querySelectorAll(".quick-trade-btn").forEach(b => b.classList.remove("active"));
-  if(btn) btn.classList.add("active");
-  filterWorkers();
-  scrollToWorkersSection();
-}
-
-function filterWorkers() {
+function getFilteredWorkers() {
   const search = document.getElementById("searchInput")?.value.trim().toLowerCase() || "";
-  const trade = normalizeText(document.getElementById("tradeFilter")?.value || "");
   const area = normalizeText(document.getElementById("areaFilter")?.value || "");
   const featuredOnly = document.getElementById("featuredOnlyFilter")?.checked || false;
   const verifiedOnly = document.getElementById("verifiedOnlyFilter")?.checked || false;
 
-  const filtered = allWorkers.filter(w => {
+  return allWorkers.filter(w => {
     const matchSearch = getWorkerName(w).toLowerCase().includes(search) || getWorkerTrade(w).toLowerCase().includes(search) || getWorkerArea(w).toLowerCase().includes(search);
-    const matchTrade = !trade || normalizeText(getWorkerTrade(w)) === trade;
     const matchArea = !area || normalizeText(getWorkerArea(w)) === area;
     const matchFeatured = !featuredOnly || isFeatured(w);
     const matchVerified = !verifiedOnly || isVerified(w);
-    return matchSearch && matchTrade && matchArea && matchFeatured && matchVerified;
+    return matchSearch && matchArea && matchFeatured && matchVerified;
+  });
+}
+
+function renderTradeGroups() {
+  const container = document.getElementById("tradeGroupsContainer");
+  const emptyBox = document.getElementById("emptyBox");
+  if (!container) return;
+
+  const search = document.getElementById("searchInput")?.value.trim() || "";
+  const tradeFilterValue = document.getElementById("tradeFilter")?.value || "";
+  const hasActiveFilter = !!(search || tradeFilterValue || document.getElementById("areaFilter")?.value || document.getElementById("featuredOnlyFilter")?.checked || document.getElementById("verifiedOnlyFilter")?.checked);
+
+  const groupsByKey = {};
+  getFilteredWorkers().forEach(worker => {
+    const trade = getWorkerTrade(worker);
+    const key = normalizeText(trade);
+    if (!key) return;
+    if (!groupsByKey[key]) groupsByKey[key] = { trade, workers: [] };
+    groupsByKey[key].workers.push(worker);
   });
 
-  renderWorkers(sortWorkers(filtered));
+  let groups = Object.values(groupsByKey);
+  if (tradeFilterValue) {
+    const targetKey = normalizeText(tradeFilterValue);
+    groups = groups.filter(g => normalizeText(g.trade) === targetKey);
+  }
+  groups.sort((a, b) => b.workers.length - a.workers.length);
+
+  container.innerHTML = "";
+
+  if (!groups.length) {
+    if (emptyBox) emptyBox.style.display = "block";
+    return;
+  }
+  if (emptyBox) emptyBox.style.display = "none";
+
+  groups.forEach(group => {
+    const key = normalizeText(group.trade);
+    const isExpanded = hasActiveFilter || key === expandedTradeKey;
+    container.appendChild(createTradeGroupElement(group.trade, group.workers, isExpanded));
+  });
 }
 
 function clearFilters() {
@@ -585,10 +598,17 @@ function clearFilters() {
   if(document.getElementById("sortFilter")) document.getElementById("sortFilter").value = "default";
   if(document.getElementById("featuredOnlyFilter")) document.getElementById("featuredOnlyFilter").checked = false;
   if(document.getElementById("verifiedOnlyFilter")) document.getElementById("verifiedOnlyFilter").checked = false;
-  filterWorkers();
+  expandedTradeKey = "";
+  renderTradeGroups();
+}
+
+function setFooterYear() {
+  const el = document.getElementById("footerYear");
+  if (el) el.textContent = new Date().getFullYear();
 }
 
 async function initPage() {
+  setFooterYear();
   await loadTrades();
   await loadAreas();
   await loadWorkers();
