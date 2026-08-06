@@ -152,9 +152,9 @@ async function handleIdentityReview(req, res) {
         }).catch(err => console.warn("Failed to log identity_review activity:", err.message));
 
         if (isVerified) {
-          mailer.sendIdentityVerifiedEmail(before).catch(err => console.error('Failed to send verified email:', err.message));
+          await mailer.sendIdentityVerifiedEmail(before).catch(err => console.error('Failed to send verified email:', err.message));
         } else if (["rejected", "needs_data", "needs_id_reupload"].includes(status)) {
-          mailer.sendIdentityActionEmail(before, status, reason, note).catch(err => console.error('Failed to send identity action email:', err.message));
+          await mailer.sendIdentityActionEmail(before, status, reason, note).catch(err => console.error('Failed to send identity action email:', err.message));
         }
 
         res.json({ success: true, message: 'تم تحديث حالة مراجعة البطاقة والاعتماد بنجاح' });
@@ -349,7 +349,7 @@ app.post('/api/register', upload.fields([
 
     await supabase.from('workers').update({ registration_code: registrationCode }).eq('id', workerId);
 
-    mailer.sendWelcomeEmail({ ...data, email, registration_code: registrationCode })
+    await mailer.sendWelcomeEmail({ ...data, email, registration_code: registrationCode })
       .catch(err => console.error('Failed to send welcome email:', err.message));
 
     return res.json({
@@ -458,7 +458,7 @@ app.post('/api/worker/forgot-password', workerLoginRateLimit, async (req, res) =
       password_reset_expires_at: expiresAt.toISOString()
     }).eq('id', worker.id);
 
-    mailer.sendPasswordResetEmail(worker, token)
+    await mailer.sendPasswordResetEmail(worker, token)
       .catch(err => console.error('Failed to send reset email:', err.message));
 
     res.json({
@@ -507,7 +507,7 @@ app.post('/api/worker/reset-password', workerLoginRateLimit, async (req, res) =>
       password_reset_expires_at: null
     }).eq('id', worker.id);
 
-    mailer.sendPasswordChangedEmail(worker)
+    await mailer.sendPasswordChangedEmail(worker)
       .catch(err => console.error('Failed to send password-changed email:', err.message));
 
     res.json({ success: true, message: 'تم تحديث كلمة المرور بنجاح، يمكنك الآن تسجيل الدخول.' });
