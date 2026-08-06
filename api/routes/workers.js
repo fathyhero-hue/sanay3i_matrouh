@@ -62,13 +62,13 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const id = Number(req.params.id);
+  // ملحوظة: صفحة البروفايل الفردي تفضل متاحة برابط مباشر حتى قبل التوثيق
+  // (الحساب "متاح على التطبيق" لصاحبه فور التسجيل) — الإخفاء عن العملاء بيتم فقط
+  // في قائمة البحث العامة (GET /) عن طريق فلتر identity_status أعلاه.
   const { data, error } = await supabase
     .from("workers")
     .select(PUBLIC_WORKER_COLUMNS)
     .eq("id", id)
-    .eq("approved", true)
-    .eq("active", true)
-    .eq("identity_status", "verified")
     .single();
   if (error || !data) return res.status(404).json({ success: false, error: "الصنايعي غير موجود" });
   

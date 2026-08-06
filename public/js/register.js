@@ -267,9 +267,10 @@ if (registerForm) {
       }
 
       const registrationCode = data.registration_code || "";
+      const workerId = data.id || "";
       showResult(
         "success",
-        '<div class="success-card"><div class="success-card-title"><i class="fa-solid fa-circle-check"></i> تم إرسال طلبك بنجاح</div><div class="success-code-box"><small>رقم الطلب</small><strong>' + registrationCode + '</strong></div><p>يمكنك الآن تسجيل الدخول ببروفايلك بعد مراجعة الإدارة.</p><div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-primary" href="/status?code=' + encodeURIComponent(registrationCode) + '"><i class="fa-solid fa-clipboard-check"></i> متابعة الحالة</a><a class="btn btn-secondary" href="/"><i class="fa-solid fa-house"></i> الرئيسية</a></div></div>'
+        '<div class="success-card"><div class="success-card-title"><i class="fa-solid fa-circle-check"></i> تم التسجيل بنجاح</div><div class="success-code-box"><small>رقم الطلب</small><strong>' + registrationCode + '</strong></div><p>حسابك متاح الآن على التطبيق، وفي انتظار التوثيق من الإدارة. لن يظهر حسابك للعملاء في نتائج البحث إلا بعد التوثيق.</p><div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn btn-primary" href="/worker/' + encodeURIComponent(workerId) + '"><i class="fa-solid fa-user"></i> الدخول إلى صفحتك</a><a class="btn btn-secondary" href="/"><i class="fa-solid fa-house"></i> الرئيسية</a></div></div>'
       );
 
       registerForm.reset();

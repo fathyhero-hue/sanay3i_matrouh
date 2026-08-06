@@ -66,17 +66,17 @@ async function sendMail({ to, subject, html }) {
 
 // 1. رسالة ترحيب بعد التسجيل
 async function sendWelcomeEmail(worker) {
-  const statusUrl = `${APP_BASE_URL}/status?code=${encodeURIComponent(worker.registration_code || "")}`;
+  const profileUrl = `${APP_BASE_URL}/worker/${worker.id}`;
   const html = baseTemplate({
     title: `أهلاً بك يا ${worker.name} 👋`,
     bodyHtml: `
-      <p>تم استلام طلب تسجيلك في دليل صنايعي مطروح بنجاح.</p>
+      <p>تم التسجيل بنجاح في دليل صنايعي مطروح.</p>
       <p><b>رقم طلبك:</b> ${worker.registration_code || "-"}</p>
-      <p>فريقنا هيراجع بياناتك وصورة البطاقة الشخصية، وهتوصلك رسالة تانية فور اعتماد حسابك.</p>
-      <p><a href="${statusUrl}" style="color:#0284c7;">تابع حالة طلبك من هنا</a></p>
+      <p>حسابك متاح الآن على التطبيق، وفي انتظار التوثيق من الإدارة. لن يظهر حسابك للعملاء في نتائج البحث إلا بعد التوثيق.</p>
+      <p><a href="${profileUrl}" style="color:#0284c7;">اضغط هنا للدخول إلى صفحتك</a></p>
     `
   });
-  return sendMail({ to: worker.email, subject: "تم استلام طلب تسجيلك | صنايعي مطروح", html });
+  return sendMail({ to: worker.email, subject: "تم التسجيل بنجاح | صنايعي مطروح", html });
 }
 
 // 2. رسالة توثيق الهوية (اعتماد)
