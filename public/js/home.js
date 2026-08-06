@@ -15,18 +15,6 @@ function ok(v) {
   return v === 1 || v === true || v === "1" || v === "true" || v === "approved" || v === "active";
 }
 
-async function fetchJsonWithFallback(urls) {
-  for (const url of urls) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {}
-  }
-  return [];
-}
-
 function normalizeArray(data) {
   if (Array.isArray(data)) return data;
   if (data && Array.isArray(data.data)) return data.data;
@@ -140,9 +128,6 @@ function getAreaFromUrl() {
   return "";
 }
 
-// ---------------------------------------------------------
-// FIX: ensure options exist and select them correctly
-// ---------------------------------------------------------
 function ensureTradeOption(tradeName) {
   const select = document.getElementById("tradeFilter");
   if (!select || !tradeName) return;
@@ -184,7 +169,6 @@ function setAreaFilterValue(areaName) {
   const matchingOption = Array.from(select.options).find(option => normalizeText(option.value) === normalized);
   select.value = matchingOption ? matchingOption.value : (areaName || "");
 }
-// ---------------------------------------------------------
 
 function applyFilterFromUrl() {
   const tradeName = getTradeFromUrl();
@@ -231,15 +215,13 @@ function createTradeIconCard(tradeName, count, isAll) {
   const icon = isAll ? "fa-layer-group" : tradeIconClass(tradeName);
   const label = isAll ? "كل الحرف" : tradeName;
   button.innerHTML = `<span class="trade-icon-bubble"><i class="fa-solid ${icon}"></i></span><strong>${escapeHtml(label)}</strong><small>${count} صنايعي</small>`;
-  
-  // FIX: Make sure clicking icon scrolls to workers
-  button.addEventListener("click", () => { 
-    setTradeFilterValue(tradeName); 
-    filterWorkers(); 
-    const workersSection = document.getElementById("workers");
-    if (workersSection) workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  button.addEventListener("click", () => {
+    setTradeFilterValue(tradeName);
+    filterWorkers();
+    scrollToWorkersSection();
   });
-  
+
   return button;
 }
 
@@ -264,12 +246,11 @@ function renderAreaIcons() {
   const allBtn = document.createElement("button");
   allBtn.type = "button"; allBtn.className = "area-icon-card";
   allBtn.innerHTML = `<span class="area-icon-bubble"><i class="fa-solid fa-map"></i></span><strong>كل المناطق</strong><small>${allWorkers.length} صنايعي</small>`;
-  allBtn.onclick = () => { 
-      setAreaFilterValue(""); 
-      filterWorkers(); 
-      const workersSection = document.getElementById("workers");
-      if (workersSection) workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  allBtn.addEventListener("click", () => {
+    setAreaFilterValue("");
+    filterWorkers();
+    scrollToWorkersSection();
+  });
   grid.appendChild(allBtn);
 
   areas.forEach(a => {
@@ -277,18 +258,103 @@ function renderAreaIcons() {
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "area-icon-card";
     btn.innerHTML = `<span class="area-icon-bubble"><i class="fa-solid fa-location-dot"></i></span><strong>${escapeHtml(a)}</strong><small>${count} صنايعي</small>`;
-    btn.onclick = () => { 
-        setAreaFilterValue(a); 
-        filterWorkers(); 
-        const workersSection = document.getElementById("workers");
-        if (workersSection) workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
+    btn.addEventListener("click", () => {
+      setAreaFilterValue(a);
+      filterWorkers();
+      scrollToWorkersSection();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function scrollToWorkersSection() {
+  const workersSection = document.getElementById("workers");
+  if (workersSection) workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderTopDemandWorkers() {
+  const grid = document.getElementById("topDemandWorkersGrid");
+  if (!grid) return;
+  const ranked = allWorkers
+    .map(worker => ({ worker, score: getWorkerDemandScore(worker) }))
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  grid.innerHTML = "";
+  if (!ranked.length) {
+    grid.innerHTML = '<div class="demand-empty">لا توجد بيانات طلب كافية حتى الآن.</div>';
+    return;
+  }
+
+  ranked.forEach((entry, index) => {
+    const worker = entry.worker;
+    const id = getWorkerId(worker);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "demand-item";
+    btn.innerHTML = `
+      <div class="demand-item-main">
+        <span class="demand-rank">#${index + 1}</span>
+        <img class="demand-worker-avatar" src="${escapeHtml(getWorkerImage(worker))}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+        <div class="demand-item-title">
+          <strong>${escapeHtml(getWorkerName(worker))}</strong>
+          <small>${escapeHtml(getWorkerTrade(worker))} · ${escapeHtml(getWorkerArea(worker))}</small>
+        </div>
+      </div>
+      <span class="demand-score-pill"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
+    `;
+    btn.addEventListener("click", () => { if (id) location.href = "/worker/" + id; });
+    grid.appendChild(btn);
+  });
+}
+
+function renderTopDemandTrades() {
+  const grid = document.getElementById("topDemandTradesGrid");
+  if (!grid) return;
+  const ranked = getUniqueTradeNames()
+    .map(trade => ({
+      trade,
+      score: allWorkers
+        .filter(w => normalizeText(getWorkerTrade(w)) === normalizeText(trade))
+        .reduce((sum, w) => sum + getWorkerDemandScore(w), 0),
+      count: countWorkersForTrade(trade)
+    }))
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  grid.innerHTML = "";
+  if (!ranked.length) {
+    grid.innerHTML = '<div class="demand-empty">لا توجد بيانات طلب كافية حتى الآن.</div>';
+    return;
+  }
+
+  ranked.forEach((entry, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "demand-item";
+    btn.innerHTML = `
+      <div class="demand-item-main">
+        <span class="demand-rank">#${index + 1}</span>
+        <div class="demand-item-title">
+          <strong>${escapeHtml(entry.trade)}</strong>
+          <small>${entry.count} صنايعي</small>
+        </div>
+      </div>
+      <span class="demand-score-pill"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
+    `;
+    btn.addEventListener("click", () => {
+      setTradeFilterValue(entry.trade);
+      filterWorkers();
+      scrollToWorkersSection();
+    });
     grid.appendChild(btn);
   });
 }
 
 async function loadTrades() {
-  const data = await fetchJsonWithFallback(["/api/trades", "/api/crafts", "/trades", "/crafts"]);
+  const data = await fetchJson("/api/trades");
   allTrades = normalizeArray(data);
   const select = document.getElementById("tradeFilter");
   if(select) {
@@ -304,7 +370,7 @@ async function loadTrades() {
 }
 
 async function loadAreas() {
-  const data = await fetchJsonWithFallback(["/api/areas", "/api/locations", "/areas", "/locations"]);
+  const data = await fetchJson("/api/areas");
   allAreas = normalizeArray(data);
   const select = document.getElementById("areaFilter");
   if(select) {
@@ -323,7 +389,7 @@ async function loadWorkers() {
   if(loadingBox) loadingBox.style.display = "flex";
   if(emptyBox) emptyBox.style.display = "none";
 
-  const data = await fetchJsonWithFallback(["/api/workers?limit=1200", "/api/sanaieya", "/workers"]);
+  const data = await fetchJson("/api/workers?limit=1200");
   const workers = normalizeArray(data);
 
   allWorkers = workers.filter(worker => {
@@ -338,6 +404,8 @@ async function loadWorkers() {
   updateStats();
   renderTradeIcons();
   renderAreaIcons();
+  renderTopDemandTrades();
+  renderTopDemandWorkers();
 }
 
 async function loadRatingsForWorkers() {
@@ -453,7 +521,7 @@ function renderWorkers(workers) {
     const card = document.createElement("article");
     card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
     card.style.cursor = "pointer";
-    card.onclick = () => { if(id) location.href = "/worker/" + id; };
+    card.addEventListener("click", () => { if(id) location.href = "/worker/" + id; });
 
     card.innerHTML = `
       <div class="worker-image-wrap">
@@ -483,18 +551,12 @@ function renderWorkers(workers) {
   grid.appendChild(fragment);
 }
 
-// ---------------------------------------------------------
-// FIX: ensure quick trade button scrolls to workers section
-// ---------------------------------------------------------
 function setQuickTrade(tradeName, btn) {
   setTradeFilterValue(tradeName);
   document.querySelectorAll(".quick-trade-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
   filterWorkers();
-  const workersSection = document.getElementById("workers");
-  if (workersSection) {
-    workersSection.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  scrollToWorkersSection();
 }
 
 function filterWorkers() {

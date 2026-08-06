@@ -75,6 +75,13 @@ module.exports = [
     }
   },
   {
+    // ملفات بتستخدم دوال مشتركة من public/js/common.js اللي بيتحمل قبلها في الصفحة
+    files: ["public/js/home.js", "public/js/register.js"],
+    languageOptions: {
+      globals: { fetchJson: "readonly" }
+    }
+  },
+  {
     // service-worker.js بيشتغل جوا Service Worker scope، مش المتصفح العادي
     files: ["service-worker.js"],
     languageOptions: {

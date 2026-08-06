@@ -95,21 +95,6 @@ function goToStep(index, shouldScroll) {
   if (shouldScroll) scrollToRegisterPanel();
 }
 
-function fetchJsonWithFallback(urls) {
-  return new Promise(async (resolve) => {
-    for (const url of urls) {
-      try {
-        const response = await fetch(url);
-        if (response.ok) {
-          resolve(await response.json());
-          return;
-        }
-      } catch (error) {}
-    }
-    resolve([]);
-  });
-}
-
 function normalizeArray(data) {
   if (Array.isArray(data)) return data;
   if (data && Array.isArray(data.data)) return data.data;
@@ -120,7 +105,7 @@ function normalizeArray(data) {
 }
 
 async function loadTrades() {
-  const data = await fetchJsonWithFallback(["/api/trades", "/api/crafts", "/trades", "/crafts"]);
+  const data = await fetchJson("/api/trades");
   const trades = normalizeArray(data);
   const select = document.getElementById("trade");
   if (!select) return;
@@ -136,7 +121,7 @@ async function loadTrades() {
 }
 
 async function loadAreas() {
-  const data = await fetchJsonWithFallback(["/api/areas", "/api/locations", "/areas", "/locations"]);
+  const data = await fetchJson("/api/areas");
   const areas = normalizeArray(data);
   const select = document.getElementById("area");
   if (!select) return;
