@@ -454,12 +454,14 @@
     async function uploadProfileImage() {
         const fileInput = document.getElementById('profileImageInput');
         if(!fileInput.files.length) return;
-        
-        const formData = new FormData();
-        formData.append('profileImage', fileInput.files[0]);
-        
-        alert('جاري إرسال الصورة...');
+        const file = fileInput.files[0];
+        if (!file.type.startsWith('image/')) { alert('من فضلك اختر صورة صحيحة'); return; }
+
         try {
+            const compressed = await compressImage(file, 1200, 1200, 0.7);
+            const formData = new FormData();
+            formData.append('profileImage', compressed, 'profile.jpg');
+
             const r = await fetch('/api/worker/profile/' + workerId + '/request-image', {
                 method: 'POST', headers: authHeaders(), body: formData
             });
@@ -471,8 +473,9 @@
                 alert(d.error || 'حدث خطأ أثناء الرفع');
             }
         } catch(e) {
-            alert('خطأ في الاتصال');
+            alert('تعذر معالجة الصورة أو الاتصال بالخادم');
         }
+        fileInput.value = '';
     }
 
     // طلب إزالة الصورة (العودة للافتراضية) عبر الإدارة
@@ -608,15 +611,17 @@
         }
         
         const status = document.getElementById('galleryStatus');
-        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفع...';
+        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري ضغط الصور ورفعها...';
         status.style.color = '#0284c7';
-        
-        const formData = new FormData();
-        for(let i=0; i<input.files.length; i++) {
-            formData.append('workPhotos', input.files[i]);
-        }
-        
+
         try {
+            const formData = new FormData();
+            for(let i=0; i<input.files.length; i++) {
+                if (!input.files[i].type.startsWith('image/')) continue;
+                const compressed = await compressImage(input.files[i], 1200, 1200, 0.7);
+                formData.append('workPhotos', compressed, 'work-photo-' + i + '.jpg');
+            }
+
             const r = await fetch('/api/worker/profile/' + workerId + '/work-photos', {
                 method: 'POST', headers: authHeaders(), body: formData
             });
