@@ -35,7 +35,6 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/support.css" />
   <link rel="stylesheet" href="/css/cards.css" />
-  <link rel="stylesheet" href="/style.css" />
 
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#061A3D">
@@ -56,8 +55,8 @@
     <div class="container header-content">
 
       <a href="/" class="brand">
-        <div class="brand-icon">
-          <i class="fa-solid fa-screwdriver-wrench"></i>
+        <div class="brand-icon brand-logo-frame" aria-hidden="true">
+          <img src="/icons/icon-192.png" alt="" width="52" height="52" loading="eager" decoding="async">
         </div>
         <div class="brand-text">
           <h1 style="color:#fff;">صنايعي مطروح</h1>
@@ -68,7 +67,7 @@
       <nav class="main-nav">
         <a href="/" style="color:rgba(241, 245, 249, 0.88);">الرئيسية</a>
         <a href="/#workers" style="color:rgba(241, 245, 249, 0.88);">الصنايعية</a>
-        <a href="/#features" style="color:rgba(241, 245, 249, 0.88);">المميزات</a>
+        <a href="/status" style="color:rgba(241, 245, 249, 0.88);">حالة الطلب</a>
       </nav>
 
       <a href="/register" class="header-btn">
@@ -84,7 +83,7 @@
     <div class="mobile-nav" id="mobileNav">
       <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
       <a href="/#workers" onclick="toggleMobileMenu()">الصنايعية</a>
-      <a href="/#features" onclick="toggleMobileMenu()">المميزات</a>
+      <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
   </header>
@@ -140,49 +139,21 @@
                   <i class="fa-solid fa-location-dot"></i>
                   <span id="workerArea">المنطقة</span>
                 </span>
-              </div>
 
-              <div class="featured-badge-details" id="featuredBadge">
-                <i class="fa-solid fa-star"></i>
-                صنايعي مميز
-              </div>
-
-              <div class="verified-badge-details" id="verifiedBadge">
-                <i class="fa-solid fa-shield-halved"></i>
-                موثّق من الإدارة
-              </div>
-
-              <div class="rating-summary">
-                <div class="rating-number" id="ratingAverage">0</div>
-                <div>
-                  <div class="rating-stars" id="ratingStars">☆☆☆☆☆</div>
-                  <div class="rating-count" id="ratingCount">لا توجد تقييمات بعد</div>
-                </div>
-              </div>
-
-              <div class="worker-trust-strip" aria-label="معلومات سريعة عن الصنايعي">
-                <div class="trust-pill">
-                  <i class="fa-solid fa-phone-volume"></i>
-                  <div>
-                    <small>التواصل</small>
-                    <strong id="quickContactState">متاح مباشرة</strong>
-                  </div>
+                <div class="featured-badge-details" id="featuredBadge">
+                  <i class="fa-solid fa-star"></i>
+                  صنايعي مميز
                 </div>
 
-                <div class="trust-pill">
+                <div class="verified-badge-details" id="verifiedBadge">
                   <i class="fa-solid fa-shield-halved"></i>
-                  <div>
-                    <small>الحالة</small>
-                    <strong id="quickVerifyState">قيد المراجعة</strong>
-                  </div>
+                  موثّق من الإدارة
                 </div>
 
-                <div class="trust-pill">
-                  <i class="fa-solid fa-calendar-check"></i>
-                  <div>
-                    <small>تاريخ الأنضمام للدليل</small>
-                    <strong id="quickJoinState">حديثًا</strong>
-                  </div>
+                <div class="rating-summary">
+                  <span class="rating-number" id="ratingAverage">0</span>
+                  <span class="rating-stars" id="ratingStars">☆☆☆☆☆</span>
+                  <span class="rating-count" id="ratingCount">لا توجد تقييمات بعد</span>
                 </div>
               </div>
             </div>
@@ -272,26 +243,6 @@
                   <div>
                     <small>رقم الواتساب</small>
                     <strong id="workerWhatsapp">غير متاح</strong>
-                  </div>
-                </div>
-
-                <div class="info-item">
-                  <div class="info-item-icon">
-                    <i class="fa-solid fa-location-dot"></i>
-                  </div>
-                  <div>
-                    <small>المنطقة</small>
-                    <strong id="sideArea">غير محدد</strong>
-                  </div>
-                </div>
-
-                <div class="info-item">
-                  <div class="info-item-icon">
-                    <i class="fa-solid fa-screwdriver-wrench"></i>
-                  </div>
-                  <div>
-                    <small>الحرفة</small>
-                    <strong id="sideTrade">غير محدد</strong>
                   </div>
                 </div>
 
@@ -432,42 +383,27 @@
     </div>
   </main>
 
-  <div class="mobile-sticky-contact" id="mobileStickyContact">
-    <a href="#" class="details-call" id="mobileCallBtn">
-      <i class="fa-solid fa-phone"></i>
-      اتصال
-    </a>
-
-    <a href="#" target="_blank" class="details-whatsapp" id="mobileWhatsappBtn">
-      <i class="fa-brands fa-whatsapp"></i>
-      واتساب
-    </a>
-
-    <a href="#" class="details-share" id="mobileShareBtn">
-      <i class="fa-solid fa-share-nodes"></i>
-      مشاركة
-    </a>
-
-    <a href="#" class="details-report" id="mobileReportBtn">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      بلاغ
-    </a>
-  </div>
-
   <footer class="footer">
     <div class="container footer-content">
-
-      <div>
-        <h3>صنايعي مطروح</h3>
+      <div class="footer-brand">
+        <div class="footer-brand-row">
+          <img src="/icons/icon-192.png" alt="" class="footer-logo">
+          <h3>صنايعي مطروح</h3>
+        </div>
         <p>دليل محلي بسيط لربط أهالي مرسى مطروح بالصنايعية والحرفيين.</p>
       </div>
-
       <div class="footer-links">
         <a href="/">الرئيسية</a>
+        <a href="/register" class="footer-link-cta"><i class="fa-solid fa-star"></i> سجل كصنايعي</a>
         <a href="/#workers">الصنايعية</a>
-        <a href="/register">سجل كصنايعي</a>
+        <a href="/status">حالة الطلب</a>
       </div>
-
+    </div>
+    <div class="footer-bottom">
+      <div class="container footer-bottom-content">
+        <span>© <span id="footerYear">2026</span> صنايعي مطروح. جميع الحقوق محفوظة.</span>
+        <a href="/privacy-policy">سياسة الخصوصية</a>
+      </div>
     </div>
   </footer>
 
@@ -699,6 +635,11 @@
       const nav = document.getElementById("mobileNav");
       nav.classList.toggle("show");
     }
+
+    (function setFooterYear() {
+      const el = document.getElementById("footerYear");
+      if (el) el.textContent = new Date().getFullYear();
+    })();
 
     function idFromUrl() {
       const p = location.pathname.split("/");
@@ -1482,7 +1423,6 @@
       const loading = document.getElementById("loadingBox");
       const error = document.getElementById("errorBox");
       const content = document.getElementById("detailsContent");
-      const sticky = document.getElementById("mobileStickyContact");
 
       try {
         const r = await fetch("/api/workers/" + id);
@@ -1504,10 +1444,7 @@
         updateWorkerSeo(w);
 
         const shareBtn = document.getElementById("shareBtn");
-        const mobileShareBtn = document.getElementById("mobileShareBtn");
-
         if (shareBtn) shareBtn.onclick = function () { shareCurrentWorker(name); };
-        if (mobileShareBtn) mobileShareBtn.onclick = function (e) { e.preventDefault(); shareCurrentWorker(name); };
 
         const copyPhoneBtn = document.getElementById("copyPhoneBtn");
         if (copyPhoneBtn) {
@@ -1519,7 +1456,7 @@
 
         currentReportWorker = { id: id, name: name };
         initOwnerChatForWorker(id, name);
-        ["reportBtn", "mobileReportBtn"].forEach(function (btnId) {
+        ["reportBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
             btn.onclick = function (e) {
@@ -1543,12 +1480,7 @@
 
         document.getElementById("workerPhone").textContent = phone || "غير متاح";
         document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
-        document.getElementById("sideArea").textContent = area;
-        document.getElementById("sideTrade").textContent = trade;
         document.getElementById("workerJoinDate").textContent = joinDate;
-        document.getElementById("quickJoinState").textContent = joinDate;
-        document.getElementById("quickVerifyState").textContent = verified(w) ? "موثق من الإدارة" : "بيانات منشورة";
-        document.getElementById("quickContactState").textContent = (call && wa) ? "اتصال وواتساب" : (call ? "اتصال مباشر" : (wa ? "واتساب فقط" : "غير متاح"));
 
         if (featured(w)) document.getElementById("featuredBadge").classList.add("show");
         if (verified(w)) document.getElementById("verifiedBadge").classList.add("show");
@@ -1558,25 +1490,23 @@
 
         setLinkState(document.getElementById("callBtn"), !!call, callUrl);
         setLinkState(document.getElementById("whatsappBtn"), !!wa, whatsappUrl);
-        setLinkState(document.getElementById("mobileCallBtn"), !!call, callUrl);
-        setLinkState(document.getElementById("mobileWhatsappBtn"), !!wa, whatsappUrl);
 
         trackWorkerAction(id, "profile_view", "worker_page");
 
-        ["callBtn", "mobileCallBtn"].forEach(function (btnId) {
+        ["callBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
             btn.addEventListener("click", function () {
-              if (call) trackWorkerAction(id, "call", btnId === "mobileCallBtn" ? "worker_mobile_sticky" : "worker_page");
+              if (call) trackWorkerAction(id, "call", "worker_page");
             });
           }
         });
 
-        ["whatsappBtn", "mobileWhatsappBtn"].forEach(function (btnId) {
+        ["whatsappBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
             btn.addEventListener("click", function () {
-              if (wa) trackWorkerAction(id, "whatsapp", btnId === "mobileWhatsappBtn" ? "worker_mobile_sticky" : "worker_page");
+              if (wa) trackWorkerAction(id, "whatsapp", "worker_page");
             });
           }
         });
@@ -1588,12 +1518,10 @@
         loading.style.display = "none";
         error.style.display = "none";
         content.style.display = "block";
-        sticky.style.display = "";
       } catch(e) {
         loading.style.display = "none";
         content.style.display = "none";
         error.style.display = "block";
-        sticky.style.display = "none";
       }
     }
 
