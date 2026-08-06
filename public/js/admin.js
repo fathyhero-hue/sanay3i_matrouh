@@ -403,6 +403,7 @@ async function toggleActive(id,c){after(await reqs([{url:`/api/workers/${id}/act
 async function toggleFeatured(id,c){after(await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]),"تم تحديث التمييز")}
 async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;after(await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]),"تم حذف الصنايعي نهائياً")}
 async function acknowledgeWorkerChanges(id){after(await reqs([{url:`/api/admin/workers/${id}/acknowledge-changes`,method:"POST"}]),"تمت مراجعة التعديلات")}
+async function approveProfileImage(id){after(await reqs([{url:`/api/admin/workers/${id}/approve-image`,method:"POST"}]),"تم اعتماد الصورة الجديدة")}
 
 async function renewAllWorkers() {
     const monthsInput = prompt("كم عدد الشهور التي تريد إضافتها لكل الصنايعية؟", "1");

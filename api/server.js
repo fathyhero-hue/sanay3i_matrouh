@@ -182,6 +182,30 @@ app.post('/api/admin/workers/:id/acknowledge-changes', adminApiRateLimit, requir
   }
 });
 
+// اعتماد طلب تغيير الصورة الشخصية اللي الصنايعي رفعه من لوحة تحكمه
+app.post('/api/admin/workers/:id/approve-image', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
+  try {
+    const { data: worker, error: fetchErr } = await supabase
+      .from('workers')
+      .select('pending_image')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+    if (!worker.pending_image) return res.status(400).json({ success: false, error: 'لا يوجد طلب صورة معلّق لهذا الصنايعي' });
+
+    const { error } = await supabase
+      .from('workers')
+      .update({ image: worker.pending_image, pending_image: null })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'تم اعتماد الصورة الجديدة' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===============================
 // مسار استقبال البلاغات والشكاوى من العملاء (Public Reports API)
 // ===============================
