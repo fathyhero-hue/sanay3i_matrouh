@@ -968,6 +968,42 @@ app.post('/api/worker/profile/:id/request-image', requireWorkerOwnership, upload
   }
 });
 
+// إعادة رفع صورة البطاقة الشخصية (وجه/ظهر) - غالبًا بعد ما الإدارة تطلب ذلك عبر identity_status=needs_id_reupload
+app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.fields([
+  { name: 'idFront', maxCount: 1 },
+  { name: 'idBack', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const files = req.files || {};
+    if (!files.idFront || !files.idBack) {
+      return res.status(400).json({ success: false, error: 'يرجى رفع صورتي وجه وظهر البطاقة الشخصية' });
+    }
+
+    const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
+    const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
+
+    const { error } = await supabase
+      .from('workers')
+      .update({
+        id_front: idFrontImage,
+        id_back: idBackImage,
+        id_front_path: idFrontImage,
+        id_back_path: idBackImage,
+        id_submitted_at: new Date().toISOString(),
+        identity_status: 'pending',
+        identity_rejection_reason: null,
+        identity_review_note: null
+      })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+
+    res.json({ success: true, message: 'تم إرسال صورة البطاقة الجديدة للإدارة للمراجعة' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===============================
 // 5.3. مسارات عرض صور البطاقات السرية
 // ===============================
