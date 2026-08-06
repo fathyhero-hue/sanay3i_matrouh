@@ -348,13 +348,9 @@ function renderWorkers(workers){
   if(!workers.length){grid.innerHTML='<div class="empty-admin" style="grid-column:1/-1">لا يوجد صنايعية للعرض حاليًا</div>';return}
   workers.forEach(w=>{
     const id=String(wid(w)); const sub=subInfo(w),approved=isApproved(w),active=isActive(w),featured=isFeatured(w);
-    let pendingImageAlert = '';
-    if (w.pending_image) {
-        pendingImageAlert = `<div style="background-color: #fef08a; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #ca8a04;"><strong style="color: #b45309;"><i class="fa-solid fa-bell fa-shake"></i> طلب تغيير الصورة الشخصية:</strong><div style="margin-top: 10px; text-align: center;"><img src="${getValidImageUrl(w.pending_image)}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid #ca8a04;"></div><button onclick="approveProfileImage('${id}')" style="margin-top: 10px; width: 100%; background: #16a34a; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-check"></i> اعتماد الصورة الجديدة</button></div>`;
-    }
     let pendingChangesAlert = '';
     if (ok(w.has_pending_changes)) {
-        pendingChangesAlert = `<div style="background-color: #dbeafe; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #2563eb;"><strong style="color: #1d4ed8;"><i class="fa-solid fa-bell fa-shake"></i> ${esc(w.pending_changes_summary||"تعديل جديد من الصنايعي")}</strong>${w.pending_changes_at?`<div style="margin-top:6px;color:#475569;font-size:12px;">${formatDate(w.pending_changes_at)}</div>`:""}<button onclick="acknowledgeWorkerChanges('${id}')" style="margin-top: 10px; width: 100%; background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-check"></i> تمت المراجعة</button></div>`;
+        pendingChangesAlert = `<div style="background-color: #dbeafe; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #2563eb;"><strong style="color: #1d4ed8;"><i class="fa-solid fa-bell fa-shake"></i> ${esc(w.pending_changes_summary||"تعديل جديد من الصنايعي")}</strong>${w.pending_changes_at?`<div style="margin-top:6px;color:#475569;font-size:12px;">${formatDate(w.pending_changes_at)}</div>`:""}<button onclick="openPendingChangesModal('${id}')" style="margin-top: 10px; width: 100%; background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-magnifying-glass"></i> مراجعة التعديل</button></div>`;
     }
     let workPhotosGallery = '';
     if (w.work_photos && Array.isArray(w.work_photos) && w.work_photos.length > 0) {
@@ -362,7 +358,7 @@ function renderWorkers(workers){
         workPhotosGallery = `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;"><strong style="color: #0f172a; font-size: 14px;"><i class="fa-solid fa-images"></i> معرض الأعمال المرفوعة (${w.work_photos.length}):</strong><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">${imagesHtml}</div></div>`;
     }
     const card=document.createElement("article"); card.className="admin-worker-card"; card.dataset.workerCardId=id;
-    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}${pendingChangesAlert}${pendingImageAlert}${workPhotosGallery}${adminWorkerQuickButton(w)}</div>`;
+    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}${pendingChangesAlert}${workPhotosGallery}${adminWorkerQuickButton(w)}</div>`;
     grid.appendChild(card);
   });
 }
@@ -402,8 +398,69 @@ async function toggleApprove(id,c){after(await reqs([{url:`/api/workers/${id}/ap
 async function toggleActive(id,c){after(await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]),"تم تحديث التفعيل")}
 async function toggleFeatured(id,c){after(await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]),"تم تحديث التمييز")}
 async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;after(await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]),"تم حذف الصنايعي نهائياً")}
-async function acknowledgeWorkerChanges(id){after(await reqs([{url:`/api/admin/workers/${id}/acknowledge-changes`,method:"POST"}]),"تمت مراجعة التعديلات")}
-async function approveProfileImage(id){after(await reqs([{url:`/api/admin/workers/${id}/approve-image`,method:"POST"}]),"تم اعتماد الصورة الجديدة")}
+function openPendingChangesModal(id){
+  const w = allWorkers.find(x => String(wid(x)) === String(id));
+  if(!w) return;
+  const pending = w.pending_changes || {};
+  let bodyHtml = workerSummary(w);
+
+  if (pending.profile && typeof pending.profile === 'object') {
+    const p = pending.profile;
+    const fieldLabel = {name:'الاسم', trade:'الحرفة', area:'المنطقة', whatsapp:'الواتساب', description:'الوصف'};
+    const rows = Object.keys(fieldLabel).filter(key => p[key] !== undefined && String(p[key]||'') !== String(w[key]||'')).map(key => {
+      return `<div style="display:grid;grid-template-columns:90px 1fr 18px 1fr;gap:8px;align-items:center;margin-bottom:8px;">
+        <b style="font-size:12px;color:#64748b;">${fieldLabel[key]}</b>
+        <span style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:7px 9px;font-size:12px;text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(w[key]||'-')}</span>
+        <span style="text-align:center;color:#94a3b8;">←</span>
+        <span style="background:#dcfce7;color:#166534;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p[key]||'-')}</span>
+      </div>`;
+    }).join('');
+    bodyHtml += `<div style="margin-bottom:16px;"><h3 style="font-size:15px;color:#0f172a;margin-bottom:10px;"><i class="fa-solid fa-user-pen"></i> تعديل البيانات الأساسية</h3>${rows || '<div style="color:#94a3b8;font-size:13px;">لا يوجد فرق فعلي عن البيانات الحالية</div>'}</div>`;
+  }
+
+  if (Array.isArray(pending.work_photos)) {
+    const currentPhotos = (w.work_photos||[]).map(ph=>`<img src="${getValidImageUrl(ph)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">`).join('') || '<span style="color:#94a3b8;font-size:12px;">لا توجد صور حالية</span>';
+    const proposedPhotos = pending.work_photos.map(ph=>`<img src="${getValidImageUrl(ph)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:2px solid #16a34a;">`).join('') || '<span style="color:#94a3b8;font-size:12px;">هيبقى فاضي (حذف كل الصور)</span>';
+    bodyHtml += `<div style="margin-bottom:16px;"><h3 style="font-size:15px;color:#0f172a;margin-bottom:10px;"><i class="fa-solid fa-images"></i> معرض الأعمال</h3>
+      <div style="margin-bottom:8px;"><small style="color:#64748b;">الحالي:</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${currentPhotos}</div></div>
+      <div><small style="color:#16a34a;font-weight:900;">المقترح:</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${proposedPhotos}</div></div>
+    </div>`;
+  }
+
+  if (pending.image) {
+    bodyHtml += `<div style="margin-bottom:16px;"><h3 style="font-size:15px;color:#0f172a;margin-bottom:10px;"><i class="fa-solid fa-image"></i> الصورة الشخصية</h3>
+      <div style="display:flex;gap:16px;align-items:center;">
+        <div style="text-align:center;"><small style="color:#64748b;display:block;margin-bottom:4px;">الحالية</small><img src="${wimg(w)}" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:1px solid #e5e7eb;"></div>
+        <i class="fa-solid fa-arrow-left" style="color:#94a3b8;"></i>
+        <div style="text-align:center;"><small style="color:#16a34a;font-weight:900;display:block;margin-bottom:4px;">المقترحة</small><img src="${getValidImageUrl(pending.image)}" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:2px solid #16a34a;"></div>
+      </div>
+    </div>`;
+  }
+
+  bodyHtml += `<div style="${cssField}">
+    <label><b>سبب الرفض (اختياري - هيوصل للصنايعي في شات مراسلة الإدارة)</b><textarea id="v8_reject_reason" style="${cssInput};min-height:80px"></textarea></label>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
+    <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#f1f5f9;color:#334155;">إغلاق</button>
+    <button type="button" onclick="rejectPendingChanges('${id}')" style="${cssBtn}background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-xmark"></i> رفض</button>
+    <button type="button" onclick="approvePendingChanges('${id}')" style="${cssBtn}background:#16a34a;color:#fff;"><i class="fa-solid fa-check"></i> اعتماد كل التعديلات</button>
+  </div>`;
+
+  openForceModal('مراجعة تعديل الصنايعي', bodyHtml);
+}
+
+async function approvePendingChanges(id){
+  const ok = await reqs([{url:`/api/admin/workers/${id}/approve-pending-changes`,method:"POST"}]);
+  closeForceModal();
+  after(ok, "تم اعتماد التعديلات");
+}
+
+async function rejectPendingChanges(id){
+  const reason = (document.getElementById('v8_reject_reason')?.value || '').trim();
+  const ok = await reqs([{url:`/api/admin/workers/${id}/reject-pending-changes`,method:"POST",body:{reason}}]);
+  closeForceModal();
+  after(ok, "تم رفض التعديلات");
+}
 
 async function renewAllWorkers() {
     const monthsInput = prompt("كم عدد الشهور التي تريد إضافتها لكل الصنايعية؟", "1");

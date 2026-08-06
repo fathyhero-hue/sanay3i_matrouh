@@ -89,6 +89,19 @@
   </div>
 
   <div class="container">
+    <div id="pendingChangesBanner" style="display:none; background:#dbeafe; border:1px solid #93c5fd; color:#1d4ed8; padding:14px 16px; border-radius:12px; margin-bottom:20px; font-weight:700;">
+      <i class="fa-solid fa-hourglass-half"></i>
+      <span id="pendingChangesText">عندك تعديل بانتظار مراجعة الإدارة.</span>
+    </div>
+
+    <div id="subscriptionCard" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <div>
+        <strong style="display:block; color:#0f172a; margin-bottom:4px;"><i class="fa-solid fa-crown"></i> حالة الاشتراك</strong>
+        <span style="color:#64748b; font-size:13px;">من <span id="subStart">-</span> إلى <span id="subEnd">-</span></span>
+      </div>
+      <span id="subStatusBadge" style="padding:8px 14px; border-radius:999px; font-weight:900; font-size:13px;"></span>
+    </div>
+
     <div class="tabs">
       <div class="tab active" onclick="switchTab('info', event)"><i class="fa-solid fa-user-pen"></i> البيانات الشخصية</div>
       <div class="tab" onclick="switchTab('gallery', event)"><i class="fa-solid fa-images"></i> معرض الأعمال</div>
@@ -327,21 +340,29 @@
         const r = await fetch('/api/worker/profile/' + workerId, { headers: authHeaders() });
         const d = await r.json();
         if(d.success) {
-          // تعبئة البيانات
-          document.getElementById('w_name').value = d.worker.name || '';
-          document.getElementById('w_trade').value = d.worker.trade || '';
-          document.getElementById('w_area').value = d.worker.area || '';
-          document.getElementById('w_whatsapp').value = d.worker.whatsapp || '';
-          document.getElementById('w_desc').value = d.worker.description || '';
-          
-          // الصورة الشخصية
-          document.getElementById('profileImgPreview').src = imgPath(d.worker.image);
+          const worker = d.worker;
+          const pending = worker.pending_changes || {};
+          const profileDraft = (pending.profile && typeof pending.profile === 'object') ? pending.profile : {};
+
+          // تعبئة البيانات (تعرض آخر مقترح لسه بانتظار المراجعة لو موجود، وإلا البيانات الفعلية)
+          document.getElementById('w_name').value = profileDraft.name ?? worker.name ?? '';
+          document.getElementById('w_trade').value = profileDraft.trade ?? worker.trade ?? '';
+          document.getElementById('w_area').value = profileDraft.area ?? worker.area ?? '';
+          document.getElementById('w_whatsapp').value = profileDraft.whatsapp ?? worker.whatsapp ?? '';
+          document.getElementById('w_desc').value = profileDraft.description ?? worker.description ?? '';
+
+          // الصورة الشخصية (المقترحة لو موجودة، وإلا الحالية)
+          document.getElementById('profileImgPreview').src = imgPath(pending.image || worker.image);
 
           // حالة توثيق الهوية
-          renderIdentityStatus(d.worker);
+          renderIdentityStatus(worker);
 
-          // صور الأعمال
-          currentWorkPhotos = d.worker.work_photos || [];
+          // بانر التعديل المعلّق + حالة الاشتراك
+          renderPendingBanner(worker);
+          renderSubscription(worker);
+
+          // صور الأعمال (المقترحة لو موجودة، وإلا الحالية)
+          currentWorkPhotos = Array.isArray(pending.work_photos) ? pending.work_photos : (worker.work_photos || []);
           if(!Array.isArray(currentWorkPhotos)) currentWorkPhotos = [];
           renderGallery();
         } else {
@@ -349,6 +370,51 @@
             logout();
         }
       } catch(e) { console.error(e); }
+    }
+
+    function renderPendingBanner(worker) {
+      const banner = document.getElementById('pendingChangesBanner');
+      const text = document.getElementById('pendingChangesText');
+      if (worker.has_pending_changes) {
+        banner.style.display = 'block';
+        text.textContent = (worker.pending_changes_summary || 'عندك تعديل') + ' - بانتظار مراجعة الإدارة، ولسه مش ظاهر للعملاء.';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    function renderSubscription(worker) {
+      document.getElementById('subStart').textContent = formatArDate(worker.subscription_start);
+      document.getElementById('subEnd').textContent = formatArDate(worker.subscription_end);
+
+      const badge = document.getElementById('subStatusBadge');
+      const endStr = worker.subscription_end;
+      if (!endStr) {
+        badge.style.background = '#f1f5f9'; badge.style.color = '#64748b';
+        badge.textContent = 'غير محدد';
+        return;
+      }
+      const end = new Date(endStr);
+      const now = new Date();
+      now.setHours(0,0,0,0); end.setHours(0,0,0,0);
+      const days = Math.ceil((end - now) / 86400000);
+      if (days < 0) {
+        badge.style.background = '#fee2e2'; badge.style.color = '#991b1b';
+        badge.textContent = 'منتهي';
+      } else if (days <= 7) {
+        badge.style.background = '#fef3c7'; badge.style.color = '#92400e';
+        badge.textContent = 'قرب الانتهاء - متبقي ' + days + ' يوم';
+      } else {
+        badge.style.background = '#dcfce7'; badge.style.color = '#166534';
+        badge.textContent = 'نشط - متبقي ' + days + ' يوم';
+      }
+    }
+
+    function formatArDate(value) {
+      if (!value) return 'غير محدد';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'غير محدد';
+      return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
     }
 
     async function saveInfo(btn) {
@@ -370,7 +436,8 @@
         });
         const d = await r.json();
         if(d.success) {
-            document.getElementById('status').innerHTML = '<i class="fa-solid fa-circle-check"></i> تم حفظ التعديلات بنجاح!';
+            document.getElementById('status').innerHTML = '<i class="fa-solid fa-hourglass-half"></i> تم إرسال تعديلك، وفي انتظار مراجعة الإدارة!';
+            loadProfile();
         } else {
             document.getElementById('status').style.color = '#dc2626';
             document.getElementById('status').innerText = d.error || 'حدث خطأ أثناء الحفظ';
@@ -398,7 +465,8 @@
             });
             const d = await r.json();
             if(d.success) {
-                alert('تم رفع صورتك بنجاح! سيتم تحديثها فور موافقة الإدارة.');
+                alert('تم إرسال صورتك بنجاح! هتظهر فور موافقة الإدارة.');
+                loadProfile();
             } else {
                 alert(d.error || 'حدث خطأ أثناء الرفع');
             }
@@ -556,8 +624,9 @@
             if(d.success) {
                 currentWorkPhotos = d.work_photos;
                 renderGallery();
-                status.innerHTML = '<i class="fa-solid fa-circle-check"></i> تم الرفع بنجاح!';
-                status.style.color = '#16a34a';
+                status.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> تم إرسال الصور للمراجعة، وفي انتظار موافقة الإدارة!';
+                status.style.color = '#1d4ed8';
+                loadProfile();
             } else {
                 status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> ' + (d.error || 'حدث خطأ');
                 status.style.color = '#dc2626';
@@ -571,12 +640,12 @@
     }
 
     async function deleteWorkPhoto(photoName) {
-        if(!confirm('هل أنت متأكد من حذف هذه الصورة نهائياً؟')) return;
-        
+        if(!confirm('هل أنت متأكد من حذف هذه الصورة؟ الحذف هيتنفذ بعد موافقة الإدارة.')) return;
+
         const status = document.getElementById('galleryStatus');
-        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحذف...';
+        status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
         status.style.color = '#0284c7';
-        
+
         try {
             const r = await fetch('/api/worker/profile/' + workerId + '/work-photo', {
                 method: 'DELETE',
@@ -587,8 +656,9 @@
             if(d.success) {
                 currentWorkPhotos = d.work_photos;
                 renderGallery();
-                status.innerHTML = '<i class="fa-solid fa-circle-check"></i> تم الحذف بنجاح!';
-                status.style.color = '#16a34a';
+                status.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> تم إرسال طلب الحذف، وفي انتظار موافقة الإدارة!';
+                status.style.color = '#1d4ed8';
+                loadProfile();
             } else {
                 status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> خطأ في الحذف';
                 status.style.color = '#dc2626';

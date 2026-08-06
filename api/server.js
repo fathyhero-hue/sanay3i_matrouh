@@ -85,6 +85,30 @@ async function uploadToSupabase(file, targetBucket = "uploads") {
   return fileName;
 }
 
+// دمج تعديل ذاتي مقترح من الصنايعي جوه pending_changes (بدل تطبيقه مباشرة) - يفضل معلّق لحد ما الإدارة تعتمده
+async function mergePendingChanges(workerId, patch, summaryText) {
+  const { data: current } = await supabase
+    .from('workers')
+    .select('pending_changes')
+    .eq('id', workerId)
+    .maybeSingle();
+
+  const merged = Object.assign({}, current?.pending_changes || {}, patch);
+
+  const { error } = await supabase
+    .from('workers')
+    .update({
+      pending_changes: merged,
+      has_pending_changes: true,
+      pending_changes_summary: summaryText,
+      pending_changes_at: new Date().toISOString()
+    })
+    .eq('id', workerId);
+
+  if (error) throw error;
+  return merged;
+}
+
 // ===============================
 // دالة معالجة اعتماد ومراجعة البطاقة الشخصية
 // ===============================
@@ -167,40 +191,75 @@ async function handleIdentityReview(req, res) {
 // تسجيل مسار الاعتماد والمراجعة (المسار الوحيد اللي بيستخدمه admin.js فعليًا)
 app.put('/api/admin/workers/:id/identity-review', adminApiRateLimit, requirePermission("workers:review"), handleIdentityReview);
 
-// تأكيد مراجعة الإدارة لتعديل ذاتي قام به الصنايعي (بيانات أساسية / صور أعمال) - بيشيل تنبيه "تعديل جديد" من الكارت
-app.post('/api/admin/workers/:id/acknowledge-changes', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
+// اعتماد كل التعديلات الذاتية المعلّقة للصنايعي دفعة واحدة (بيانات / صور أعمال / صورة شخصية)
+app.post('/api/admin/workers/:id/approve-pending-changes', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
   try {
-    const { error } = await supabase
+    const { data: worker, error: fetchErr } = await supabase
       .from('workers')
-      .update({ has_pending_changes: false, pending_changes_summary: null, pending_changes_at: null })
-      .eq('id', req.params.id);
+      .select('pending_changes, name')
+      .eq('id', req.params.id)
+      .maybeSingle();
 
+    if (fetchErr || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+    const pending = worker.pending_changes || {};
+    if (!Object.keys(pending).length) {
+      return res.status(400).json({ success: false, error: 'لا يوجد تعديل معلّق لهذا الصنايعي' });
+    }
+
+    const updateData = {
+      pending_changes: null,
+      has_pending_changes: false,
+      pending_changes_summary: null,
+      pending_changes_at: null
+    };
+    if (pending.profile && typeof pending.profile === 'object') Object.assign(updateData, pending.profile);
+    if (Array.isArray(pending.work_photos)) updateData.work_photos = pending.work_photos;
+    if (pending.image) updateData.image = pending.image;
+
+    const { error } = await supabase.from('workers').update(updateData).eq('id', req.params.id);
     if (error) throw error;
-    res.json({ success: true, message: 'تمت مراجعة التعديلات' });
+
+    logAdminActivity(req, "worker_update", {
+      entity_type: "worker",
+      entity_id: req.params.id,
+      entity_name: worker.name,
+      details: { approved_pending_changes: pending }
+    }).catch(() => {});
+
+    res.json({ success: true, message: 'تم اعتماد التعديلات وتفعيلها' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// اعتماد طلب تغيير الصورة الشخصية اللي الصنايعي رفعه من لوحة تحكمه
-app.post('/api/admin/workers/:id/approve-image', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
+// رفض التعديلات الذاتية المعلّقة (مع سبب اختياري يوصل للصنايعي عبر شات الإدارة)
+app.post('/api/admin/workers/:id/reject-pending-changes', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
   try {
-    const { data: worker, error: fetchErr } = await supabase
-      .from('workers')
-      .select('pending_image')
-      .eq('id', req.params.id)
-      .maybeSingle();
-
-    if (fetchErr || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
-    if (!worker.pending_image) return res.status(400).json({ success: false, error: 'لا يوجد طلب صورة معلّق لهذا الصنايعي' });
+    const reason = String((req.body || {}).reason || '').trim();
 
     const { error } = await supabase
       .from('workers')
-      .update({ image: worker.pending_image, pending_image: null })
+      .update({ pending_changes: null, has_pending_changes: false, pending_changes_summary: null, pending_changes_at: null })
       .eq('id', req.params.id);
 
     if (error) throw error;
-    res.json({ success: true, message: 'تم اعتماد الصورة الجديدة' });
+
+    if (reason) {
+      try {
+        await supabase.from('worker_chat_messages').insert([{
+          worker_id: req.params.id,
+          sender_type: 'admin',
+          message_text: 'تم رفض تعديلك الأخير من الإدارة.\nالسبب: ' + reason,
+          attachment_url: null,
+          is_read: false,
+          created_at: new Date().toISOString()
+        }]);
+      } catch (chatErr) {
+        console.warn('Failed to send rejection chat message:', chatErr.message);
+      }
+    }
+
+    res.json({ success: true, message: 'تم رفض التعديلات' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -408,32 +467,46 @@ app.post('/api/register', upload.fields([
 // ===============================
 app.post('/api/worker/login', workerLoginRateLimit, async (req, res) => {
   try {
-    const { phone, password } = req.body || {};
-    if (!phone || !password) {
-      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون وكلمة المرور' });
+    const { phone, email, identifier, password } = req.body || {};
+    const rawInput = String(identifier || phone || email || '').trim();
+    if (!rawInput || !password) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون أو البريد الإلكتروني وكلمة المرور' });
     }
 
-    const cleanInput = String(phone).trim();
-    
-    let { data: worker, error } = await supabase
-      .from('workers')
-      .select('*')
-      .eq('phone', cleanInput)
-      .maybeSingle();
+    const cleanInput = rawInput;
+    const isEmailInput = isValidEmail(cleanInput);
 
-    if (error || !worker) {
-      const cleanPhoneDigits = cleanInput.replace(/[^\d]/g, '').slice(-10);
-      const { data: workersList } = await supabase.from('workers').select('*');
-      
-      worker = (workersList || []).find(w => {
-        const wPhone = String(w.phone || '').replace(/[^\d]/g, '').slice(-10);
-        const wWhats = String(w.whatsapp || '').replace(/[^\d]/g, '').slice(-10);
-        return wPhone === cleanPhoneDigits || wWhats === cleanPhoneDigits || String(w.phone).trim() === cleanInput;
-      });
+    let worker = null;
+    if (isEmailInput) {
+      const { data } = await supabase
+        .from('workers')
+        .select('*')
+        .ilike('email', cleanInput)
+        .maybeSingle();
+      worker = data || null;
+    } else {
+      let { data, error } = await supabase
+        .from('workers')
+        .select('*')
+        .eq('phone', cleanInput)
+        .maybeSingle();
+
+      worker = data || null;
+
+      if (error || !worker) {
+        const cleanPhoneDigits = cleanInput.replace(/[^\d]/g, '').slice(-10);
+        const { data: workersList } = await supabase.from('workers').select('*');
+
+        worker = (workersList || []).find(w => {
+          const wPhone = String(w.phone || '').replace(/[^\d]/g, '').slice(-10);
+          const wWhats = String(w.whatsapp || '').replace(/[^\d]/g, '').slice(-10);
+          return wPhone === cleanPhoneDigits || wWhats === cleanPhoneDigits || String(w.phone).trim() === cleanInput;
+        });
+      }
     }
 
     if (!worker) {
-      return res.status(401).json({ success: false, error: 'رقم التليفون غير مسجل' });
+      return res.status(401).json({ success: false, error: isEmailInput ? 'البريد الإلكتروني غير مسجل' : 'رقم التليفون غير مسجل' });
     }
 
     if (!worker.password_hash && password === String(worker.phone || '').slice(-6)) {
@@ -469,19 +542,20 @@ app.post('/api/worker/login', workerLoginRateLimit, async (req, res) => {
 
 app.post('/api/worker/forgot-password', workerLoginRateLimit, async (req, res) => {
   try {
-    const phone = String((req.body || {}).phone || '').trim();
-    if (!phone) {
-      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون' });
+    const body = req.body || {};
+    const rawInput = String(body.identifier || body.phone || body.email || '').trim();
+    if (!rawInput) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون أو البريد الإلكتروني' });
     }
 
-    const { data: worker, error } = await supabase
-      .from('workers')
-      .select('id, name, phone, whatsapp, email')
-      .eq('phone', phone)
-      .maybeSingle();
+    const isEmailInput = isValidEmail(rawInput);
+    const query = supabase.from('workers').select('id, name, phone, whatsapp, email');
+    const { data: worker, error } = isEmailInput
+      ? await query.ilike('email', rawInput).maybeSingle()
+      : await query.eq('phone', rawInput).maybeSingle();
 
     if (error || !worker) {
-      return res.status(404).json({ success: false, error: 'رقم التليفون غير مسجل في قاعدة البيانات' });
+      return res.status(404).json({ success: false, error: isEmailInput ? 'البريد الإلكتروني غير مسجل في قاعدة البيانات' : 'رقم التليفون غير مسجل في قاعدة البيانات' });
     }
 
     if (!worker.email) {
@@ -890,18 +964,12 @@ app.get('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
 app.put('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
   try {
     const { name, whatsapp, description, trade, area } = req.body;
-    const { error } = await supabase
-      .from('workers')
-      .update({
-        name, whatsapp, description, trade, area,
-        has_pending_changes: true,
-        pending_changes_summary: 'عدّل الصنايعي بياناته الأساسية',
-        pending_changes_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id);
-
-    if (error) throw error;
-    res.json({ success: true, message: 'تم تحديث البيانات بنجاح' });
+    await mergePendingChanges(
+      req.params.id,
+      { profile: { name, whatsapp, description, trade, area } },
+      'عدّل الصنايعي بياناته الأساسية'
+    );
+    res.json({ success: true, message: 'تم إرسال تعديلك بنجاح، وفي انتظار مراجعة الإدارة قبل ما يظهر للعملاء' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -934,14 +1002,16 @@ app.post('/api/worker/profile/:id/work-photos', requireWorkerOwnership, upload.a
 
     const { data: worker, error: fetchErr } = await supabase
       .from('workers')
-      .select('work_photos')
+      .select('work_photos, pending_changes')
       .eq('id', req.params.id)
       .single();
 
     if (fetchErr) throw fetchErr;
 
-    let currentPhotos = worker.work_photos || [];
+    const stagedPhotos = Array.isArray(worker.pending_changes?.work_photos) ? worker.pending_changes.work_photos : null;
+    let currentPhotos = stagedPhotos || worker.work_photos || [];
     if (!Array.isArray(currentPhotos)) currentPhotos = [];
+    currentPhotos = [...currentPhotos];
 
     if (currentPhotos.length + files.length > 5) {
       return res.status(400).json({ success: false, error: 'الحد الأقصى لمعرض الأعمال هو 5 صور فقط' });
@@ -952,19 +1022,13 @@ app.post('/api/worker/profile/:id/work-photos', requireWorkerOwnership, upload.a
       if (fileName) currentPhotos.push(fileName);
     }
 
-    const { error: updateErr } = await supabase
-      .from('workers')
-      .update({
-        work_photos: currentPhotos,
-        has_pending_changes: true,
-        pending_changes_summary: 'أضاف الصنايعي صور أعمال جديدة',
-        pending_changes_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id);
+    await mergePendingChanges(
+      req.params.id,
+      { work_photos: currentPhotos },
+      'أضاف الصنايعي صور أعمال جديدة'
+    );
 
-    if (updateErr) throw updateErr;
-
-    res.json({ success: true, message: 'تم رفع صور الأعمال بنجاح', work_photos: currentPhotos });
+    res.json({ success: true, message: 'تم إرسال الصور للمراجعة، وفي انتظار موافقة الإدارة', work_photos: currentPhotos, pending: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -975,28 +1039,24 @@ app.delete('/api/worker/profile/:id/work-photo', requireWorkerOwnership, async (
     const { photoName } = req.body;
     const { data: worker, error: fetchErr } = await supabase
       .from('workers')
-      .select('work_photos')
+      .select('work_photos, pending_changes')
       .eq('id', req.params.id)
       .single();
 
     if (fetchErr) throw fetchErr;
 
-    let currentPhotos = worker.work_photos || [];
+    const stagedPhotos = Array.isArray(worker.pending_changes?.work_photos) ? worker.pending_changes.work_photos : null;
+    let currentPhotos = stagedPhotos || worker.work_photos || [];
+    if (!Array.isArray(currentPhotos)) currentPhotos = [];
     currentPhotos = currentPhotos.filter(p => p !== photoName);
 
-    const { error: updateErr } = await supabase
-      .from('workers')
-      .update({
-        work_photos: currentPhotos,
-        has_pending_changes: true,
-        pending_changes_summary: 'حذف الصنايعي صورة من معرض أعماله',
-        pending_changes_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id);
+    await mergePendingChanges(
+      req.params.id,
+      { work_photos: currentPhotos },
+      'حذف الصنايعي صورة من معرض أعماله'
+    );
 
-    if (updateErr) throw updateErr;
-
-    res.json({ success: true, message: 'تم حذف الصورة بنجاح', work_photos: currentPhotos });
+    res.json({ success: true, message: 'تم إرسال طلب الحذف للمراجعة، وفي انتظار موافقة الإدارة', work_photos: currentPhotos, pending: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1007,14 +1067,13 @@ app.post('/api/worker/profile/:id/request-image', requireWorkerOwnership, upload
     if (!req.file) return res.status(400).json({ success: false, error: 'يرجى اختيار صورة شخصية جديدة' });
 
     const fileName = await uploadToSupabase(req.file, "uploads");
-    if (!fileName) throw res.status(500).json({ success: false, error: 'تعذر رفع الصورة' });
+    if (!fileName) return res.status(500).json({ success: false, error: 'تعذر رفع الصورة' });
 
-    const { error } = await supabase
-      .from('workers')
-      .update({ pending_image: fileName })
-      .eq('id', req.params.id);
-
-    if (error) throw error;
+    await mergePendingChanges(
+      req.params.id,
+      { image: fileName },
+      'رفع الصنايعي صورة شخصية جديدة'
+    );
 
     res.json({ success: true, message: 'تم إرسال طلب تغيير الصورة الشخصية للإدارة للمراجعة' });
   } catch (err) {

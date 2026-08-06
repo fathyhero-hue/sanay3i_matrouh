@@ -33,8 +33,8 @@
     <h2 style="text-align: center; margin-bottom: 20px; color: #0f172a;"><i class="fa-solid fa-right-to-bracket"></i> دخول الصنايعية</h2>
     <form id="loginForm">
       <div class="form-group">
-        <label>رقم التليفون (اليوزر)</label>
-        <input type="tel" id="phoneInput" required placeholder="أدخل رقم تليفونك المسجل">
+        <label>رقم التليفون أو البريد الإلكتروني</label>
+        <input type="text" id="phoneInput" required placeholder="أدخل رقم تليفونك أو بريدك الإلكتروني المسجل">
       </div>
       <div class="form-group">
         <label>كلمة المرور</label>
@@ -60,18 +60,18 @@
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const phone = phoneInput.value.trim();
+      const identifier = phoneInput.value.trim();
       const password = passwordInput.value.trim();
-      
-      if (!phone || !password) return showStatus('error', 'يرجى إدخال البيانات المطلوبة');
-      
+
+      if (!identifier || !password) return showStatus('error', 'يرجى إدخال البيانات المطلوبة');
+
       loginBtn.disabled = true;
       loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
-      
+
       try {
         const r = await fetch('/api/worker/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, password })
+          body: JSON.stringify({ identifier, password })
         });
         const d = await r.json();
         if (!r.ok || !d.success) throw new Error(d.error || 'خطأ في تسجيل الدخول');
@@ -95,16 +95,16 @@
 
     // الزر الآمن الجديد الذي يرسل الواتساب ولا يعرض كلمة السر
     forgotBtn.addEventListener('click', async () => {
-      const phone = phoneInput.value.trim();
-      if (!phone) return showStatus('error', 'يرجى إدخال رقم التليفون أولاً في الخانة بالأعلى');
-      
+      const identifier = phoneInput.value.trim();
+      if (!identifier) return showStatus('error', 'يرجى إدخال رقم التليفون أو البريد الإلكتروني أولاً في الخانة بالأعلى');
+
       forgotBtn.disabled = true;
       forgotBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري إرسال كلمة السر...';
-      
+
       try {
         const r = await fetch('/api/worker/forgot-password', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone })
+          body: JSON.stringify({ identifier })
         });
         const d = await r.json();
 
