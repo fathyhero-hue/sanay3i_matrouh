@@ -167,6 +167,21 @@ async function handleIdentityReview(req, res) {
 // تسجيل مسار الاعتماد والمراجعة (المسار الوحيد اللي بيستخدمه admin.js فعليًا)
 app.put('/api/admin/workers/:id/identity-review', adminApiRateLimit, requirePermission("workers:review"), handleIdentityReview);
 
+// تأكيد مراجعة الإدارة لتعديل ذاتي قام به الصنايعي (بيانات أساسية / صور أعمال) - بيشيل تنبيه "تعديل جديد" من الكارت
+app.post('/api/admin/workers/:id/acknowledge-changes', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('workers')
+      .update({ has_pending_changes: false, pending_changes_summary: null, pending_changes_at: null })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'تمت مراجعة التعديلات' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===============================
 // مسار استقبال البلاغات والشكاوى من العملاء (Public Reports API)
 // ===============================
@@ -853,7 +868,12 @@ app.put('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
     const { name, whatsapp, description, trade, area } = req.body;
     const { error } = await supabase
       .from('workers')
-      .update({ name, whatsapp, description, trade, area })
+      .update({
+        name, whatsapp, description, trade, area,
+        has_pending_changes: true,
+        pending_changes_summary: 'عدّل الصنايعي بياناته الأساسية',
+        pending_changes_at: new Date().toISOString()
+      })
       .eq('id', req.params.id);
 
     if (error) throw error;
@@ -910,7 +930,12 @@ app.post('/api/worker/profile/:id/work-photos', requireWorkerOwnership, upload.a
 
     const { error: updateErr } = await supabase
       .from('workers')
-      .update({ work_photos: currentPhotos })
+      .update({
+        work_photos: currentPhotos,
+        has_pending_changes: true,
+        pending_changes_summary: 'أضاف الصنايعي صور أعمال جديدة',
+        pending_changes_at: new Date().toISOString()
+      })
       .eq('id', req.params.id);
 
     if (updateErr) throw updateErr;
@@ -937,7 +962,12 @@ app.delete('/api/worker/profile/:id/work-photo', requireWorkerOwnership, async (
 
     const { error: updateErr } = await supabase
       .from('workers')
-      .update({ work_photos: currentPhotos })
+      .update({
+        work_photos: currentPhotos,
+        has_pending_changes: true,
+        pending_changes_summary: 'حذف الصنايعي صورة من معرض أعماله',
+        pending_changes_at: new Date().toISOString()
+      })
       .eq('id', req.params.id);
 
     if (updateErr) throw updateErr;

@@ -1,4 +1,4 @@
-let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications=[],adminUsers=[],adminReports=[],currentAdmin=null;
+let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications=[],adminUsers=[],adminReports=[],currentAdmin=null,activeQuickFilter="";
 let __adminLoaded={reviews:false,reports:false,users:false,backups:false,whatsapp:false,analytics:false};
 
 async function loginAdmin(e) {
@@ -95,6 +95,32 @@ function stats(){
   const notifyPending = document.getElementById("notifyPendingWorkers"); if(notifyPending) notifyPending.textContent = pending;
   const pendingReviews = allReviews.filter(r=>!ok(r.approved)).length;
   const pendingEl=document.getElementById("pendingReviewsCount"); if(pendingEl) pendingEl.textContent=pendingReviews;
+  updateQuickFilterCounts();
+}
+
+function updateQuickFilterCounts(){
+  const counts={identity_pending:0,identity_verified:0,identity_rejected:0,identity_needs_data:0,identity_needs_id_reupload:0,has_pending_changes:0};
+  allWorkers.forEach(w=>{
+    const key="identity_"+identityStatusValue(w);
+    if(counts[key]!==undefined) counts[key]++;
+    if(hasPendingChanges(w)) counts.has_pending_changes++;
+  });
+  const setText=(id,val)=>{const el=document.getElementById(id); if(el) el.textContent=val;};
+  setText("qfAllCount",allWorkers.length);
+  setText("qfPendingCount",counts.identity_pending);
+  setText("qfVerifiedCount",counts.identity_verified);
+  setText("qfNeedsDataCount",counts.identity_needs_data);
+  setText("qfNeedsReuploadCount",counts.identity_needs_id_reupload);
+  setText("qfRejectedCount",counts.identity_rejected);
+  setText("qfChangesCount",counts.has_pending_changes);
+}
+
+function setQuickFilter(f){
+  activeQuickFilter=f;
+  document.querySelectorAll(".quick-filter-pill").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.filter===f);
+  });
+  filterAdminWorkers();
 }
 
 function getValidImageUrl(path) { if (!path) return ''; if (path.startsWith('http')) return path; if (path.startsWith('/')) return path; return '/uploads/' + path; }
@@ -105,6 +131,7 @@ function identityStatusClass(v){return {pending:"status-yellow",verified:"status
 function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
 function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
 function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
+function hasPendingChanges(w){return ok(w.has_pending_changes)||!!w.pending_image}
 
 function renderIdentityDocsAdmin(w){
   const id=wid(w), docsOk=hasIdentityDocs(w), status=identityStatusValue(w), reason=identityReason(w), note=identityNote(w);
@@ -325,13 +352,17 @@ function renderWorkers(workers){
     if (w.pending_image) {
         pendingImageAlert = `<div style="background-color: #fef08a; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #ca8a04;"><strong style="color: #b45309;"><i class="fa-solid fa-bell fa-shake"></i> طلب تغيير الصورة الشخصية:</strong><div style="margin-top: 10px; text-align: center;"><img src="${getValidImageUrl(w.pending_image)}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid #ca8a04;"></div><button onclick="approveProfileImage('${id}')" style="margin-top: 10px; width: 100%; background: #16a34a; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-check"></i> اعتماد الصورة الجديدة</button></div>`;
     }
+    let pendingChangesAlert = '';
+    if (ok(w.has_pending_changes)) {
+        pendingChangesAlert = `<div style="background-color: #dbeafe; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #2563eb;"><strong style="color: #1d4ed8;"><i class="fa-solid fa-bell fa-shake"></i> ${esc(w.pending_changes_summary||"تعديل جديد من الصنايعي")}</strong>${w.pending_changes_at?`<div style="margin-top:6px;color:#475569;font-size:12px;">${formatDate(w.pending_changes_at)}</div>`:""}<button onclick="acknowledgeWorkerChanges('${id}')" style="margin-top: 10px; width: 100%; background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-check"></i> تمت المراجعة</button></div>`;
+    }
     let workPhotosGallery = '';
     if (w.work_photos && Array.isArray(w.work_photos) && w.work_photos.length > 0) {
         let imagesHtml = w.work_photos.map(img => `<a href="${getValidImageUrl(img)}" target="_blank"><img src="${getValidImageUrl(img)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; transition: 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"></a>`).join('');
         workPhotosGallery = `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;"><strong style="color: #0f172a; font-size: 14px;"><i class="fa-solid fa-images"></i> معرض الأعمال المرفوعة (${w.work_photos.length}):</strong><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">${imagesHtml}</div></div>`;
     }
     const card=document.createElement("article"); card.className="admin-worker-card"; card.dataset.workerCardId=id;
-    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}${pendingImageAlert}${workPhotosGallery}${adminWorkerQuickButton(w)}</div>`;
+    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}${pendingChangesAlert}${pendingImageAlert}${workPhotosGallery}${adminWorkerQuickButton(w)}</div>`;
     grid.appendChild(card);
   });
 }
@@ -348,20 +379,22 @@ function filterAdminWorkers(){
     if(sf==="approved")status=isApproved(w); if(sf==="pending")status=!isApproved(w);
     if(sf==="active")status=isActive(w); if(sf==="inactive")status=!isActive(w);
     if(sf==="featured")status=isFeatured(w);
-    if(sf==="identity_pending")status=identityStatusValue(w)==="pending";
-    if(sf==="identity_verified")status=identityStatusValue(w)==="verified";
-    if(sf==="identity_rejected")status=identityStatusValue(w)==="rejected";
-    if(sf==="identity_needs_data")status=identityStatusValue(w)==="needs_data";
-    if(sf==="identity_needs_id_reupload")status=identityStatusValue(w)==="needs_id_reupload";
     const sub=subInfo(w);
     if(sf==="sub_active")status=sub.daysLeft===null||sub.daysLeft>=0;
     if(sf==="sub_soon")status=sub.daysLeft!==null&&sub.daysLeft>=0&&sub.daysLeft<=7;
     if(sf==="sub_expired")status=sub.daysLeft!==null&&sub.daysLeft<0;
-    return search&&trade&&area&&status;
+    let quick=true;
+    if(activeQuickFilter==="identity_pending")quick=identityStatusValue(w)==="pending";
+    if(activeQuickFilter==="identity_verified")quick=identityStatusValue(w)==="verified";
+    if(activeQuickFilter==="identity_rejected")quick=identityStatusValue(w)==="rejected";
+    if(activeQuickFilter==="identity_needs_data")quick=identityStatusValue(w)==="needs_data";
+    if(activeQuickFilter==="identity_needs_id_reupload")quick=identityStatusValue(w)==="needs_id_reupload";
+    if(activeQuickFilter==="has_pending_changes")quick=hasPendingChanges(w);
+    return search&&trade&&area&&status&&quick;
   });
   renderWorkers(sortAdminWorkers(filtered));
 }
-function clearAdminFilters(){ document.getElementById("adminSearch").value=""; document.getElementById("adminTradeFilter").value=""; document.getElementById("adminAreaFilter").value=""; document.getElementById("adminStatusFilter").value=""; document.getElementById("adminSortFilter").value="default"; renderWorkers(allWorkers); }
+function clearAdminFilters(){ document.getElementById("adminSearch").value=""; document.getElementById("adminTradeFilter").value=""; document.getElementById("adminAreaFilter").value=""; document.getElementById("adminStatusFilter").value=""; document.getElementById("adminSortFilter").value="default"; setQuickFilter(""); }
 
 async function reqs(list){for(const r of list){try{const opt={method:r.method||"POST",credentials:"include",headers:{"Content-Type":"application/json"}};if(r.body)opt.body=JSON.stringify(r.body);const res=await fetch(r.url,opt);if(res.status===401){showLogin();return false}if(res.status===403){const d=await res.json().catch(()=>({}));toast("error",d.error||"ليس لديك صلاحية");return false}if(res.ok)return true}catch(e){}}return false}
 function after(ok,msg){if(ok){toast("success",msg);loadAllData()}else toast("error","لم يتم تنفيذ الأمر")}
@@ -369,6 +402,7 @@ async function toggleApprove(id,c){after(await reqs([{url:`/api/workers/${id}/ap
 async function toggleActive(id,c){after(await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]),"تم تحديث التفعيل")}
 async function toggleFeatured(id,c){after(await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]),"تم تحديث التمييز")}
 async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;after(await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]),"تم حذف الصنايعي نهائياً")}
+async function acknowledgeWorkerChanges(id){after(await reqs([{url:`/api/admin/workers/${id}/acknowledge-changes`,method:"POST"}]),"تمت مراجعة التعديلات")}
 
 async function renewAllWorkers() {
     const monthsInput = prompt("كم عدد الشهور التي تريد إضافتها لكل الصنايعية؟", "1");
@@ -503,13 +537,15 @@ function renderNotifications(){
   const pendingReviews = adminNotifications.pendingReviews || 0;
   const soon = adminNotifications.subscriptionsSoon || 0;
   const expired = adminNotifications.subscriptionsExpired || 0;
-  const a=document.getElementById("notifyPendingWorkers"), b=document.getElementById("notifyPendingReviews"), c=document.getElementById("notifySubscriptionsSoon"), d=document.getElementById("notifySubscriptionsExpired");
-  if(a)a.textContent=pendingWorkers; if(b)b.textContent=pendingReviews; if(c)c.textContent=soon; if(d)d.textContent=expired;
+  const pendingChanges = adminNotifications.pendingWorkerChanges || allWorkers.filter(hasPendingChanges).length;
+  const a=document.getElementById("notifyPendingWorkers"), b=document.getElementById("notifyPendingReviews"), c=document.getElementById("notifySubscriptionsSoon"), d=document.getElementById("notifySubscriptionsExpired"), e=document.getElementById("notifyPendingWorkerChanges");
+  if(a)a.textContent=pendingWorkers; if(b)b.textContent=pendingReviews; if(c)c.textContent=soon; if(d)d.textContent=expired; if(e)e.textContent=pendingChanges;
 }
 function activateWorkersTab(){const workersBtn = document.querySelector(".admin-tab");if(workersBtn) switchTab("workers", workersBtn);}
 function showPendingWorkers(){activateWorkersTab();document.getElementById("adminStatusFilter").value = "pending";filterAdminWorkers();document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});}
 function showSubscriptionsSoon(){activateWorkersTab();document.getElementById("adminStatusFilter").value = "sub_soon";filterAdminWorkers();document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});}
 function showSubscriptionsExpired(){activateWorkersTab();document.getElementById("adminStatusFilter").value = "sub_expired";filterAdminWorkers();document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});}
+function showPendingWorkerChanges(){activateWorkersTab();setQuickFilter("has_pending_changes");document.getElementById("workersSection").scrollIntoView({behavior:"smooth"});}
 function showPendingReviews(){const tabs = Array.from(document.querySelectorAll(".admin-tab"));const reviewsBtn = tabs.find(btn => btn.textContent.includes("التقييمات"));if(reviewsBtn) switchTab("reviews", reviewsBtn);const status = document.getElementById("reviewStatusFilter");if(status) status.value = "pending";if(typeof renderReviews === "function") renderReviews();const section = document.getElementById("reviewsSection");if(section) section.scrollIntoView({behavior:"smooth"});}
 
 async function loadAdminUsers(){

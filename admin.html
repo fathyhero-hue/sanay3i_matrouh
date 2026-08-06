@@ -120,6 +120,10 @@
         <div class="notification-icon red"><i class="fa-solid fa-calendar-xmark"></i></div>
         <div><h4 id="notifySubscriptionsExpired">0</h4><p>اشتراكات منتهية</p></div>
       </div>
+      <div class="notification-card" onclick="showPendingWorkerChanges()">
+        <div class="notification-icon blue"><i class="fa-solid fa-pen-to-square"></i></div>
+        <div><h4 id="notifyPendingWorkerChanges">0</h4><p>تعديلات صنايعية بانتظار المراجعة</p></div>
+      </div>
     </div>
 
     <!-- Workers Section -->
@@ -137,9 +141,18 @@
           <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="adminSearch" type="text" placeholder="بحث بالاسم، الرقم، الحرفة، المنطقة، رقم الطلب..." oninput="filterAdminWorkers()" /></div>
           <div class="admin-input-wrap"><i class="fa-solid fa-screwdriver-wrench"></i><select id="adminTradeFilter" onchange="filterAdminWorkers()"><option value="">كل الحرف</option></select></div>
           <div class="admin-input-wrap"><i class="fa-solid fa-location-dot"></i><select id="adminAreaFilter" onchange="filterAdminWorkers()"><option value="">كل المناطق</option></select></div>
-          <div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="adminStatusFilter" onchange="filterAdminWorkers()"><option value="">كل الحالات</option><option value="approved">موافق عليه</option><option value="pending">بانتظار الموافقة</option><option value="active">نشط</option><option value="inactive">متوقف</option><option value="featured">مميز</option><option value="sub_active">اشتراك شغال</option><option value="sub_soon">اشتراك قرب ينتهي</option><option value="sub_expired">اشتراك منتهي</option><option value="identity_pending">تحقق: بانتظار المراجعة</option><option value="identity_verified">تحقق: تم التحقق</option><option value="identity_rejected">تحقق: مرفوض</option><option value="identity_needs_data">تحقق: يحتاج تعديل بيانات</option><option value="identity_needs_id_reupload">تحقق: إعادة رفع البطاقة</option></select></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="adminStatusFilter" onchange="filterAdminWorkers()"><option value="">كل الحالات</option><option value="approved">موافق عليه</option><option value="pending">بانتظار الموافقة</option><option value="active">نشط</option><option value="inactive">متوقف</option><option value="featured">مميز</option><option value="sub_active">اشتراك شغال</option><option value="sub_soon">اشتراك قرب ينتهي</option><option value="sub_expired">اشتراك منتهي</option></select></div>
           <div class="admin-input-wrap"><i class="fa-solid fa-arrow-down-wide-short"></i><select id="adminSortFilter" onchange="filterAdminWorkers()"><option value="default">الترتيب الافتراضي</option><option value="rating">الأعلى تقييمًا</option><option value="newest">الأحدث</option><option value="featured">المميزين أولًا</option><option value="pending_reviews">الأكثر تقييمات منتظرة</option></select></div>
           <button class="clear-btn action-btn btn-dark" onclick="clearAdminFilters()"><i class="fa-solid fa-rotate-right"></i> مسح</button>
+        </div>
+        <div class="quick-filter-pills" id="quickFilterPills">
+          <button type="button" class="quick-filter-pill" data-filter="" onclick="setQuickFilter('')"><i class="fa-solid fa-layer-group"></i> الكل <span class="qf-count" id="qfAllCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-yellow" data-filter="identity_pending" onclick="setQuickFilter('identity_pending')"><i class="fa-solid fa-clock"></i> بانتظار المراجعة <span class="qf-count" id="qfPendingCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-green" data-filter="identity_verified" onclick="setQuickFilter('identity_verified')"><i class="fa-solid fa-circle-check"></i> موثّق <span class="qf-count" id="qfVerifiedCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-blue" data-filter="identity_needs_data" onclick="setQuickFilter('identity_needs_data')"><i class="fa-solid fa-pen-to-square"></i> يحتاج تعديل بيانات <span class="qf-count" id="qfNeedsDataCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-red" data-filter="identity_needs_id_reupload" onclick="setQuickFilter('identity_needs_id_reupload')"><i class="fa-solid fa-id-card"></i> إعادة رفع بطاقة <span class="qf-count" id="qfNeedsReuploadCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-red" data-filter="identity_rejected" onclick="setQuickFilter('identity_rejected')"><i class="fa-solid fa-circle-xmark"></i> مرفوض <span class="qf-count" id="qfRejectedCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-blue" data-filter="has_pending_changes" onclick="setQuickFilter('has_pending_changes')"><i class="fa-solid fa-bell"></i> تعديلات جديدة <span class="qf-count" id="qfChangesCount">0</span></button>
         </div>
       </div>
       <div id="adminWorkersGrid" class="admin-workers-grid"></div>

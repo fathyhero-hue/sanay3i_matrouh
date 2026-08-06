@@ -352,7 +352,7 @@ router.get("/notifications", async (req, res) => {
   const t = today();
   try {
     const [workersRes, reviewsRes] = await Promise.all([
-      supabase.from("workers").select("id, approved, subscription_end"),
+      supabase.from("workers").select("id, approved, subscription_end, has_pending_changes, pending_image"),
       supabase.from("reviews").select("id, approved")
     ]);
 
@@ -361,6 +361,7 @@ router.get("/notifications", async (req, res) => {
 
     const pendingWorkers = workers.filter(w => !bool(w.approved)).length;
     const pendingReviews = reviews.filter(r => !bool(r.approved)).length;
+    const pendingWorkerChanges = workers.filter(w => bool(w.has_pending_changes) || !!w.pending_image).length;
 
     let subscriptionsSoon = 0, subscriptionsExpired = 0;
 
@@ -372,9 +373,9 @@ router.get("/notifications", async (req, res) => {
       if (days < 0) subscriptionsExpired++; else if (days <= 7) subscriptionsSoon++;
     });
 
-    res.json({ success: true, pendingWorkers, pendingReviews, subscriptionsSoon, subscriptionsExpired });
+    res.json({ success: true, pendingWorkers, pendingReviews, subscriptionsSoon, subscriptionsExpired, pendingWorkerChanges });
   } catch (e) {
-    res.json({ success: true, pendingWorkers: 0, pendingReviews: 0, subscriptionsSoon: 0, subscriptionsExpired: 0 });
+    res.json({ success: true, pendingWorkers: 0, pendingReviews: 0, subscriptionsSoon: 0, subscriptionsExpired: 0, pendingWorkerChanges: 0 });
   }
 });
 
