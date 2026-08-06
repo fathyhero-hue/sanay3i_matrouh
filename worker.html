@@ -366,13 +366,13 @@
                     <button type="button" class="owner-chat-verify-btn" id="ownerLoginBtn" style="flex:1; background: #0284c7; color: #fff; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                       <i class="fa-solid fa-arrow-right-to-bracket"></i> دخول لوحة التحكم
                     </button>
-                    <button type="button" class="owner-chat-verify-btn" id="ownerForgotBtn" style="flex:1; background:#475569; color: #fff; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" title="للصنايعية القدامى أو لمن نسي كلمة المرور">
-                      <i class="fa-solid fa-key"></i> الحصول على كلمة السر
+                    <button type="button" class="owner-chat-verify-btn" id="ownerForgotBtn" style="flex:1; background:#475569; color: #fff; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" title="لمن نسي كلمة المرور">
+                      <i class="fa-solid fa-key"></i> نسيت كلمة المرور؟
                     </button>
                   </div>
 
                   <div class="owner-chat-note" style="font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.5;">
-                    💡 إذا كنت من الصنايعية القدامى أو لا تملك كلمة مرور، اضغط على <strong>"الحصول على كلمة السر"</strong> لتوليد كلمة سر مؤقتة وتفعيل حسابك فوراً.
+                    💡 لو نسيت كلمة المرور، اضغط على <strong>"نسيت كلمة المرور؟"</strong> وهيتبعتلك رابط إعادة تعيين على بريدك الإلكتروني المسجل.
                   </div>
                   <div class="owner-chat-status" id="ownerChatStatus"></div>
                 </div>
@@ -1374,14 +1374,14 @@
       const els = ownerChatEls();
       const phone = (els.phoneInput && els.phoneInput.value || "").trim();
       
-      if (!phone) return ownerChatStatus("error", "اكتب رقم التليفون المسجل أولاً للحصول على كلمة السر");
-      
+      if (!phone) return ownerChatStatus("error", "اكتب رقم التليفون المسجل أولاً");
+
       if (els.forgotBtn) {
         els.forgotBtn.disabled = true;
-        els.forgotBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاستعادة...';
+        els.forgotBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
       }
-      ownerChatStatus("", "جاري توليد كلمة سر جديدة...");
-      
+      ownerChatStatus("", "جاري إرسال رابط إعادة التعيين...");
+
       try {
         const r = await fetch("/api/worker/forgot-password", {
           method: "POST",
@@ -1390,15 +1390,14 @@
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || !d.success) throw new Error(d.error || "تعذر استعادة كلمة المرور");
-        
-        ownerChatStatus("success", "تم التوليد بنجاح! كلمة السر المؤقتة هي: " + d.temp_password + " (تم وضعها في خانة الباسورد تلقائياً)");
-        if (els.passwordInput) els.passwordInput.value = d.temp_password;
+
+        ownerChatStatus("success", d.message || "تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.");
       } catch (e) {
         ownerChatStatus("error", e.message || "حدث خطأ أثناء استعادة كلمة المرور");
       } finally {
         if (els.forgotBtn) {
           els.forgotBtn.disabled = false;
-          els.forgotBtn.innerHTML = '<i class="fa-solid fa-key"></i> الحصول على كلمة السر';
+          els.forgotBtn.innerHTML = '<i class="fa-solid fa-key"></i> نسيت كلمة المرور؟';
         }
       }
     }

@@ -39,6 +39,7 @@ router.get("/", async (req, res) => {
       .select(PUBLIC_WORKER_COLUMNS)
       .eq("approved", true)
       .eq("active", true)
+      .eq("identity_status", "verified")
       .or(`subscription_end.is.null,subscription_end.gte.${today()}`)
       .order("featured", { ascending: false })
       .order("created_at", { ascending: false })
@@ -61,7 +62,14 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const id = Number(req.params.id);
-  const { data, error } = await supabase.from("workers").select(PUBLIC_WORKER_COLUMNS).eq("id", id).single();
+  const { data, error } = await supabase
+    .from("workers")
+    .select(PUBLIC_WORKER_COLUMNS)
+    .eq("id", id)
+    .eq("approved", true)
+    .eq("active", true)
+    .eq("identity_status", "verified")
+    .single();
   if (error || !data) return res.status(404).json({ success: false, error: "الصنايعي غير موجود" });
   
   const scored = await attachSmartScoresToWorkers([data]);

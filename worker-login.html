@@ -41,7 +41,7 @@
         <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور">
       </div>
       <button type="submit" class="btn-main" id="loginBtn">دخول للوحة التحكم والمراسلة</button>
-      <button type="button" class="btn-alt" id="forgotBtn"><i class="fa-solid fa-key"></i> نسيت / الحصول على كلمة السر</button>
+      <button type="button" class="btn-alt" id="forgotBtn"><i class="fa-solid fa-key"></i> نسيت كلمة المرور؟ (إرسال رابط بالإيميل)</button>
       <div id="statusMsg" class="status-msg"></div>
     </form>
   </div>
@@ -107,19 +107,19 @@
           body: JSON.stringify({ phone })
         });
         const d = await r.json();
-        
+
         if (!r.ok || !d.success) throw new Error(d.error || 'حدث خطأ غير متوقع');
-        
-        // إفراغ خانة الباسوورد بدلاً من وضعها (كإجراء أمني إضافي)
+
+        // إفراغ خانة الباسوورد (كإجراء أمني إضافي)
         passwordInput.value = '';
-        
-        // إظهار رسالة النجاح للصنايعي ليفتح الواتساب
-        showStatus('success', 'تم إرسال كلمة المرور الجديدة في رسالة واتساب إلى رقمك المسجل بنجاح 📱');
+
+        // إظهار رسالة النجاح (النص جاي من رد السيرفر نفسه - بقى عن رابط بالإيميل)
+        showStatus('success', d.message || 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.');
       } catch(err) {
         showStatus('error', err.message);
       } finally {
         forgotBtn.disabled = false;
-        forgotBtn.innerHTML = '<i class="fa-solid fa-key"></i> نسيت / الحصول على كلمة السر';
+        forgotBtn.innerHTML = '<i class="fa-solid fa-key"></i> نسيت كلمة المرور؟ (إرسال رابط بالإيميل)';
       }
     });
   </script>

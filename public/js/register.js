@@ -64,13 +64,18 @@ function validateWizardStep(index) {
   hideResult();
   const name = document.getElementById("name")?.value.trim() || "";
   const phone = document.getElementById("phone")?.value.trim() || "";
+  const email = document.getElementById("email")?.value.trim() || "";
   const password = document.getElementById("password")?.value.trim() || "";
   const trade = document.getElementById("trade")?.value.trim() || "";
   const area = document.getElementById("area")?.value.trim() || "";
 
   if (index === 0) {
-    if (!name || !phone || !password) {
-      showResult("error", "من فضلك املأ الاسم، رقم الاتصال، وكلمة المرور.");
+    if (!name || !phone || !email || !password) {
+      showResult("error", "من فضلك املأ الاسم، رقم الاتصال، البريد الإلكتروني، وكلمة المرور.");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showResult("error", "صيغة البريد الإلكتروني غير صحيحة.");
       return false;
     }
     if (password.length < 6) {
@@ -219,14 +224,15 @@ if (registerForm) {
 
     const name = document.getElementById("name")?.value.trim() || "";
     const phone = document.getElementById("phone")?.value.trim() || "";
+    const email = document.getElementById("email")?.value.trim() || "";
     const password = document.getElementById("password")?.value.trim() || "";
     const whatsapp = document.getElementById("whatsapp")?.value.trim() || "";
     const trade = document.getElementById("trade")?.value.trim() || "";
     const area = document.getElementById("area")?.value.trim() || "";
     const description = document.getElementById("description")?.value.trim() || "";
 
-    if (!name || !phone || !password || !trade || !area) {
-      showResult("error", "يرجى إكمال الحقول الأساسية وكلمة المرور والحرفة والمنطقة.");
+    if (!name || !phone || !email || !password || !trade || !area) {
+      showResult("error", "يرجى إكمال الحقول الأساسية والبريد الإلكتروني وكلمة المرور والحرفة والمنطقة.");
       return;
     }
 
@@ -238,6 +244,7 @@ if (registerForm) {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("phone", phone);
+    formData.append("email", email);
     formData.append("password", password);
     formData.append("whatsapp", whatsapp);
     formData.append("trade", trade);

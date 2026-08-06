@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 // تاريخ اليوم بصيغة YYYY-MM-DD
 function today() {
   return new Date().toISOString().split("T")[0];
@@ -48,6 +50,21 @@ function clientIp(req) {
     .split(",")[0].trim() || "unknown";
 }
 
+// التحقق من صيغة بريد إلكتروني بسيطة وكافية
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
+}
+
+// توليد توكن عشوائي آمن (لروابط إعادة تعيين كلمة المرور)
+function generateSecureToken(bytes = 32) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+
+// تجزئة التوكن بـ SHA-256 قبل تخزينه في قاعدة البيانات (التوكن الصريح ميتخزنش أبداً)
+function hashToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+
 // تصدير كل الدوال عشان نستخدمها بره الملف
 module.exports = {
   today,
@@ -56,5 +73,8 @@ module.exports = {
   normalizeWorkerPhone,
   workerPhoneKeysFromValues,
   makeRegistrationCode,
-  clientIp
+  clientIp,
+  isValidEmail,
+  generateSecureToken,
+  hashToken
 };

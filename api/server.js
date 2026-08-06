@@ -62,6 +62,9 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 const { requirePermission, createWorkerToken, requireWorkerOwnership } = require("./middlewares/auth");
+const { isValidEmail, generateSecureToken, hashToken } = require("./utils/helpers");
+const { logAdminActivity } = require("./utils/activityLogger");
+const mailer = require("./utils/mailer");
 
 async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
@@ -88,21 +91,43 @@ async function uploadToSupabase(file, targetBucket = "uploads") {
 async function handleIdentityReview(req, res) {
     try {
         const body = req.body || {};
-        const updateData = {};
-        
-        const isApproved = body.approved !== undefined ? Boolean(body.approved) : true;
-        updateData.approved = isApproved;
-        updateData.identity_verified = isApproved;
+        const ALLOWED_STATUSES = ["pending", "verified", "rejected", "needs_data", "needs_id_reupload"];
 
-        if (isApproved) {
-          const { data: workerData } = await supabase
-            .from('workers')
-            .select('pending_image')
-            .eq('id', req.params.id)
-            .maybeSingle();
-            
-          if (workerData && workerData.pending_image) {
-            updateData.image = workerData.pending_image;
+        let status = String(body.identity_status || "").trim();
+        // توافق رجعي لو حد لسه بيبعت النداء القديم بـ approved boolean بس
+        if (!status && body.approved !== undefined) {
+          status = body.approved ? "verified" : "rejected";
+        }
+        if (!ALLOWED_STATUSES.includes(status)) {
+          return res.status(400).json({ success: false, error: "حالة تحقق غير صحيحة" });
+        }
+
+        const reason = String(body.reason || "").trim();
+        const note = String(body.note || "").trim();
+
+        const { data: before, error: beforeErr } = await supabase
+          .from('workers')
+          .select('*')
+          .eq('id', req.params.id)
+          .maybeSingle();
+
+        if (beforeErr || !before) {
+          return res.status(404).json({ success: false, error: "الصنايعي غير موجود" });
+        }
+
+        const isVerified = status === "verified";
+        const updateData = {
+          identity_status: status,
+          identity_verified: isVerified,
+          identity_rejection_reason: reason,
+          identity_review_note: note
+        };
+
+        // نفس نمط setBool في core.js: التوثيق يفرض approved=true، وباقي الحالات ما بتلغيش approved تلقائيًا
+        if (isVerified) {
+          updateData.approved = true;
+          if (before.pending_image) {
+            updateData.image = before.pending_image;
             updateData.pending_image = null;
           }
         }
@@ -115,6 +140,21 @@ async function handleIdentityReview(req, res) {
         if (error) {
             console.error('Supabase update error:', error);
             return res.status(400).json({ success: false, error: error.message });
+        }
+
+        logAdminActivity(req, "identity_review", {
+          entity_type: "worker",
+          entity_id: before.id,
+          entity_name: before.name,
+          details: { identity_status: status, reason, note },
+          before_data: { identity_status: before.identity_status, identity_verified: before.identity_verified, approved: before.approved },
+          after_data: updateData
+        }).catch(err => console.warn("Failed to log identity_review activity:", err.message));
+
+        if (isVerified) {
+          mailer.sendIdentityVerifiedEmail(before).catch(err => console.error('Failed to send verified email:', err.message));
+        } else if (["rejected", "needs_data", "needs_id_reupload"].includes(status)) {
+          mailer.sendIdentityActionEmail(before, status, reason, note).catch(err => console.error('Failed to send identity action email:', err.message));
         }
 
         res.json({ success: true, message: 'تم تحديث حالة مراجعة البطاقة والاعتماد بنجاح' });
@@ -219,9 +259,14 @@ app.post('/api/register', upload.fields([
     const area = String(body.area || '').trim();
     const description = String(body.description || '').trim();
     const password = String(body.password || '').trim();
+    const email = String(body.email || '').trim().toLowerCase();
 
-    if (!name || !phone || !trade || !area || !password || !files.idFront || !files.idBack) {
-      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية، كلمة المرور، وصور البطاقة' });
+    if (!name || !phone || !trade || !area || !password || !email || !files.idFront || !files.idBack) {
+      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية، البريد الإلكتروني، كلمة المرور، وصور البطاقة' });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, error: 'صيغة البريد الإلكتروني غير صحيحة' });
     }
 
     if (password.length < 6) {
@@ -242,6 +287,21 @@ app.post('/api/register', upload.fields([
       });
     }
 
+    const { data: existingEmailWorkers, error: emailCheckErr } = await supabase
+      .from('workers')
+      .select('id')
+      .ilike('email', email)
+      .limit(1);
+
+    if (emailCheckErr) console.error("Check duplicate email error:", emailCheckErr);
+
+    if (existingEmailWorkers && existingEmailWorkers.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: '⚠️ هذا البريد الإلكتروني مسجل بالفعل لصنايعي آخر!'
+      });
+    }
+
     const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
     const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
     
@@ -258,6 +318,7 @@ app.post('/api/register', upload.fields([
       trade,
       area,
       description,
+      email,
       username: phone,
       password_hash: hash,
       password_salt: salt,
@@ -266,6 +327,7 @@ app.post('/api/register', upload.fields([
       id_front_path: idFrontImage,
       id_back_path: idBackImage,
       id_submitted_at: now.toISOString(),
+      identity_status: 'pending',
       identity_verified: false,
       approved: false,
       active: true,
@@ -275,12 +337,20 @@ app.post('/api/register', upload.fields([
     };
 
     const { data, error } = await supabase.from('workers').insert([newWorker]).select().single();
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(400).json({ success: false, error: 'رقم الهاتف أو البريد الإلكتروني مسجل بالفعل. برجاء المحاولة برقم أو بريد مختلف.' });
+      }
+      throw error;
+    }
 
     const workerId = data.id;
     const registrationCode = 'SN-' + new Date().getFullYear() + '-' + String(workerId).padStart(5, '0');
 
     await supabase.from('workers').update({ registration_code: registrationCode }).eq('id', workerId);
+
+    mailer.sendWelcomeEmail({ ...data, email, registration_code: registrationCode })
+      .catch(err => console.error('Failed to send welcome email:', err.message));
 
     return res.json({
       success: true,
@@ -360,14 +430,14 @@ app.post('/api/worker/login', workerLoginRateLimit, async (req, res) => {
 
 app.post('/api/worker/forgot-password', workerLoginRateLimit, async (req, res) => {
   try {
-    const { phone } = req.body;
+    const phone = String((req.body || {}).phone || '').trim();
     if (!phone) {
       return res.status(400).json({ success: false, error: 'يرجى إدخال رقم التليفون' });
     }
 
     const { data: worker, error } = await supabase
       .from('workers')
-      .select('id, name, phone, whatsapp')
+      .select('id, name, phone, whatsapp, email')
       .eq('phone', phone)
       .maybeSingle();
 
@@ -375,54 +445,75 @@ app.post('/api/worker/forgot-password', workerLoginRateLimit, async (req, res) =
       return res.status(404).json({ success: false, error: 'رقم التليفون غير مسجل في قاعدة البيانات' });
     }
 
-    const tempPassword = 'SN-' + Math.floor(1000 + Math.random() * 9000);
-    const { salt, hash } = hashAdminPassword(tempPassword);
-
-    await supabase.from('workers').update({
-      password_hash: hash,
-      password_salt: salt
-    }).eq('id', worker.id);
-
-    const WA_TOKEN = process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
-    const WA_PHONE_ID = process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const WA_API_VER = process.env.WHATSAPP_API_VERSION || 'v17.0';
-    
-    if (WA_TOKEN && WA_PHONE_ID) {
-      let targetPhone = String(worker.whatsapp || worker.phone).replace(/[^\d]/g, '');
-      if (targetPhone.startsWith('01') && targetPhone.length === 11) {
-          targetPhone = '20' + targetPhone.substring(1);
-      } else if (targetPhone.length === 10 && targetPhone.startsWith('1')) {
-          targetPhone = '20' + targetPhone;
-      }
-
-      const msgText = `أهلاً بك يا ${worker.name} في دليل صنايعي مطروح 🛠️\n\nبناءً على طلبك، تم إعادة ضبط كلمة المرور الخاصة بحسابك.\n\n🔑 كلمة المرور الجديدة: *${tempPassword}*\n\nيرجى تسجيل الدخول بها الآن، ولا تشاركها مع أحد للحفاظ على أمان حسابك.`;
-
-      try {
-        const response = await fetch(`https://graph.facebook.com/${WA_API_VER}/${WA_PHONE_ID}/messages`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${WA_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                messaging_product: 'whatsapp',
-                to: targetPhone,
-                type: 'text',
-                text: { body: msgText }
-            })
-        });
-      } catch (waErr) {
-        console.error('Failed to send WhatsApp message:', waErr.message);
-      }
+    if (!worker.email) {
+      return res.status(400).json({ success: false, error: 'لا يوجد بريد إلكتروني مسجل لهذا الحساب. يرجى التواصل مع الإدارة لتحديث بياناتك.' });
     }
 
-    res.json({ 
-      success: true, 
-      message: 'تم إرسال كلمة المرور الجديدة في رسالة واتساب إلى رقمك المسجل بنجاح.' 
+    const token = generateSecureToken();
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // صلاحية 30 دقيقة
+
+    await supabase.from('workers').update({
+      password_reset_token_hash: tokenHash,
+      password_reset_expires_at: expiresAt.toISOString()
+    }).eq('id', worker.id);
+
+    mailer.sendPasswordResetEmail(worker, token)
+      .catch(err => console.error('Failed to send reset email:', err.message));
+
+    res.json({
+      success: true,
+      message: 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني المسجل.'
     });
   } catch (err) {
     console.error('Forgot Password Error:', err);
     res.status(500).json({ success: false, error: 'حدث خطأ أثناء استعادة كلمة المرور' });
+  }
+});
+
+app.post('/api/worker/reset-password', workerLoginRateLimit, async (req, res) => {
+  try {
+    const token = String((req.body || {}).token || '').trim();
+    const newPassword = String((req.body || {}).password || '').trim();
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ success: false, error: 'الرابط غير صالح أو كلمة المرور مفقودة' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
+    }
+
+    const tokenHash = hashToken(token);
+    const { data: worker, error } = await supabase
+      .from('workers')
+      .select('id, name, email, password_reset_expires_at')
+      .eq('password_reset_token_hash', tokenHash)
+      .maybeSingle();
+
+    if (error || !worker) {
+      return res.status(400).json({ success: false, error: 'رابط إعادة التعيين غير صالح أو تم استخدامه بالفعل' });
+    }
+
+    if (!worker.password_reset_expires_at || new Date(worker.password_reset_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ success: false, error: 'انتهت صلاحية رابط إعادة التعيين، يرجى طلب رابط جديد' });
+    }
+
+    const { salt, hash } = hashAdminPassword(newPassword);
+
+    await supabase.from('workers').update({
+      password_hash: hash,
+      password_salt: salt,
+      password_reset_token_hash: null,
+      password_reset_expires_at: null
+    }).eq('id', worker.id);
+
+    mailer.sendPasswordChangedEmail(worker)
+      .catch(err => console.error('Failed to send password-changed email:', err.message));
+
+    res.json({ success: true, message: 'تم تحديث كلمة المرور بنجاح، يمكنك الآن تسجيل الدخول.' });
+  } catch (err) {
+    console.error('Reset Password Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء إعادة تعيين كلمة المرور' });
   }
 });
 
@@ -748,6 +839,8 @@ app.get('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
     
     delete worker.password_hash;
     delete worker.password_salt;
+    delete worker.password_reset_token_hash;
+    delete worker.password_reset_expires_at;
 
     res.json({ success: true, worker });
   } catch (err) {
@@ -1126,6 +1219,7 @@ app.get(["/worker-login", "/worker-login.html"], (req, res) => {
   }
 });
 
+app.get("/reset-password", (req, res) => res.sendFile(path.join(STATIC_DIR, "reset-password.html")));
 app.get("/worker-dashboard", (req, res) => res.sendFile(path.join(STATIC_DIR, "worker-dashboard.html")));
 app.get("/status", (req, res) => res.sendFile(path.join(STATIC_DIR, "status.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin.html")));
