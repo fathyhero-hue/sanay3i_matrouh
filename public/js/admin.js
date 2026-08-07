@@ -826,7 +826,7 @@ async function loadAnalytics() {
         if(!img) img = '/icons/default-worker-avatar.png';
 
         return `
-          <div class="top-worker-card">
+          <div class="top-worker-card" style="cursor:pointer" onclick="selectWorkerAnalytics('${adminActionsEscapeAttr(row.worker_id)}')">
             <div class="top-worker-info">
               <span style="font-size: 18px; font-weight: 900; color: #cbd5e1;">#${idx + 1}</span>
               <img src="${adminHtmlEscape(img)}" class="top-worker-img" onerror="this.src='/icons/default-worker-avatar.png'">
@@ -871,10 +871,115 @@ async function loadAnalytics() {
     });
 
     renderModernBars("analyticsTopPages", formattedPages, "fill-purple");
+    renderDailyChart(d.daily || []);
+    populateWorkerAnalyticsSelect();
 
   } catch (e) {
     boxTopWorkers.innerHTML = "";
     if (msg) { msg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + (e.message || "تعذر تحميل التحليلات"); msg.style.display = "block"; }
+  }
+}
+
+let _analyticsDailyChartInstance=null, _workerAnalyticsChartInstance=null;
+const analyticsDayLabel=(iso)=>{ try{ return new Date(iso+'T00:00:00').toLocaleDateString('ar-EG',{day:'numeric',month:'short'}); }catch(e){ return iso; } };
+
+function renderDailyChart(daily){
+  const canvas=document.getElementById('analyticsDailyChart');
+  if(!canvas || typeof Chart==='undefined') return;
+  if(_analyticsDailyChartInstance) _analyticsDailyChartInstance.destroy();
+  const hasAnyActivity = daily.some(d=>d.profile_view||d.call||d.whatsapp);
+  const msgEl = document.getElementById('analyticsMessage');
+  if(!hasAnyActivity && daily.length && msgEl){
+    msgEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> مفيش أي نشاط حقيقي (زيارات/مكالمات/واتساب) خلال الفترة دي — يستاهل نتأكد إن الموقع بيستقبل زوار.';
+    msgEl.style.display='block';
+  }
+  _analyticsDailyChartInstance = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{
+      labels: daily.map(d=>analyticsDayLabel(d.date)),
+      datasets:[
+        {label:'مشاهدات البروفايل', data:daily.map(d=>d.profile_view), borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.12)', tension:.35, fill:true},
+        {label:'مكالمات', data:daily.map(d=>d.call), borderColor:'#8b5cf6', backgroundColor:'rgba(139,92,246,.12)', tension:.35, fill:true},
+        {label:'واتساب', data:daily.map(d=>d.whatsapp), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.12)', tension:.35, fill:true}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Cairo',weight:'700'}}}},
+      scales:{
+        x:{ticks:{font:{family:'Cairo'}}, grid:{display:false}},
+        y:{beginAtZero:true, ticks:{precision:0,font:{family:'Cairo'}}}
+      }
+    }
+  });
+}
+
+function selectWorkerAnalytics(id){
+  const sel=document.getElementById('workerAnalyticsSelect');
+  if(!sel) return;
+  sel.value=String(id);
+  loadWorkerAnalytics();
+  document.getElementById('workerAnalyticsSelect')?.closest('.chart-card')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function populateWorkerAnalyticsSelect(){
+  const sel=document.getElementById('workerAnalyticsSelect');
+  if(!sel) return;
+  const current=sel.value;
+  sel.innerHTML='<option value="">اختر صنايعي لعرض تفاصيل صفحته...</option>' +
+    allWorkers.slice().sort((a,b)=>wname(a).localeCompare(wname(b),'ar')).map(w=>`<option value="${esc(wid(w))}">${esc(wname(w))} — ${esc(wtrade(w))}</option>`).join('');
+  if(current) sel.value=current;
+}
+
+async function loadWorkerAnalytics(){
+  const id=document.getElementById('workerAnalyticsSelect')?.value;
+  const box=document.getElementById('workerAnalyticsResult');
+  if(!box) return;
+  if(!id){ toast('error','اختار صنايعي الأول'); return; }
+  const days = document.getElementById('analyticsRange')?.value || 30;
+  box.innerHTML='<div class="empty-admin"><i class="fa-solid fa-spinner fa-spin"></i> جاري تحميل تفاصيل الصفحة...</div>';
+  try{
+    const r=await fetch(`/api/admin/analytics/worker/${encodeURIComponent(id)}?days=${encodeURIComponent(days)}`,{credentials:'include'});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success) throw new Error(d.error||'تعذر تحميل تفاصيل الصنايعي');
+    const t=d.totals||{};
+    box.innerHTML = `
+      <div class="overview-kpi-grid" style="margin-bottom:16px;">
+        ${overviewKpiCard(analyticsNumber(t.profile_view||0),'مشاهدات صفحته')}
+        ${overviewKpiCard(analyticsNumber(t.call||0),'مكالمات')}
+        ${overviewKpiCard(analyticsNumber(t.whatsapp||0),'واتساب')}
+        ${overviewKpiCard(analyticsNumber(t.copy_phone||0),'نسخ الرقم')}
+        ${overviewKpiCard(analyticsPercent(t.conversion_rate||0),'معدل التحويل')}
+      </div>
+      <div style="position:relative;height:220px;"><canvas id="workerAnalyticsChart"></canvas></div>
+    `;
+    if(!t.profile_view && !t.call && !t.whatsapp){
+      box.innerHTML += '<div class="empty-admin" style="margin-top:14px;"><i class="fa-solid fa-circle-info"></i> الصنايعي ده مفيهوش أي زيارة أو تواصل مسجّل في الفترة دي.</div>';
+    }
+    const canvas=document.getElementById('workerAnalyticsChart');
+    if(canvas && typeof Chart!=='undefined'){
+      if(_workerAnalyticsChartInstance) _workerAnalyticsChartInstance.destroy();
+      const daily=d.daily||[];
+      _workerAnalyticsChartInstance = new Chart(canvas.getContext('2d'), {
+        type:'bar',
+        data:{
+          labels: daily.map(x=>analyticsDayLabel(x.date)),
+          datasets:[
+            {label:'مشاهدات', data:daily.map(x=>x.profile_view), backgroundColor:'#f59e0b'},
+            {label:'مكالمات', data:daily.map(x=>x.call), backgroundColor:'#8b5cf6'},
+            {label:'واتساب', data:daily.map(x=>x.whatsapp), backgroundColor:'#10b981'}
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Cairo',weight:'700'}}}},
+          scales:{ x:{stacked:true,ticks:{font:{family:'Cairo'}},grid:{display:false}}, y:{stacked:true,beginAtZero:true,ticks:{precision:0,font:{family:'Cairo'}}} }
+        }
+      });
+    }
+  }catch(e){
+    box.innerHTML = `<div class="empty-admin"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(e.message||'تعذر تحميل تفاصيل الصنايعي')}</div>`;
   }
 }
 

@@ -233,16 +233,23 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     const tradeStats = {};
     const areaStats = {};
     const pageStats = {};
+    const dailyMap = {};
 
     (events || []).forEach(ev => {
       const type = ev.event_type;
       const wid = String(ev.worker_id).trim();
+      const day = String(ev.created_at || '').slice(0, 10);
 
       if (type === 'call') { totals.call++; totals.total_contacts++; }
       if (type === 'whatsapp') { totals.whatsapp++; totals.total_contacts++; }
       if (type === 'profile_view') totals.profile_view++;
 
       if (ev.page_path) pageStats[ev.page_path] = (pageStats[ev.page_path] || 0) + 1;
+
+      if (day) {
+        if (!dailyMap[day]) dailyMap[day] = { date: day, profile_view: 0, call: 0, whatsapp: 0 };
+        if (type === 'profile_view' || type === 'call' || type === 'whatsapp') dailyMap[day][type]++;
+      }
 
       if (wid && wid !== 'undefined' && wid !== 'null') {
         if (!workerStats[wid]) workerStats[wid] = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0 };
@@ -251,6 +258,16 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
         if (type === 'profile_view') workerStats[wid].profile_view++;
       }
     });
+
+    // نملأ الأيام اللي مفيهاش أحداث بصفر بدل ما نتجاهلها، عشان الرسم البياني يبين بصدق أي يوم مفيهوش نشاط خالص
+    const daily = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const row = dailyMap[key] || { date: key, profile_view: 0, call: 0, whatsapp: 0 };
+      daily.push(row);
+    }
 
     const workerIds = Object.keys(workerStats);
     let workersData = [];
@@ -277,6 +294,7 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     res.json({
       success: true,
       totals,
+      daily,
       top_workers: topWorkers.slice(0, 10),
       top_trades: formatTop(tradeStats),
       top_areas: formatTop(areaStats),
@@ -284,6 +302,52 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     });
   } catch (err) {
     console.error('Analytics Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// تحليل تفصيلي لصنايعي واحد بعينه (مش بس أعلى 10 - أي صنايعي على حسب اختيار الإدارة)
+router.get('/analytics/worker/:id', requirePermission("analytics:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const workerId = String(req.params.id);
+    const days = Math.max(1, Math.min(365, parseInt(req.query.days) || 30));
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - days);
+
+    const [{ data: worker, error: wErr }, { data: events, error: eErr }] = await Promise.all([
+      supabase.from('workers').select('id,name,trade,area,image,created_at').eq('id', workerId).maybeSingle(),
+      supabase.from('analytics_events').select('event_type,created_at,page_path')
+        .eq('worker_id', workerId).gte('created_at', dateLimit.toISOString())
+    ]);
+    if (wErr) throw wErr;
+    if (!worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+    if (eErr) throw eErr;
+
+    const totals = { profile_view: 0, call: 0, whatsapp: 0, copy_phone: 0, total_contacts: 0 };
+    const dailyMap = {};
+    (events || []).forEach(ev => {
+      const type = ev.event_type;
+      if (totals[type] !== undefined) totals[type]++;
+      if (type === 'call' || type === 'whatsapp') totals.total_contacts++;
+      const day = String(ev.created_at || '').slice(0, 10);
+      if (day) {
+        if (!dailyMap[day]) dailyMap[day] = { date: day, profile_view: 0, call: 0, whatsapp: 0 };
+        if (type === 'profile_view' || type === 'call' || type === 'whatsapp') dailyMap[day][type]++;
+      }
+    });
+    const daily = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      daily.push(dailyMap[key] || { date: key, profile_view: 0, call: 0, whatsapp: 0 });
+    }
+    totals.conversion_rate = totals.profile_view > 0 ? ((totals.total_contacts / totals.profile_view) * 100).toFixed(1) : 0;
+
+    res.json({ success: true, worker, totals, daily, total_events_in_range: (events || []).length });
+  } catch (err) {
+    console.error('Worker Analytics Error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

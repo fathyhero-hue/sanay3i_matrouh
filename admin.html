@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
   
   <!-- استدعاء ملفات الـ CSS الخاصة بالإدارة -->
   <link rel="stylesheet" href="/css/global.css" />
@@ -327,6 +328,22 @@
         </div>
 
         <div id="analyticsMessage" class="empty-admin" style="display:none; margin-bottom: 20px;"></div>
+
+        <!-- اتجاه النشاط اليومي - يبين هل التطبيق شغال ويستقبل زيارات وتواصل فعلي كل يوم ولا لا -->
+        <div class="chart-card" style="margin-bottom:20px;">
+          <h3><i class="fa-solid fa-chart-line" style="color:#2563eb;"></i> اتجاه النشاط اليومي</h3>
+          <div style="position:relative;height:280px;"><canvas id="analyticsDailyChart"></canvas></div>
+        </div>
+
+        <!-- تحليل صنايعي واحد بعينه بالتفصيل -->
+        <div class="chart-card" style="margin-bottom:20px;">
+          <h3><i class="fa-solid fa-user-magnifying-glass" style="color:#6d28d9;"></i> تحليل تفصيلي لصفحة صنايعي معيّن</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+            <select id="workerAnalyticsSelect" style="flex:1;min-width:240px;height:48px;border-radius:14px;padding:0 14px;border:1px solid var(--border);font-weight:800;"><option value="">اختر صنايعي لعرض تفاصيل صفحته...</option></select>
+            <button class="big-btn btn-dark" onclick="loadWorkerAnalytics()"><i class="fa-solid fa-magnifying-glass"></i> عرض التفاصيل</button>
+          </div>
+          <div id="workerAnalyticsResult"></div>
+        </div>
 
         <!-- نظرة عامة على النظام (بيانات حقيقية من كل أجزاء التطبيق، مش زيارات بس) -->
         <div class="chart-card" style="margin-bottom:20px;">
