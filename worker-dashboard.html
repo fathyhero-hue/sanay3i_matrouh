@@ -110,7 +110,18 @@
 
     <!-- 1. تبويبة البيانات الشخصية -->
     <div id="info" class="tab-content active">
-      
+
+      <!-- البريد الإلكتروني -->
+      <div id="emailSection" style="margin-bottom:25px; padding:16px; border-radius:12px; border:1px solid #93c5fd; background:#eff6ff;">
+        <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-envelope"></i> البريد الإلكتروني</h3>
+        <p style="color:#475569; font-size:13px; margin-top:0;">مهم عشان تستقبل رسايل مهمة من الإدارة زي تحديثات حسابك واستعادة كلمة المرور.</p>
+        <div class="form-group" style="margin-bottom:10px;">
+          <input type="email" id="w_email" placeholder="example@email.com">
+        </div>
+        <button class="btn" onclick="saveEmail(this)"><i class="fa-solid fa-floppy-disk"></i> حفظ البريد الإلكتروني</button>
+        <div id="emailStatus" style="margin-top:10px; font-weight:bold;"></div>
+      </div>
+
       <!-- الصورة الشخصية -->
       <div class="profile-section">
         <img id="profileImgPreview" src="/icons/default-worker-avatar.png" class="profile-img" alt="صورتك الشخصية">
@@ -350,6 +361,7 @@
           document.getElementById('w_area').value = profileDraft.area ?? worker.area ?? '';
           document.getElementById('w_whatsapp').value = profileDraft.whatsapp ?? worker.whatsapp ?? '';
           document.getElementById('w_desc').value = profileDraft.description ?? worker.description ?? '';
+          document.getElementById('w_email').value = worker.email ?? '';
 
           // الصورة الشخصية (المقترحة لو موجودة، وإلا الحالية)
           document.getElementById('profileImgPreview').src = imgPath(pending.image || worker.image);
@@ -448,6 +460,35 @@
       btn.innerHTML = originalText;
       btn.disabled = false;
       setTimeout(() => { document.getElementById('status').innerText = ''; document.getElementById('status').style.color = '#16a34a'; }, 4000);
+    }
+
+    async function saveEmail(btn) {
+      const email = document.getElementById('w_email').value.trim();
+      const status = document.getElementById('emailStatus');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/worker/profile/' + workerId + '/email', {
+          method: 'PUT',
+          headers: authHeaders({'Content-Type': 'application/json'}),
+          body: JSON.stringify({ email })
+        });
+        const d = await r.json();
+        if (d.success) {
+          status.style.color = '#16a34a';
+          status.innerText = 'تم حفظ البريد الإلكتروني بنجاح!';
+        } else {
+          status.style.color = '#dc2626';
+          status.innerText = d.error || 'حدث خطأ أثناء الحفظ';
+        }
+      } catch(e) {
+        status.style.color = '#dc2626';
+        status.innerText = 'تعذر الاتصال بالخادم';
+      }
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      setTimeout(() => { status.innerText = ''; }, 4000);
     }
 
     // رفع صورة شخصية جديدة

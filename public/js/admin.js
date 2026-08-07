@@ -777,14 +777,15 @@ function registrationStatusLink(w){return location.origin+"/status?code="+encode
 function workerLoginLink(){return location.origin+"/worker-login"}
 
 // نص رسالة الواتساب الجاهز حسب نوع الحالة
-function buildWhatsAppTemplate(type,w){
+function buildWhatsAppTemplate(type,w,extra){
   const name=wname(w),trade=wtrade(w),area=warea(w);
+  const activationUrl=(extra&&extra.activationUrl)||workerLoginLink();
   const templates={
     registration_id_reupload:`أهلاً ${name} 👋\n\nطلب تسجيلك في دليل صنايعي مطروح محتاج إعادة رفع صورة البطاقة الشخصية (وجه وظهر) بشكل واضح.\n\nتقدر ترفعها من هنا:\n${registrationStatusLink(w)}`,
     registration_update_data:`أهلاً ${name} 👋\n\nطلب تسجيلك في دليل صنايعي مطروح محتاج تعديل أو استكمال بعض البيانات (زي رقم الهاتف أو الحرفة أو المنطقة) قبل الاعتماد.\n\nتابع طلبك من هنا:\n${registrationStatusLink(w)}`,
     registration_work_photos:`أهلاً ${name} 👋\n\nعشان بروفايلك يبان بشكل أحسن للعملاء، محتاجين ترفع صور من شغلك السابق (حتى لو صورة أو اتنين).\n\nارفعها من هنا:\n${registrationStatusLink(w)}`,
     approved:`مبروك يا ${name}! 🎉\n\nتم اعتماد بروفايلك في دليل صنايعي مطروح، وبقيت ظاهر للعملاء دلوقتي كـ ${trade} في ${area}.\n\nشوف بروفايلك من هنا:\n${workerDisplayLink(wid(w))}`,
-    request_email:`أهلاً ${name}\n\nمحتاجين بريدك الإلكتروني عشان تقدر تستقبل رسايل مهمة من إدارة صنايعي مطروح (زي تحديثات حسابك واستعادة كلمة المرور).\n\nسجّل دخولك من هنا وضيفه من لوحة تحكمك:\n${workerLoginLink()}`
+    request_email:`أهلاً ${name}\n\nمحتاجين بريدك الإلكتروني عشان تقدر تستقبل رسايل مهمة من إدارة صنايعي مطروح (زي تحديثات حسابك واستعادة كلمة المرور).\n\nدوس على الرابط ده لتحديد كلمة مرور والدخول لحسابك، وضيف بريدك من لوحة تحكمك:\n${activationUrl}`
   };
   return templates[type]||`أهلاً ${name}، رسالة من إدارة دليل صنايعي مطروح.`;
 }
@@ -960,13 +961,35 @@ function renderWaQueueStep(){
   if(nextBtn) nextBtn.style.display = "";
 }
 
-function waQueueOpenCurrent(){
+async function waQueueOpenCurrent(){
   const { workers, index, sent } = waQueueState;
   const w = workers[index];
   if(!w) return;
   const num = adminWhatsAppNumber(wwhatsapp(w)||wphone(w));
   if(!num){ toast("error","لا يوجد رقم واتساب صالح لهذا الصنايعي"); return; }
-  const msg = waBulkMessageForWorker(w);
+
+  const type = document.getElementById("waBulkTemplateType")?.value || "custom";
+  const openBtn = document.getElementById("waQueueOpenBtn");
+  const originalText = openBtn ? openBtn.innerHTML : "";
+  let msg;
+
+  if(type === "request_email"){
+    if(openBtn){ openBtn.disabled = true; openBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري تجهيز رابط آمن...'; }
+    try{
+      const r = await fetch(`/api/admin/workers/${wid(w)}/generate-activation-link`, { method:"POST", credentials:"include" });
+      const d = await r.json();
+      if(!r.ok || !d.success) throw new Error(d.error || "تعذر إنشاء رابط التفعيل");
+      msg = buildWhatsAppTemplate("request_email", w, { activationUrl: d.url });
+    }catch(e){
+      toast("error", e.message || "فشل تجهيز رابط التفعيل");
+      if(openBtn){ openBtn.disabled = false; openBtn.innerHTML = originalText; }
+      return;
+    }
+    if(openBtn){ openBtn.disabled = false; openBtn.innerHTML = originalText; }
+  } else {
+    msg = waBulkMessageForWorker(w);
+  }
+
   window.open("https://wa.me/"+num+"?text="+encodeURIComponent(msg), "_blank");
   sent.push(String(wid(w)));
 }

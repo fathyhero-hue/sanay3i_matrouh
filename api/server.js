@@ -265,6 +265,36 @@ app.post('/api/admin/workers/:id/reject-pending-changes', adminApiRateLimit, req
   }
 });
 
+// إنشاء رابط تفعيل آمن (توكن استعادة كلمة مرور بصلاحية أطول) - للصنايعية القدامى اللي معندهمش كلمة مرور حقيقية
+// بيستخدم نفس آلية "نسيت كلمة المرور" الموجودة، فمفيش داعي لعمود جديد
+app.post('/api/admin/workers/:id/generate-activation-link', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
+  try {
+    const { data: worker, error: fetchErr } = await supabase
+      .from('workers')
+      .select('id')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+
+    const token = generateSecureToken();
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // صلاحية أطول (7 أيام) لأنه رابط حملة، مش طلب فوري
+
+    const { error } = await supabase
+      .from('workers')
+      .update({ password_reset_token_hash: tokenHash, password_reset_expires_at: expiresAt.toISOString() })
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({ success: true, url: `${baseUrl}/reset-password?token=${token}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===============================
 // مسار استقبال البلاغات والشكاوى من العملاء (Public Reports API)
 // ===============================
@@ -990,6 +1020,43 @@ app.put('/api/worker/profile/:id/password', requireWorkerOwnership, async (req, 
 
     if (error) throw error;
     res.json({ success: true, message: 'تم تغيير كلمة المرور بنجاح' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// إضافة/تعديل البريد الإلكتروني من لوحة تحكم الصنايعي - يتفعل فورًا (مش بيانات ظاهرة للعملاء فمحتاجش موافقة الإدارة)
+app.put('/api/worker/profile/:id/email', requireWorkerOwnership, async (req, res) => {
+  try {
+    const email = String((req.body || {}).email || '').trim().toLowerCase();
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ success: false, error: 'صيغة البريد الإلكتروني غير صحيحة' });
+    }
+
+    const { data: existing } = await supabase
+      .from('workers')
+      .select('id')
+      .ilike('email', email)
+      .neq('id', req.params.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ success: false, error: 'هذا البريد الإلكتروني مسجل بالفعل لصنايعي آخر' });
+    }
+
+    const { error } = await supabase
+      .from('workers')
+      .update({ email })
+      .eq('id', req.params.id);
+
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(400).json({ success: false, error: 'هذا البريد الإلكتروني مسجل بالفعل لصنايعي آخر' });
+      }
+      throw error;
+    }
+
+    res.json({ success: true, message: 'تم حفظ بريدك الإلكتروني بنجاح' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
