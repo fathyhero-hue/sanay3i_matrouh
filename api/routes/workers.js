@@ -11,10 +11,17 @@ const { logAdminActivity } = require("../utils/activityLogger");
 const PUBLIC_WORKER_COLUMNS = "id,name,phone,whatsapp,trade,area,description,image,approved,active,featured,identity_verified,subscription_start,subscription_end,created_at";
 
 // دالة فحص التكرار (لتجنب تسجيل نفس الصنايعي مرتين بنفس الرقم)
+// بدل سحب كل جدول الصنايعية (ممكن يبقى آلاف الصفوف) مع كل تسجيل، بنعمل فلترة أولية
+// في قاعدة البيانات على آخر أرقام الهاتف (suffix) عشان نقلل عدد الصفوف اللي بترجع،
+// وبعدين نطبّق نفس منطق المطابقة الدقيقة (بعد تطبيع الرقم) على النتائج القليلة دي بس.
 async function findDuplicateWorkerByPhone(phone, whatsapp, excludeId) {
   const keys = workerPhoneKeysFromValues(phone, whatsapp);
   if (!keys.length) return null;
-  const { data, error } = await supabase.from("workers").select("id,name,phone,whatsapp").limit(5000);
+  const suffixes = Array.from(new Set(keys.map(k => k.slice(-9)).filter(s => s.length >= 6)));
+  if (!suffixes.length) return null;
+
+  const orFilter = suffixes.map(s => `phone.ilike.%${s}%,whatsapp.ilike.%${s}%`).join(",");
+  const { data, error } = await supabase.from("workers").select("id,name,phone,whatsapp").or(orFilter).limit(200);
   if (error) throw error;
   const exclude = excludeId !== undefined && excludeId !== null ? String(excludeId) : "";
   for (const worker of (data || [])) {

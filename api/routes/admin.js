@@ -221,7 +221,7 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     const workerIds = Object.keys(workerStats);
     let workersData = [];
     if (workerIds.length > 0) {
-      const { data: wData } = await supabase.from('workers').select('*').in('id', workerIds);
+      const { data: wData } = await supabase.from('workers').select('id,name,trade,area,image').in('id', workerIds);
       workersData = wData || [];
     }
 

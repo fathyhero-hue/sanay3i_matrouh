@@ -51,7 +51,25 @@ async function loadAllData(){
   applyPermissionUI();
   const grid=document.getElementById("adminWorkersGrid"); if(grid)grid.innerHTML='<div class="empty-admin" style="grid-column:1/-1">جاري تحميل لوحة الإدارة بسرعة...</div>';
   await Promise.all([loadTrades(),loadAreas(),loadWorkers(),loadNotifications()]);
-  buildRatingMaps(); fillTradeSelects(); fillAreaSelects(); renderWorkers(allWorkers); stats();
+  buildRatingMaps(); fillTradeSelects(); fillAreaSelects(); filterAdminWorkers(); stats();
+}
+
+// تحديث خفيف بعد إجراء بيغيّر بيانات الصنايعية بس (من غير إعادة تحميل الحرف/المناطق اللي مش بتتغيّر)
+async function refreshWorkersOnly(){
+  await Promise.all([loadWorkers(),loadNotifications()]);
+  filterAdminWorkers(); stats();
+}
+
+// تحديث محلي فوري لصنايعي واحد من غير أي طلب سيرفر - لإجراءات زي الموافقة/التفعيل/التمييز اللي بنعرف قيمتها الجديدة أصلًا
+function patchWorkerLocal(id,patch){
+  const w=allWorkers.find(x=>String(wid(x))===String(id));
+  if(!w) return;
+  Object.assign(w,patch);
+  filterAdminWorkers(); stats();
+}
+function removeWorkerLocal(id){
+  allWorkers=allWorkers.filter(x=>String(wid(x))!==String(id));
+  filterAdminWorkers(); stats();
 }
 
 async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers"]))}
@@ -168,6 +186,28 @@ function selectOptions(list, current){
   return out;
 }
 
+// إرسال موحّد لنماذج المودالات: يتكفل بحالة الزرار (تعطيل/نص) ويرجّعها لطبيعتها دايمًا حتى لو فشل الطلب
+async function submitForceForm(form,{url,method,buildBody,busyText,successMsg,defaultErrorMsg,onSuccess}){
+  form.onsubmit = async function(e){
+    e.preventDefault();
+    const btn=e.submitter;
+    const originalText=btn?btn.textContent:'';
+    try{
+      if(btn){btn.disabled=true;btn.textContent=busyText||'جاري الحفظ...';}
+      const reqBody=buildBody();
+      const r=await fetch(url,{method,credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(reqBody)});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok || d.success===false) throw new Error(d.error||defaultErrorMsg);
+      toast('success',successMsg); closeForceModal();
+      if(onSuccess) await onSuccess(d,reqBody);
+    }catch(ex){
+      toast('error', ex.message||defaultErrorMsg);
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent=originalText;}
+    }
+  };
+}
+
 function openEdit(w){
   const id=String(wid(w));
   openForceModal('تعديل بيانات الصنايعي', `${workerSummary(w)}
@@ -185,17 +225,12 @@ function openEdit(w){
         <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ التعديل</button>
       </div>
     </form>`);
-  document.getElementById('forceEditFormV8').onsubmit = async function(e){
-    e.preventDefault();
-    const body={name:document.getElementById('v8_name').value.trim(),phone:document.getElementById('v8_phone').value.trim(),whatsapp:document.getElementById('v8_whatsapp').value.trim(),trade:document.getElementById('v8_trade').value.trim(),area:document.getElementById('v8_area').value.trim(),description:document.getElementById('v8_description').value.trim()};
-    try{
-      const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
-      const r=await fetch('/api/workers/'+id,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok || d.success===false) throw new Error(d.error||'فشل تعديل البيانات');
-      toast('success','تم تعديل بيانات الصنايعي'); closeForceModal(); loadAllData();
-    }catch(ex){ toast('error', ex.message||'فشل تعديل البيانات'); }
-  };
+  submitForceForm(document.getElementById('forceEditFormV8'),{
+    url:'/api/workers/'+id, method:'PUT',
+    buildBody:()=>({name:document.getElementById('v8_name').value.trim(),phone:document.getElementById('v8_phone').value.trim(),whatsapp:document.getElementById('v8_whatsapp').value.trim(),trade:document.getElementById('v8_trade').value.trim(),area:document.getElementById('v8_area').value.trim(),description:document.getElementById('v8_description').value.trim()}),
+    successMsg:'تم تعديل بيانات الصنايعي', defaultErrorMsg:'فشل تعديل البيانات',
+    onSuccess:(d,reqBody)=>{ patchWorkerLocal(id,reqBody); }
+  });
 }
 
 function openIdentity(w){
@@ -219,17 +254,15 @@ function openIdentity(w){
         <button type="submit" style="${cssBtn}background:#2563eb;color:#fff;">حفظ قرار التحقق</button>
       </div>
     </form>`);
-  document.getElementById('forceIdentityFormV8').onsubmit = async function(e){
-    e.preventDefault();
-    const body={identity_status:document.getElementById('v8_identity_status').value,reason:document.getElementById('v8_identity_reason').value.trim(),note:document.getElementById('v8_identity_note').value.trim()};
-    try{
-      const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
-      const r=await fetch('/api/admin/workers/'+id+'/identity-review',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok || d.success===false) throw new Error(d.error||'فشل حفظ قرار التحقق');
-      toast('success','تم حفظ قرار التحقق'); closeForceModal(); loadAllData();
-    }catch(ex){ toast('error', ex.message||'فشل حفظ قرار التحقق'); }
-  };
+  submitForceForm(document.getElementById('forceIdentityFormV8'),{
+    url:'/api/admin/workers/'+id+'/identity-review', method:'PUT',
+    buildBody:()=>({identity_status:document.getElementById('v8_identity_status').value,reason:document.getElementById('v8_identity_reason').value.trim(),note:document.getElementById('v8_identity_note').value.trim()}),
+    successMsg:'تم حفظ قرار التحقق', defaultErrorMsg:'فشل حفظ قرار التحقق',
+    onSuccess:async(d,reqBody)=>{
+      const isVerified=reqBody.identity_status==='verified';
+      patchWorkerLocal(id,{identity_status:reqBody.identity_status,identity_verified:isVerified,identity_rejection_reason:reqBody.reason,identity_review_note:reqBody.note,...(isVerified?{approved:true}:{})});
+    }
+  });
 }
 
 function openRenew(w){
@@ -251,17 +284,12 @@ function openRenew(w){
       </div>
     </form>`);
   document.getElementById('v8_renew_plan').onchange=function(){ const p=this.value; const map={month:[1,100],half:[6,600],year:[12,1200],custom:[1,0]}; document.getElementById('v8_renew_months').value=map[p][0]; document.getElementById('v8_renew_amount').value=map[p][1]; };
-  document.getElementById('forceRenewFormV8').onsubmit = async function(e){
-    e.preventDefault();
-    const body={plan:document.getElementById('v8_renew_plan').value,months:Number(document.getElementById('v8_renew_months').value)||1,amount:Number(document.getElementById('v8_renew_amount').value)||0,payment_method:document.getElementById('v8_renew_method').value,payment_status:document.getElementById('v8_renew_status').value,note:document.getElementById('v8_renew_note').value.trim()};
-    try{
-      const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='جاري الحفظ...';}
-      const r=await fetch('/api/workers/'+id+'/renew',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok || d.success===false) throw new Error(d.error||'فشل تجديد الاشتراك');
-      toast('success','تم تجديد الاشتراك'); closeForceModal(); loadAllData();
-    }catch(ex){ toast('error', ex.message||'فشل تجديد الاشتراك'); }
-  };
+  submitForceForm(document.getElementById('forceRenewFormV8'),{
+    url:'/api/workers/'+id+'/renew', method:'PUT',
+    buildBody:()=>({plan:document.getElementById('v8_renew_plan').value,months:Number(document.getElementById('v8_renew_months').value)||1,amount:Number(document.getElementById('v8_renew_amount').value)||0,payment_method:document.getElementById('v8_renew_method').value,payment_status:document.getElementById('v8_renew_status').value,note:document.getElementById('v8_renew_note').value.trim()}),
+    successMsg:'تم تجديد الاشتراك', defaultErrorMsg:'فشل تجديد الاشتراك',
+    onSuccess:()=>refreshWorkersOnly()
+  });
 }
 
 function openWhatsapp(w){
@@ -394,10 +422,10 @@ function clearAdminFilters(){ document.getElementById("adminSearch").value=""; d
 
 async function reqs(list){for(const r of list){try{const opt={method:r.method||"POST",credentials:"include",headers:{"Content-Type":"application/json"}};if(r.body)opt.body=JSON.stringify(r.body);const res=await fetch(r.url,opt);if(res.status===401){showLogin();return false}if(res.status===403){const d=await res.json().catch(()=>({}));toast("error",d.error||"ليس لديك صلاحية");return false}if(res.ok)return true}catch(e){}}return false}
 function after(ok,msg){if(ok){toast("success",msg);loadAllData()}else toast("error","لم يتم تنفيذ الأمر")}
-async function toggleApprove(id,c){after(await reqs([{url:`/api/workers/${id}/approve`,method:"PUT",body:{approved:c?0:1}}]),"تم تحديث الموافقة")}
-async function toggleActive(id,c){after(await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]),"تم تحديث التفعيل")}
-async function toggleFeatured(id,c){after(await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]),"تم تحديث التمييز")}
-async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;after(await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]),"تم حذف الصنايعي نهائياً")}
+async function toggleApprove(id,c){const ok=await reqs([{url:`/api/workers/${id}/approve`,method:"PUT",body:{approved:c?0:1}}]);if(ok){toast("success","تم تحديث الموافقة");patchWorkerLocal(id,{approved:c?0:1})}else toast("error","لم يتم تنفيذ الأمر")}
+async function toggleActive(id,c){const ok=await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]);if(ok){toast("success","تم تحديث التفعيل");patchWorkerLocal(id,{active:c?0:1})}else toast("error","لم يتم تنفيذ الأمر")}
+async function toggleFeatured(id,c){const ok=await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]);if(ok){toast("success","تم تحديث التمييز");patchWorkerLocal(id,{featured:c?0:1})}else toast("error","لم يتم تنفيذ الأمر")}
+async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;const ok=await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]);if(ok){toast("success","تم حذف الصنايعي نهائياً");removeWorkerLocal(id)}else toast("error","لم يتم تنفيذ الأمر")}
 function openPendingChangesModal(id){
   const w = allWorkers.find(x => String(wid(x)) === String(id));
   if(!w) return;
@@ -452,14 +480,14 @@ function openPendingChangesModal(id){
 async function approvePendingChanges(id){
   const ok = await reqs([{url:`/api/admin/workers/${id}/approve-pending-changes`,method:"POST"}]);
   closeForceModal();
-  after(ok, "تم اعتماد التعديلات");
+  if(ok){ toast("success","تم اعتماد التعديلات"); refreshWorkersOnly(); } else toast("error","لم يتم تنفيذ الأمر");
 }
 
 async function rejectPendingChanges(id){
   const reason = (document.getElementById('v8_reject_reason')?.value || '').trim();
   const ok = await reqs([{url:`/api/admin/workers/${id}/reject-pending-changes`,method:"POST",body:{reason}}]);
   closeForceModal();
-  after(ok, "تم رفض التعديلات");
+  if(ok){ toast("success","تم رفض التعديلات"); refreshWorkersOnly(); } else toast("error","لم يتم تنفيذ الأمر");
 }
 
 async function renewAllWorkers() {
