@@ -713,11 +713,87 @@ function renderModernBars(id, rows, fillClass) {
   }).join("");
 }
 
+function overviewKpiCard(value,label){ return `<div class="overview-kpi-card"><strong>${value}</strong><span>${label}</span></div>`; }
+
+async function renderSystemOverview(){
+  // قُمع التسجيل والتوثيق - من allWorkers المحمّلة أصلًا، بدون أي رقم مُختلق
+  const identityBox = document.getElementById("overviewIdentityFunnel");
+  if(identityBox){
+    const counts = {pending:0,verified:0,rejected:0,needs_data:0,needs_id_reupload:0};
+    allWorkers.forEach(w=>{ const s=identityStatusValue(w); if(counts[s]!==undefined) counts[s]++; });
+    identityBox.innerHTML =
+      overviewKpiCard(allWorkers.length,"إجمالي الصنايعية المسجلين") +
+      overviewKpiCard(counts.verified,"موثّقين") +
+      overviewKpiCard(counts.pending,"بانتظار المراجعة") +
+      overviewKpiCard(counts.needs_data+counts.needs_id_reupload,"يحتاجون إجراء من الصنايعي") +
+      overviewKpiCard(counts.rejected,"مرفوضين");
+  }
+
+  // صحة الاشتراكات - بنفس منطق subInfo() المستخدم في كل كارت
+  const subBox = document.getElementById("overviewSubscriptions");
+  if(subBox){
+    let active=0,soon=0,expired=0,unset=0;
+    allWorkers.forEach(w=>{ const d=daysLeft(w); if(d===null) unset++; else if(d<0) expired++; else if(d<=7) soon++; else active++; });
+    subBox.innerHTML =
+      overviewKpiCard(active,"اشتراكات شغالة") +
+      overviewKpiCard(soon,"قرب تنتهي (≤7 أيام)") +
+      overviewKpiCard(expired,"اشتراكات منتهية") +
+      overviewKpiCard(unset,"بدون تاريخ نهاية");
+  }
+
+  // التقييمات والبلاغات - نضمن تحميل allReviews أولًا (مش كل الأدمنز بيفتحوا تبويب التقييمات قبل التحليلات)
+  const revRepBox = document.getElementById("overviewReviewsReports");
+  if(revRepBox){
+    if(!__adminLoaded.reviews){ await loadReviewsAdmin(); __adminLoaded.reviews=true; }
+    const totalReviews = allReviews.length;
+    const approvedReviews = allReviews.filter(r=>ok(r.approved)).length;
+    const avgRating = totalReviews ? (allReviews.reduce((a,r)=>a+(Number(r.rating)||0),0)/totalReviews) : 0;
+    let reportsHtml = "";
+    try{
+      const r = await fetch("/api/admin/reports",{credentials:"include"});
+      const d = await r.json().catch(()=>({}));
+      const s = d.stats || {};
+      reportsHtml = overviewKpiCard(s.total||0,"إجمالي البلاغات") + overviewKpiCard(s.new||0,"بلاغات جديدة") + overviewKpiCard(s.resolved||0,"بلاغات تم حلها");
+    }catch(e){}
+    revRepBox.innerHTML =
+      overviewKpiCard(totalReviews,"إجمالي التقييمات") +
+      overviewKpiCard(approvedReviews,"تقييمات معتمدة") +
+      overviewKpiCard(avgRating?avgRating.toFixed(1):"—","متوسط التقييم") +
+      reportsHtml;
+  }
+
+  // إحصائيات واتساب الفعلية (الأرسال التلقائي واليدوي المسجّل) - من سجل الإرسال الموجود بالفعل
+  const waBox = document.getElementById("overviewWhatsapp");
+  if(waBox){
+    try{
+      const r = await fetch("/api/admin/whatsapp/logs?limit=500",{credentials:"include"});
+      const d = await r.json().catch(()=>({}));
+      const t = d.totals || {total:0,sent:0,failed:0,pending:0};
+      waBox.innerHTML =
+        overviewKpiCard(t.total||0,"إجمالي رسائل واتساب المُرسلة") +
+        overviewKpiCard(t.sent||0,"وصلت بنجاح") +
+        overviewKpiCard(t.failed||0,"فشل الإرسال") +
+        overviewKpiCard(t.pending||0,"قيد الإرسال");
+    }catch(e){ waBox.innerHTML=""; }
+  }
+
+  // توزيع الصنايعية حسب الحرفة/المنطقة على مستوى كل المسجلين (مش بس الأكثر تواصلًا) - يكشف فجوات التغطية
+  const tradeCounts={}, areaCounts={};
+  allWorkers.forEach(w=>{
+    const t=wtrade(w); if(t) tradeCounts[t]=(tradeCounts[t]||0)+1;
+    const a=warea(w); if(a) areaCounts[a]=(areaCounts[a]||0)+1;
+  });
+  const toRows=(obj)=>Object.entries(obj).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
+  renderModernBars("overviewTradesDistribution", toRows(tradeCounts), "fill-blue");
+  renderModernBars("overviewAreasDistribution", toRows(areaCounts), "fill-emerald");
+}
+
 async function loadAnalytics() {
+  renderSystemOverview();
   const boxTopWorkers = document.getElementById("analyticsTopWorkers");
   const msg = document.getElementById("analyticsMessage");
   const rangeEl = document.getElementById("analyticsRange");
-  
+
   if (!boxTopWorkers) return;
   const days = rangeEl ? rangeEl.value : 30;
   
