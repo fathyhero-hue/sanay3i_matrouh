@@ -32,7 +32,21 @@
 </head>
 <body>
 
-<section class="admin-login-wrap" id="loginScreen">
+<section id="loginScreen">
+  <header class="site-header">
+    <div class="container header-content">
+      <a href="/" class="brand">
+        <div class="brand-logo-frame">
+          <img src="/icons/icon-192.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>لوحة الإدارة والتحكم</span>
+        </div>
+      </a>
+    </div>
+  </header>
+  <div class="admin-login-wrap">
   <div class="admin-login-card">
     <div class="login-icon"><i class="fa-solid fa-user-shield"></i></div>
     <h1>لوحة إدارة صنايعي مطروح</h1>
@@ -52,6 +66,7 @@
       </button>
       <div class="login-error" id="loginError">كلمة السر غير صحيحة</div>
     </form>
+  </div>
   </div>
 </section>
 
@@ -150,7 +165,7 @@
           <button type="button" class="quick-filter-pill status-yellow" data-filter="identity_pending" onclick="setQuickFilter('identity_pending')"><i class="fa-solid fa-clock"></i> بانتظار المراجعة <span class="qf-count" id="qfPendingCount">0</span></button>
           <button type="button" class="quick-filter-pill status-green" data-filter="identity_verified" onclick="setQuickFilter('identity_verified')"><i class="fa-solid fa-circle-check"></i> موثّق <span class="qf-count" id="qfVerifiedCount">0</span></button>
           <button type="button" class="quick-filter-pill status-blue" data-filter="identity_needs_data" onclick="setQuickFilter('identity_needs_data')"><i class="fa-solid fa-pen-to-square"></i> يحتاج تعديل بيانات <span class="qf-count" id="qfNeedsDataCount">0</span></button>
-          <button type="button" class="quick-filter-pill status-red" data-filter="identity_needs_id_reupload" onclick="setQuickFilter('identity_needs_id_reupload')"><i class="fa-solid fa-id-card"></i> إعادة رفع بطاقة <span class="qf-count" id="qfNeedsReuploadCount">0</span></button>
+          <button type="button" class="quick-filter-pill status-purple" data-filter="identity_needs_id_reupload" onclick="setQuickFilter('identity_needs_id_reupload')"><i class="fa-solid fa-id-card"></i> إعادة رفع بطاقة <span class="qf-count" id="qfNeedsReuploadCount">0</span></button>
           <button type="button" class="quick-filter-pill status-red" data-filter="identity_rejected" onclick="setQuickFilter('identity_rejected')"><i class="fa-solid fa-circle-xmark"></i> مرفوض <span class="qf-count" id="qfRejectedCount">0</span></button>
           <button type="button" class="quick-filter-pill status-blue" data-filter="has_pending_changes" onclick="setQuickFilter('has_pending_changes')"><i class="fa-solid fa-bell"></i> تعديلات جديدة <span class="qf-count" id="qfChangesCount">0</span></button>
         </div>

@@ -35,7 +35,16 @@
     font-weight: 800;
 }
 .edit-field textarea { min-height: 100px; }
-.modal-actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; }
+.modal-actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+.modal-btn { border: 0; border-radius: 999px; padding: 13px 20px; font-weight: 900; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.modal-btn:disabled { opacity: .65; cursor: not-allowed; }
+.modal-btn-cancel { background: #fee2e2; color: #991b1b; }
+.modal-btn-muted { background: #f1f5f9; color: #334155; }
+.modal-btn-primary { background: var(--primary); color: #fff; }
+.modal-btn-info { background: var(--blue); color: #fff; }
+.modal-btn-success { background: #16a34a; color: #fff; }
+.modal-btn-whatsapp { background: #dcfce7; color: #166534; }
 
 .verification-note { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 16px; padding: 10px 12px; font-weight: 800; line-height: 1.8; font-size: 13px; margin-top: 10px; }
 .verification-small { display: block; color: var(--muted); font-size: 12px; font-weight: 800; margin-top: 4px; }

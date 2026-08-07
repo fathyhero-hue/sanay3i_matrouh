@@ -79,6 +79,7 @@
 .quick-filter-pill.status-green { background: #dcfce7; color: #166534; }
 .quick-filter-pill.status-red { background: #fee2e2; color: #991b1b; }
 .quick-filter-pill.status-blue { background: #dbeafe; color: var(--blue); }
+.quick-filter-pill.status-purple { background: #ede9fe; color: #6d28d9; }
 
 .admin-workers-grid {
     display: grid;
@@ -122,6 +123,7 @@
 .status-red { background: #fee2e2; color: #991b1b; }
 .status-yellow { background: #fef3c7; color: #92400e; }
 .status-blue { background: #dbeafe; color: var(--blue); }
+.status-purple { background: #ede9fe; color: #6d28d9; }
 
 .subscription-box, .identity-summary, .whatsapp-summary, .renew-summary {
     background: #f8fafc;

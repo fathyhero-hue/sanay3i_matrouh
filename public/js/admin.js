@@ -145,7 +145,7 @@ function getValidImageUrl(path) { if (!path) return ''; if (path.startsWith('htt
 function hasIdentityDocs(w){return !!((w.id_front_url||w.id_front_path)&&(w.id_back_url||w.id_back_path))}
 function identityStatusValue(w){return String(w.identity_status||w.verification_status||(ok(w.identity_verified)?"verified":"pending")).trim()||"pending"}
 function identityStatusLabel(v){return {pending:"بانتظار المراجعة",verified:"تم التحقق",rejected:"مرفوض",needs_data:"يحتاج تعديل بيانات",needs_id_reupload:"إعادة رفع البطاقة"}[v]||"بانتظار المراجعة"}
-function identityStatusClass(v){return {pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-red"}[v]||"status-yellow"}
+function identityStatusClass(v){return {pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-purple"}[v]||"status-yellow"}
 function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
 function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
 function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
@@ -169,16 +169,13 @@ function closeForceModal(){ const old=document.getElementById('adminActionForceM
 window.closeAdminActionForceModalV8 = closeForceModal;
 
 function openForceModal(title, bodyHtml){
-  closeForceModal(); const wrap=document.createElement('div'); wrap.id='adminActionForceModalV8'; wrap.dir='rtl';
-  wrap.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Cairo,sans-serif;';
-  wrap.innerHTML = `<div style="width:min(820px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 30px 90px rgba(15,23,42,.35);padding:24px;border:1px solid #e5e7eb;"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;"><h2 style="margin:0;font-size:24px;color:#0f172a;font-weight:900;">${esc(title)}</h2><button type="button" onclick="closeAdminActionForceModalV8()" style="width:46px;height:46px;border:0;border-radius:14px;background:#f1f5f9;color:#0f172a;font-size:22px;cursor:pointer;font-weight:900;">×</button></div>${bodyHtml}</div>`;
+  closeForceModal(); const wrap=document.createElement('div'); wrap.id='adminActionForceModalV8'; wrap.dir='rtl'; wrap.className='modal-backdrop show';
+  wrap.innerHTML = `<div class="modal-card"><div class="modal-head"><h2 style="margin:0;font-size:22px;color:var(--primary);font-weight:900;">${esc(title)}</h2><button type="button" class="close-modal" onclick="closeAdminActionForceModalV8()">×</button></div>${bodyHtml}</div>`;
   wrap.addEventListener('mousedown', function(e){ if(e.target===wrap) closeForceModal(); });
   document.body.appendChild(wrap); document.body.style.overflow='hidden'; document.documentElement.style.overflow='hidden';
 }
 
-function workerSummary(w){ return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;padding:14px;margin-bottom:16px;"><strong style="display:block;font-size:20px;color:#0f172a;">${esc(wname(w))}</strong><span style="display:block;color:#64748b;font-weight:800;margin-top:5px;">${esc(wtrade(w))} - ${esc(warea(w))} | اتصال: ${esc(wphone(w)||'غير متاح')} | واتساب: ${esc(wwhatsapp(w)||wphone(w)||'غير متاح')}</span></div>`; }
-
-const cssField = 'display:grid;gap:7px;'; const cssInput = 'width:100%;border:1px solid #e5e7eb;outline:none;background:#f8fafc;border-radius:16px;padding:13px;font-weight:800;font-family:inherit;box-sizing:border-box;'; const cssGrid = 'display:grid;grid-template-columns:1fr 1fr;gap:14px;'; const cssBtn = 'border:0;border-radius:999px;padding:13px 20px;font-weight:900;cursor:pointer;font-family:inherit;';
+function workerSummary(w){ return `<div class="identity-summary" style="background:var(--bg);border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:16px;"><strong>${esc(wname(w))}</strong><span style="display:block;margin-top:5px;">${esc(wtrade(w))} - ${esc(warea(w))} | اتصال: ${esc(wphone(w)||'غير متاح')} | واتساب: ${esc(wwhatsapp(w)||wphone(w)||'غير متاح')}</span></div>`; }
 
 function selectOptions(list, current){
   const seen = new Set(); let out = `<option value="${esc(current||'')}">${esc(current||'اختر')}</option>`;
@@ -212,17 +209,17 @@ function openEdit(w){
   const id=String(wid(w));
   openForceModal('تعديل بيانات الصنايعي', `${workerSummary(w)}
     <form id="forceEditFormV8">
-      <div style="${cssGrid}">
-        <label style="${cssField}"><b>الاسم</b><input id="v8_name" value="${esc(wname(w))}" required style="${cssInput}"></label>
-        <label style="${cssField}"><b>رقم الاتصال</b><input id="v8_phone" value="${esc(wphone(w))}" required style="${cssInput}"></label>
-        <label style="${cssField}"><b>رقم الواتساب</b><input id="v8_whatsapp" value="${esc(wwhatsapp(w))}" placeholder="اتركه فارغًا لو نفس رقم الاتصال" style="${cssInput}"></label>
-        <label style="${cssField}"><b>الحرفة</b><select id="v8_trade" style="${cssInput}">${selectOptions(allTrades,wtrade(w))}</select></label>
-        <label style="${cssField}"><b>المنطقة</b><select id="v8_area" style="${cssInput}">${selectOptions(allAreas,warea(w))}</select></label>
-        <label style="${cssField};grid-column:1/-1"><b>الوصف</b><textarea id="v8_description" style="${cssInput};min-height:120px">${esc(wdesc(w))}</textarea></label>
+      <div class="edit-grid">
+        <label class="edit-field"><b>الاسم</b><input id="v8_name" value="${esc(wname(w))}" required></label>
+        <label class="edit-field"><b>رقم الاتصال</b><input id="v8_phone" value="${esc(wphone(w))}" required></label>
+        <label class="edit-field"><b>رقم الواتساب</b><input id="v8_whatsapp" value="${esc(wwhatsapp(w))}" placeholder="اتركه فارغًا لو نفس رقم الاتصال"></label>
+        <label class="edit-field"><b>الحرفة</b><select id="v8_trade">${selectOptions(allTrades,wtrade(w))}</select></label>
+        <label class="edit-field"><b>المنطقة</b><select id="v8_area">${selectOptions(allAreas,warea(w))}</select></label>
+        <label class="edit-field full"><b>الوصف</b><textarea id="v8_description" style="min-height:120px">${esc(wdesc(w))}</textarea></label>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
-        <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
-        <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ التعديل</button>
+      <div class="modal-actions">
+        <button type="button" onclick="closeAdminActionForceModalV8()" class="modal-btn modal-btn-cancel">إلغاء</button>
+        <button type="submit" class="modal-btn modal-btn-primary">حفظ التعديل</button>
       </div>
     </form>`);
   submitForceForm(document.getElementById('forceEditFormV8'),{
@@ -237,21 +234,21 @@ function openIdentity(w){
   const id=String(wid(w)); const st=identityStatusValue(w);
   openForceModal('مراجعة تحقق الصنايعي', `${workerSummary(w)}
     <form id="forceIdentityFormV8">
-      <div style="${cssGrid}">
-        <label style="${cssField}"><b>حالة التحقق</b><select id="v8_identity_status" style="${cssInput}">
+      <div class="edit-grid">
+        <label class="edit-field"><b>حالة التحقق</b><select id="v8_identity_status">
           <option value="pending" ${st==='pending'?'selected':''}>بانتظار المراجعة</option>
           <option value="verified" ${st==='verified'?'selected':''}>تم التحقق والاعتماد</option>
           <option value="rejected" ${st==='rejected'?'selected':''}>مرفوض</option>
           <option value="needs_data" ${st==='needs_data'?'selected':''}>يحتاج تعديل بيانات</option>
           <option value="needs_id_reupload" ${st==='needs_id_reupload'?'selected':''}>إعادة رفع البطاقة</option>
         </select></label>
-        <label style="${cssField}"><b>سبب مختصر للصنايعي</b><input id="v8_identity_reason" value="${esc(identityReason(w))}" style="${cssInput}"></label>
-        <label style="${cssField};grid-column:1/-1"><b>ملاحظة إدارية داخلية</b><textarea id="v8_identity_note" style="${cssInput};min-height:110px">${esc(identityNote(w))}</textarea></label>
+        <label class="edit-field"><b>سبب مختصر للصنايعي</b><input id="v8_identity_reason" value="${esc(identityReason(w))}"></label>
+        <label class="edit-field full"><b>ملاحظة إدارية داخلية</b><textarea id="v8_identity_note" style="min-height:110px">${esc(identityNote(w))}</textarea></label>
       </div>
       <div style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:16px;padding:12px;margin-top:14px;font-weight:900;">يمكن اعتماد الصنايعي حتى لو لم يرفع وجه وظهر البطاقة.</div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
-        <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
-        <button type="submit" style="${cssBtn}background:#2563eb;color:#fff;">حفظ قرار التحقق</button>
+      <div class="modal-actions">
+        <button type="button" onclick="closeAdminActionForceModalV8()" class="modal-btn modal-btn-cancel">إلغاء</button>
+        <button type="submit" class="modal-btn modal-btn-info">حفظ قرار التحقق</button>
       </div>
     </form>`);
   submitForceForm(document.getElementById('forceIdentityFormV8'),{
@@ -270,17 +267,17 @@ function openRenew(w){
   openForceModal('الاشتراك والتجديد', `${workerSummary(w)}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;margin-bottom:14px;font-weight:900;color:#475569;">نهاية الاشتراك الحالية: ${esc(formatDate(sub.end))}</div>
     <form id="forceRenewFormV8">
-      <div style="${cssGrid}">
-        <label style="${cssField}"><b>الباقة</b><select id="v8_renew_plan" style="${cssInput}"><option value="month">شهر - 100 جنيه</option><option value="half">نصف سنة - 600 جنيه</option><option value="year">سنة - 1200 جنيه</option><option value="custom">مخصص</option></select></label>
-        <label style="${cssField}"><b>عدد الشهور</b><input id="v8_renew_months" type="number" min="1" max="60" value="1" required style="${cssInput}"></label>
-        <label style="${cssField}"><b>المبلغ المدفوع</b><input id="v8_renew_amount" type="number" min="0" step="1" value="100" required style="${cssInput}"></label>
-        <label style="${cssField}"><b>طريقة الدفع</b><select id="v8_renew_method" style="${cssInput}"><option value="cash">كاش</option><option value="vodafone_cash">فودافون كاش</option><option value="instapay">إنستاباي</option><option value="bank_transfer">تحويل بنكي</option><option value="free">مجاني / هدية</option><option value="other">أخرى</option></select></label>
-        <label style="${cssField}"><b>حالة الدفع</b><select id="v8_renew_status" style="${cssInput}"><option value="paid">مدفوع</option><option value="pending">منتظر الدفع</option><option value="partial">مدفوع جزئيًا</option></select></label>
-        <label style="${cssField};grid-column:1/-1"><b>ملاحظات الدفع</b><textarea id="v8_renew_note" style="${cssInput};min-height:100px"></textarea></label>
+      <div class="edit-grid">
+        <label class="edit-field"><b>الباقة</b><select id="v8_renew_plan"><option value="month">شهر - 100 جنيه</option><option value="half">نصف سنة - 600 جنيه</option><option value="year">سنة - 1200 جنيه</option><option value="custom">مخصص</option></select></label>
+        <label class="edit-field"><b>عدد الشهور</b><input id="v8_renew_months" type="number" min="1" max="60" value="1" required></label>
+        <label class="edit-field"><b>المبلغ المدفوع</b><input id="v8_renew_amount" type="number" min="0" step="1" value="100" required></label>
+        <label class="edit-field"><b>طريقة الدفع</b><select id="v8_renew_method"><option value="cash">كاش</option><option value="vodafone_cash">فودافون كاش</option><option value="instapay">إنستاباي</option><option value="bank_transfer">تحويل بنكي</option><option value="free">مجاني / هدية</option><option value="other">أخرى</option></select></label>
+        <label class="edit-field"><b>حالة الدفع</b><select id="v8_renew_status"><option value="paid">مدفوع</option><option value="pending">منتظر الدفع</option><option value="partial">مدفوع جزئيًا</option></select></label>
+        <label class="edit-field full"><b>ملاحظات الدفع</b><textarea id="v8_renew_note" style="min-height:100px"></textarea></label>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
-        <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إلغاء</button>
-        <button type="submit" style="${cssBtn}background:#0f172a;color:#fff;">حفظ التجديد</button>
+      <div class="modal-actions">
+        <button type="button" onclick="closeAdminActionForceModalV8()" class="modal-btn modal-btn-cancel">إلغاء</button>
+        <button type="submit" class="modal-btn modal-btn-primary">حفظ التجديد</button>
       </div>
     </form>`);
   document.getElementById('v8_renew_plan').onchange=function(){ const p=this.value; const map={month:[1,100],half:[6,600],year:[12,1200],custom:[1,0]}; document.getElementById('v8_renew_months').value=map[p][0]; document.getElementById('v8_renew_amount').value=map[p][1]; };
@@ -295,12 +292,12 @@ function openRenew(w){
 function openWhatsapp(w){
   const id=String(wid(w)); const phone=wwhatsapp(w)||wphone(w);
   openForceModal('رسائل واتساب', `${workerSummary(w)}
-    <label style="${cssField}"><b>نص الرسالة</b><textarea id="v8_wa_message" style="${cssInput};min-height:220px">${esc(buildWhatsAppTemplate('approved', w))}</textarea></label>
+    <label class="edit-field"><b>نص الرسالة</b><textarea id="v8_wa_message" style="min-height:220px">${esc(buildWhatsAppTemplate('approved', w))}</textarea></label>
     <div style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:16px;padding:12px;margin-top:14px;font-weight:900;line-height:1.8">الإرسال التلقائي يستخدم WhatsApp Cloud API. لو فشل بسبب نافذة المحادثة، استخدم زر فتح واتساب يدويًا.</div>
-    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
-      <button type="button" id="v8_wa_auto" style="${cssBtn}background:#2563eb;color:#fff;">إرسال تلقائي</button>
-      <button type="button" id="v8_wa_manual" style="${cssBtn}background:#dcfce7;color:#166534;">فتح واتساب يدويًا</button>
-      <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#fee2e2;color:#991b1b;">إغلاق</button>
+    <div class="modal-actions">
+      <button type="button" id="v8_wa_auto" class="modal-btn modal-btn-info">إرسال تلقائي</button>
+      <button type="button" id="v8_wa_manual" class="modal-btn modal-btn-whatsapp">فتح واتساب يدويًا</button>
+      <button type="button" onclick="closeAdminActionForceModalV8()" class="modal-btn modal-btn-cancel">إغلاق</button>
     </div>`);
   document.getElementById('v8_wa_manual').onclick=function(){ const num=adminWhatsAppNumber(phone); if(!num){toast('error','لا يوجد رقم واتساب صالح'); return;} window.open('https://wa.me/'+num+'?text='+encodeURIComponent(document.getElementById('v8_wa_message').value.trim()),'_blank'); };
   document.getElementById('v8_wa_auto').onclick=async function(){
@@ -328,7 +325,7 @@ window.openIdentityDoc = async function(id, side){
     const data=await r.json();
     if(r.status===401){ showLogin(); return;}
     if(!r.ok||!data.success) throw new Error(data.error||"تعذر فتح صورة البطاقة");
-    openForceModal('صورة البطاقة (' + (side==='front'?'وجه':'ظهر') + ')', `<div style="text-align:center;"><img src="${esc(data.url)}" style="max-width:100%;max-height:60vh;object-fit:contain;border-radius:16px;border:1px solid #e5e7eb;"><br><br><a href="${esc(data.url)}" target="_blank" style="${cssBtn}background:#0f172a;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-top:14px"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح في نافذة جديدة</a></div>`);
+    openForceModal('صورة البطاقة (' + (side==='front'?'وجه':'ظهر') + ')', `<div style="text-align:center;"><img src="${esc(data.url)}" style="max-width:100%;max-height:60vh;object-fit:contain;border-radius:16px;border:1px solid var(--border);"><br><br><a href="${esc(data.url)}" target="_blank" class="modal-btn modal-btn-primary" style="margin-top:14px"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح في نافذة جديدة</a></div>`);
   }catch(e){ toast("error", e.message||"تعذر فتح صورة البطاقة"); }
 };
 
@@ -368,7 +365,7 @@ function adminWorkerQuickButton(w){
   const phone=adminActionsEscapeAttr(wphone(w)||""); const wa=adminActionsEscapeAttr(wwhatsapp(w)||wphone(w)||"");
   const isActiveState = isActive(w); const activeText = isActiveState ? "إيقاف" : "تفعيل"; const activeClass = isActiveState ? "btn-yellow" : "btn-green"; const activeIcon = isActiveState ? "fa-power-off" : "fa-play";
   const common=`data-worker-id="${id}" data-worker-reg="${reg}" data-worker-phone="${phone}" data-worker-whatsapp="${wa}"`;
-  return `<div class="admin-worker-actions-direct-v7"><div class="admin-worker-actions-direct-v7-head"><span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الصنايعي</span><small>Direct V7</small></div><div class="admin-worker-actions-direct-v7-grid" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));"><button type="button" class="action-btn btn-dark" data-worker-action="edit" ${common}><i class="fa-solid fa-pen-to-square"></i> تعديل</button><button type="button" class="action-btn btn-blue" data-worker-action="identity" ${common}><i class="fa-solid fa-shield-halved"></i> مراجعة</button><button type="button" class="action-btn btn-yellow" data-worker-action="renew" ${common}><i class="fa-solid fa-credit-card"></i> تجديد</button><button type="button" class="action-btn ${activeClass}" data-worker-action="active" ${common}><i class="fa-solid ${activeIcon}"></i> ${activeText}</button><button type="button" class="action-btn btn-red" data-worker-action="delete" ${common}><i class="fa-solid fa-trash"></i> حذف نهائي</button></div></div>`;
+  return `<div class="admin-worker-actions-direct-v7"><div class="admin-worker-actions-direct-v7-head"><span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الصنايعي</span></div><div class="admin-worker-actions-direct-v7-grid" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));"><button type="button" class="action-btn btn-dark" data-worker-action="edit" ${common}><i class="fa-solid fa-pen-to-square"></i> تعديل</button><button type="button" class="action-btn btn-blue" data-worker-action="identity" ${common}><i class="fa-solid fa-shield-halved"></i> مراجعة</button><button type="button" class="action-btn btn-yellow" data-worker-action="renew" ${common}><i class="fa-solid fa-credit-card"></i> تجديد</button><button type="button" class="action-btn ${activeClass}" data-worker-action="active" ${common}><i class="fa-solid ${activeIcon}"></i> ${activeText}</button><button type="button" class="action-btn btn-red" data-worker-action="delete" ${common}><i class="fa-solid fa-trash"></i> حذف نهائي</button></div></div>`;
 }
 
 function renderWorkers(workers){
@@ -465,13 +462,13 @@ function openPendingChangesModal(id){
     </div>`;
   }
 
-  bodyHtml += `<div style="${cssField}">
-    <label><b>سبب الرفض (اختياري - هيوصل للصنايعي في شات مراسلة الإدارة)</b><textarea id="v8_reject_reason" style="${cssInput};min-height:80px"></textarea></label>
+  bodyHtml += `<div class="edit-field">
+    <label><b>سبب الرفض (اختياري - هيوصل للصنايعي في شات مراسلة الإدارة)</b><textarea id="v8_reject_reason" style="min-height:80px"></textarea></label>
   </div>
-  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap">
-    <button type="button" onclick="closeAdminActionForceModalV8()" style="${cssBtn}background:#f1f5f9;color:#334155;">إغلاق</button>
-    <button type="button" onclick="rejectPendingChanges('${id}')" style="${cssBtn}background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-xmark"></i> رفض</button>
-    <button type="button" onclick="approvePendingChanges('${id}')" style="${cssBtn}background:#16a34a;color:#fff;"><i class="fa-solid fa-check"></i> اعتماد كل التعديلات</button>
+  <div class="modal-actions">
+    <button type="button" onclick="closeAdminActionForceModalV8()" class="modal-btn modal-btn-muted">إغلاق</button>
+    <button type="button" onclick="rejectPendingChanges('${id}')" class="modal-btn modal-btn-cancel"><i class="fa-solid fa-xmark"></i> رفض</button>
+    <button type="button" onclick="approvePendingChanges('${id}')" class="modal-btn modal-btn-success"><i class="fa-solid fa-check"></i> اعتماد كل التعديلات</button>
   </div>`;
 
   openForceModal('مراجعة تعديل الصنايعي', bodyHtml);
