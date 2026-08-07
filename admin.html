@@ -116,6 +116,7 @@
       <button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button>
       <button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button>
       <button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button>
+      <button class="admin-tab" data-permission="activity_log:read" onclick="switchTab('activityLog',this)"><i class="fa-solid fa-clock-rotate-left"></i> سجل النشاط</button>
     </div>
 
     <div class="notifications-grid" id="notificationsGrid">
@@ -153,7 +154,7 @@
       <div class="admin-panel">
         <div><h3>بحث وفلترة</h3><p>ابحث بالاسم أو الهاتف أو الحرفة أو المنطقة أو حالة الاشتراك.</p></div>
         <div class="admin-filter-grid">
-          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="adminSearch" type="text" placeholder="بحث بالاسم، الرقم، الحرفة، المنطقة، رقم الطلب..." oninput="filterAdminWorkers()" /></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="adminSearch" type="text" placeholder="بحث بالاسم، الرقم، الحرفة، المنطقة، رقم الطلب..." oninput="debouncedFilterAdminWorkers()" /></div>
           <div class="admin-input-wrap"><i class="fa-solid fa-screwdriver-wrench"></i><select id="adminTradeFilter" onchange="filterAdminWorkers()"><option value="">كل الحرف</option></select></div>
           <div class="admin-input-wrap"><i class="fa-solid fa-location-dot"></i><select id="adminAreaFilter" onchange="filterAdminWorkers()"><option value="">كل المناطق</option></select></div>
           <div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="adminStatusFilter" onchange="filterAdminWorkers()"><option value="">كل الحالات</option><option value="approved">موافق عليه</option><option value="pending">بانتظار الموافقة</option><option value="active">نشط</option><option value="inactive">متوقف</option><option value="featured">مميز</option><option value="sub_active">اشتراك شغال</option><option value="sub_soon">اشتراك قرب ينتهي</option><option value="sub_expired">اشتراك منتهي</option></select></div>
@@ -516,6 +517,20 @@
           <button type="submit"><i class="fa-solid fa-plus"></i> إضافة</button>
         </form>
         <div id="adminUsersList" class="admin-users-grid"></div>
+      </div>
+    </section>
+
+    <!-- Activity Log Section -->
+    <section class="admin-section" id="activityLogSection">
+      <div class="admin-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> سجل نشاط الإدارة</h3>
+            <p>كل التعديلات والإجراءات اللي بتاخدها الإدارة على النظام، بترتيب الأحدث أولًا.</p>
+          </div>
+          <button class="big-btn btn-dark" onclick="loadActivityLog()"><i class="fa-solid fa-rotate"></i> تحديث</button>
+        </div>
+        <div id="activityLogList" class="items-list" style="margin-top:16px;"></div>
       </div>
     </section>
 

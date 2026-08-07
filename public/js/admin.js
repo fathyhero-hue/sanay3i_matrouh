@@ -29,15 +29,17 @@ function switchTab(t,b){
   if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}
   if(t==="reports"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض البلاغات");return}
   if(t==="whatsapp"&&!can("whatsapp:send")){toast("error","ليس لديك صلاحية رسائل واتساب");return}
-  
+  if(t==="activityLog"&&!can("activity_log:read")){toast("error","ليس لديك صلاحية عرض سجل النشاط");return}
+
   document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active")); b.classList.add("active");
   document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active")); document.getElementById(t+"Section").classList.add("active");
-  
+
   if(t==='reviews'){loadReviewsAdmin().then(()=>{__adminLoaded.reviews=true;renderReviews()})}
   if(t==='reports') loadReports();
   if(t==='analytics') loadAnalytics();
   if(t==='users') loadAdminUsers();
   if(t==='backups') loadBackupSummary();
+  if(t==='activityLog') loadActivityLog();
   if(t==='whatsapp'){renderWaSingleWorkerOptions();previewWhatsappSingle();previewWhatsappBulk();loadWhatsappInbox();loadWhatsappLogs();}
 }
 
@@ -388,6 +390,9 @@ function renderWorkers(workers){
   });
 }
 
+let adminSearchDebounceTimer=null;
+function debouncedFilterAdminWorkers(){clearTimeout(adminSearchDebounceTimer);adminSearchDebounceTimer=setTimeout(filterAdminWorkers,220);}
+
 function filterAdminWorkers(){
   const s=document.getElementById("adminSearch").value.trim().toLowerCase();
   const tf=document.getElementById("adminTradeFilter").value.trim().toLowerCase();
@@ -417,12 +422,13 @@ function filterAdminWorkers(){
 }
 function clearAdminFilters(){ document.getElementById("adminSearch").value=""; document.getElementById("adminTradeFilter").value=""; document.getElementById("adminAreaFilter").value=""; document.getElementById("adminStatusFilter").value=""; document.getElementById("adminSortFilter").value="default"; setQuickFilter(""); }
 
-async function reqs(list){for(const r of list){try{const opt={method:r.method||"POST",credentials:"include",headers:{"Content-Type":"application/json"}};if(r.body)opt.body=JSON.stringify(r.body);const res=await fetch(r.url,opt);if(res.status===401){showLogin();return false}if(res.status===403){const d=await res.json().catch(()=>({}));toast("error",d.error||"ليس لديك صلاحية");return false}if(res.ok)return true}catch(e){}}return false}
-function after(ok,msg){if(ok){toast("success",msg);loadAllData()}else toast("error","لم يتم تنفيذ الأمر")}
-async function toggleApprove(id,c){const ok=await reqs([{url:`/api/workers/${id}/approve`,method:"PUT",body:{approved:c?0:1}}]);if(ok){toast("success","تم تحديث الموافقة");patchWorkerLocal(id,{approved:c?0:1})}else toast("error","لم يتم تنفيذ الأمر")}
-async function toggleActive(id,c){const ok=await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]);if(ok){toast("success","تم تحديث التفعيل");patchWorkerLocal(id,{active:c?0:1})}else toast("error","لم يتم تنفيذ الأمر")}
-async function toggleFeatured(id,c){const ok=await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]);if(ok){toast("success","تم تحديث التمييز");patchWorkerLocal(id,{featured:c?0:1})}else toast("error","لم يتم تنفيذ الأمر")}
-async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;const ok=await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]);if(ok){toast("success","تم حذف الصنايعي نهائياً");removeWorkerLocal(id)}else toast("error","لم يتم تنفيذ الأمر")}
+let lastReqError = "";
+async function reqs(list){lastReqError="";for(const r of list){try{const opt={method:r.method||"POST",credentials:"include",headers:{"Content-Type":"application/json"}};if(r.body)opt.body=JSON.stringify(r.body);const res=await fetch(r.url,opt);if(res.status===401){showLogin();return false}if(res.status===403){const d=await res.json().catch(()=>({}));toast("error",d.error||"ليس لديك صلاحية");return false}if(res.ok)return true;const d=await res.json().catch(()=>({}));lastReqError=d.error||""}catch(e){}}return false}
+function after(ok,msg){if(ok){toast("success",msg);loadAllData()}else toast("error",lastReqError||"لم يتم تنفيذ الأمر")}
+async function toggleApprove(id,c){const ok=await reqs([{url:`/api/workers/${id}/approve`,method:"PUT",body:{approved:c?0:1}}]);if(ok){toast("success","تم تحديث الموافقة");patchWorkerLocal(id,{approved:c?0:1})}else toast("error",lastReqError||"لم يتم تنفيذ الأمر")}
+async function toggleActive(id,c){const ok=await reqs([{url:`/api/workers/${id}/active`,method:"PUT",body:{active:c?0:1}}]);if(ok){toast("success","تم تحديث التفعيل");patchWorkerLocal(id,{active:c?0:1})}else toast("error",lastReqError||"لم يتم تنفيذ الأمر")}
+async function toggleFeatured(id,c){const ok=await reqs([{url:`/api/workers/${id}/featured`,method:"PUT",body:{featured:c?0:1}}]);if(ok){toast("success","تم تحديث التمييز");patchWorkerLocal(id,{featured:c?0:1})}else toast("error",lastReqError||"لم يتم تنفيذ الأمر")}
+async function deleteWorker(id){if(!confirm("هل أنت متأكد من الحذف النهائي للصنايعي؟ لا يمكن التراجع!"))return;const ok=await reqs([{url:`/api/workers/${id}`,method:"DELETE"}]);if(ok){toast("success","تم حذف الصنايعي نهائياً");removeWorkerLocal(id)}else toast("error",lastReqError||"لم يتم تنفيذ الأمر")}
 function openPendingChangesModal(id){
   const w = allWorkers.find(x => String(wid(x)) === String(id));
   if(!w) return;
@@ -477,14 +483,14 @@ function openPendingChangesModal(id){
 async function approvePendingChanges(id){
   const ok = await reqs([{url:`/api/admin/workers/${id}/approve-pending-changes`,method:"POST"}]);
   closeForceModal();
-  if(ok){ toast("success","تم اعتماد التعديلات"); refreshWorkersOnly(); } else toast("error","لم يتم تنفيذ الأمر");
+  if(ok){ toast("success","تم اعتماد التعديلات"); refreshWorkersOnly(); } else toast("error",lastReqError||"لم يتم تنفيذ الأمر");
 }
 
 async function rejectPendingChanges(id){
   const reason = (document.getElementById('v8_reject_reason')?.value || '').trim();
   const ok = await reqs([{url:`/api/admin/workers/${id}/reject-pending-changes`,method:"POST",body:{reason}}]);
   closeForceModal();
-  if(ok){ toast("success","تم رفض التعديلات"); refreshWorkersOnly(); } else toast("error","لم يتم تنفيذ الأمر");
+  if(ok){ toast("success","تم رفض التعديلات"); refreshWorkersOnly(); } else toast("error",lastReqError||"لم يتم تنفيذ الأمر");
 }
 
 async function renewAllWorkers() {
@@ -501,11 +507,11 @@ async function renewAllWorkers() {
 }
 
 function renderTrades(){const list=document.getElementById("tradesList");list.innerHTML=allTrades.length?allTrades.map(i=>`<div class="list-item"><strong>${itemName(i)}</strong><button class="action-btn btn-red" onclick="deleteTrade('${itemId(i)}')">حذف</button></div>`).join(""):'<div class="empty-admin">لا توجد حرف</div>'}
-async function addTrade(e){e.preventDefault();const input=document.getElementById("newTradeInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم الحرفة");const ok=await reqs([{url:"/api/trades",method:"POST",body:{name}}]);if(ok){input.value="";await loadTrades();toast("success","تمت إضافة الحرفة")}else toast("error","لم تتم الإضافة")}
-async function deleteTrade(id){if(!confirm("حذف الحرفة؟"))return;const ok=await reqs([{url:`/api/trades/${id}`,method:"DELETE"}]);if(ok){await loadTrades();toast("success","تم حذف الحرفة")}else toast("error","لم يتم الحذف")}
+async function addTrade(e){e.preventDefault();const input=document.getElementById("newTradeInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم الحرفة");const ok=await reqs([{url:"/api/trades",method:"POST",body:{name}}]);if(ok){input.value="";await loadTrades();toast("success","تمت إضافة الحرفة")}else toast("error",lastReqError||"لم تتم الإضافة")}
+async function deleteTrade(id){if(!confirm("حذف الحرفة؟"))return;const ok=await reqs([{url:`/api/trades/${id}`,method:"DELETE"}]);if(ok){await loadTrades();toast("success","تم حذف الحرفة")}else toast("error",lastReqError||"لم يتم الحذف")}
 function renderAreas(){const list=document.getElementById("areasList");list.innerHTML=allAreas.length?allAreas.map(i=>`<div class="list-item"><strong>${itemName(i)}</strong><button class="action-btn btn-red" onclick="deleteArea('${itemId(i)}')">حذف</button></div>`).join(""):'<div class="empty-admin">لا توجد مناطق</div>'}
-async function addArea(e){e.preventDefault();const input=document.getElementById("newAreaInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم المنطقة");const ok=await reqs([{url:"/api/areas",method:"POST",body:{name}}]);if(ok){input.value="";await loadAreas();toast("success","تمت إضافة المنطقة")}else toast("error","لم تتم الإضافة")}
-async function deleteArea(id){if(!confirm("حذف المنطقة؟"))return;const ok=await reqs([{url:`/api/areas/${id}`,method:"DELETE"}]);if(ok){await loadAreas();toast("success","تم حذف المنطقة")}else toast("error","لم يتم الحذف")}
+async function addArea(e){e.preventDefault();const input=document.getElementById("newAreaInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم المنطقة");const ok=await reqs([{url:"/api/areas",method:"POST",body:{name}}]);if(ok){input.value="";await loadAreas();toast("success","تمت إضافة المنطقة")}else toast("error",lastReqError||"لم تتم الإضافة")}
+async function deleteArea(id){if(!confirm("حذف المنطقة؟"))return;const ok=await reqs([{url:`/api/areas/${id}`,method:"DELETE"}]);if(ok){await loadAreas();toast("success","تم حذف المنطقة")}else toast("error",lastReqError||"لم يتم الحذف")}
 
 async function loadReviewsAdmin(){allReviews = arr(await fetchJson(["/api/admin/reviews"]));buildRatingMaps();}
 function renderReviewStars(value){const rating = Math.round(Number(value) || 0);return "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating);}
@@ -548,8 +554,8 @@ function renderReviews(){
     grid.appendChild(card);
   });
 }
-async function toggleReviewApprove(id, current){const approved = current ? 0 : 1;const okReq = await reqs([{url:`/api/reviews/${id}/approve`,method:"PUT",body:{approved}}]);if(okReq){toast("success","تم تحديث حالة التقييم");await loadReviewsAdmin();renderReviews();}else{toast("error","لم يتم تحديث التقييم");}}
-async function deleteReview(id){if(!confirm("هل تريد حذف هذا التقييم؟")) return;const okReq = await reqs([{url:`/api/reviews/${id}`,method:"DELETE"}]);if(okReq){toast("success","تم حذف التقييم");await loadReviewsAdmin();renderReviews();}else{toast("error","لم يتم حذف التقييم");}}
+async function toggleReviewApprove(id, current){const approved = current ? 0 : 1;const okReq = await reqs([{url:`/api/reviews/${id}/approve`,method:"PUT",body:{approved}}]);if(okReq){toast("success","تم تحديث حالة التقييم");await loadReviewsAdmin();renderReviews();}else{toast("error",lastReqError||"لم يتم تحديث التقييم");}}
+async function deleteReview(id){if(!confirm("هل تريد حذف هذا التقييم؟")) return;const okReq = await reqs([{url:`/api/reviews/${id}`,method:"DELETE"}]);if(okReq){toast("success","تم حذف التقييم");await loadReviewsAdmin();renderReviews();}else{toast("error",lastReqError||"لم يتم حذف التقييم");}}
 
 function downloadBackup(){return downloadFullBackup()}
 function adminHtmlEscape(v){return String(v??"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -611,6 +617,24 @@ async function loadBackupSummary(){
   }catch(e){ if(box)box.innerHTML='<div class="empty-state">تعذر تحميل الملخص</div>'; }
 }
 
+async function loadActivityLog(){
+  const box=document.getElementById("activityLogList"); if(box)box.innerHTML='<div class="empty-admin">جاري تحميل سجل النشاط...</div>';
+  try{
+    const r=await fetch("/api/admin/activity-log?limit=150",{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.success===false) throw new Error(d.error||"تعذر تحميل سجل النشاط");
+    const items=d.items||[];
+    if(box) box.innerHTML = items.length ? items.map(renderActivityLogItem).join("") : '<div class="empty-admin">لا يوجد نشاط مسجّل بعد</div>';
+  }catch(e){ if(box) box.innerHTML='<div class="empty-admin">تعذر تحميل سجل النشاط</div>'; }
+}
+function renderActivityLogItem(row){
+  const label=esc(row.action_label||row.action||"إجراء");
+  const admin=esc(row.admin_name||"الإدارة");
+  const entity=row.entity_name?` — ${esc(row.entity_name)}`:"";
+  const time=waDate(row.created_at);
+  return `<div class="list-item"><div><strong>${label}${entity}</strong><div style="color:var(--muted);font-size:12px;font-weight:800;margin-top:4px;">${admin} · ${time}</div></div></div>`;
+}
+
 async function loadNotifications(){
   try{ const data = await fetchJson(["/api/admin/notifications"]); adminNotifications = data || {}; }catch(e){ adminNotifications = {}; }
   renderNotifications();
@@ -654,9 +678,9 @@ async function createAdminUser(e){
   const ok=await reqs([{url:"/api/admin/users",method:"POST",body}]);
   if(ok){toast("success","تم إنشاء مستخدم الإدارة");e.target.reset();await loadAdminUsers()}
 }
-async function updateAdminUser(id,body){const ok=await reqs([{url:`/api/admin/users/${id}`,method:"PUT",body}]);if(ok){toast("success","تم تحديث المستخدم");await loadAdminUsers()}}
-async function changeAdminPassword(id){const password=prompt("اكتب كلمة السر الجديدة - 8 أحرف على الأقل");if(!password)return;const ok=await reqs([{url:`/api/admin/users/${id}/password`,method:"PUT",body:{password}}]);if(ok)toast("success","تم تغيير كلمة السر")}
-async function deleteAdminUser(id){if(!confirm("حذف مستخدم الإدارة؟"))return;const ok=await reqs([{url:`/api/admin/users/${id}`,method:"DELETE"}]);if(ok){toast("success","تم حذف المستخدم");await loadAdminUsers()}}
+async function updateAdminUser(id,body){const ok=await reqs([{url:`/api/admin/users/${id}`,method:"PUT",body}]);if(ok){toast("success","تم تحديث المستخدم");await loadAdminUsers()}else toast("error",lastReqError||"تعذر تحديث المستخدم")}
+async function changeAdminPassword(id){const password=prompt("اكتب كلمة السر الجديدة - 8 أحرف على الأقل");if(!password)return;const ok=await reqs([{url:`/api/admin/users/${id}/password`,method:"PUT",body:{password}}]);if(ok)toast("success","تم تغيير كلمة السر");else toast("error",lastReqError||"تعذر تغيير كلمة السر")}
+async function deleteAdminUser(id){if(!confirm("حذف مستخدم الإدارة؟"))return;const ok=await reqs([{url:`/api/admin/users/${id}`,method:"DELETE"}]);if(ok){toast("success","تم حذف المستخدم");await loadAdminUsers()}else toast("error",lastReqError||"تعذر حذف المستخدم")}
 
 // ==========================================
 // منطق التحليلات الاحترافي (Dashboard Analytics)

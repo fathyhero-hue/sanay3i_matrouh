@@ -126,6 +126,40 @@ router.post("/users", requirePermission("admin_users:manage"), async (req, res) 
   res.json({ success: true, user: data });
 });
 
+router.put("/users/:id", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  const userId = Number(req.params.id);
+  const updates = {};
+  if (req.body?.role !== undefined) updates.role = String(req.body.role);
+  if (req.body?.active !== undefined) updates.active = bool(req.body.active);
+  if (!Object.keys(updates).length) return res.status(400).json({ success: false, error: "لا يوجد تعديل مطلوب" });
+  if (req.admin && String(req.admin.id || "") === String(userId) && updates.active === false) {
+    return res.status(400).json({ success: false, error: "لا يمكنك إيقاف حسابك الحالي" });
+  }
+
+  const { data, error } = await supabase.from("admin_users").update(updates).eq("id", userId)
+    .select("id,username,display_name,role,active,created_at,last_login_at").maybeSingle();
+  if (error || !data) return res.status(500).json({ success: false, error: "تعذر تحديث مستخدم الإدارة" });
+
+  await logAdminActivity(req, "admin_user_update", { entity_type: "admin_user", entity_id: data.id, entity_name: data.display_name, details: updates });
+  res.json({ success: true, user: data });
+});
+
+router.put("/users/:id/password", requirePermission("admin_users:manage"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  const userId = Number(req.params.id);
+  const password = String(req.body?.password || "");
+  if (password.length < 8) return res.status(400).json({ success: false, error: "كلمة السر يجب ألا تقل عن 8 أحرف" });
+
+  const { salt, hash } = hashAdminPassword(password);
+  const { data, error } = await supabase.from("admin_users").update({ password_salt: salt, password_hash: hash }).eq("id", userId)
+    .select("id,display_name").maybeSingle();
+  if (error || !data) return res.status(500).json({ success: false, error: "تعذر تغيير كلمة السر" });
+
+  await logAdminActivity(req, "admin_user_password_change", { entity_type: "admin_user", entity_id: data.id, entity_name: data.display_name });
+  res.json({ success: true });
+});
+
 router.delete("/users/:id", requirePermission("admin_users:manage"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const userId = Number(req.params.id);
