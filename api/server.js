@@ -1231,6 +1231,45 @@ app.get("/uploads/:fileName", async (req, res) => {
 // ===============================
 // 5.5. مسارات الإيقاف والتجديد (الحذف موجود في routes/workers.js)
 // ===============================
+app.put('/api/workers/:id', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
+    try {
+        const body = req.body || {};
+        const name = String(body.name || '').trim();
+        const phone = String(body.phone || '').trim();
+        const whatsapp = String(body.whatsapp || '').trim();
+        const trade = String(body.trade || '').trim();
+        const area = String(body.area || '').trim();
+        const description = String(body.description || '').trim();
+
+        if (!name || !phone || !trade || !area) {
+            return res.status(400).json({ success: false, error: 'الاسم ورقم الاتصال والحرفة والمنطقة مطلوبين' });
+        }
+
+        const { error } = await supabase
+            .from('workers')
+            .update({ name, phone, whatsapp, trade, area, description })
+            .eq('id', req.params.id);
+
+        if (error) {
+            if (error.code === '23505') {
+                return res.status(400).json({ success: false, error: 'رقم الهاتف مسجل بالفعل لصنايعي آخر' });
+            }
+            throw error;
+        }
+
+        logAdminActivity(req, "worker_update", {
+          entity_type: "worker",
+          entity_id: req.params.id,
+          entity_name: name,
+          details: { name, phone, whatsapp, trade, area, description }
+        }).catch(() => {});
+
+        res.json({ success: true, message: 'تم تعديل بيانات الصنايعي بنجاح' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.put('/api/workers/:id/active', adminApiRateLimit, requirePermission("workers:update"), async (req, res) => {
     try {
         const { active } = req.body;
