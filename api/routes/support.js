@@ -3,7 +3,6 @@ const router = express.Router();
 const crypto = require("crypto");
 const { supabase, isSupabaseReady } = require("../config/supabase");
 const { normalizeWorkerPhone } = require("../utils/helpers");
-const { requirePermission } = require("../middlewares/auth");
 
 const SUPPORT_CHAT_TOKEN_TTL_MS = Number(process.env.SUPPORT_CHAT_TOKEN_TTL_MS || 7 * 24 * 60 * 60 * 1000);
 
@@ -141,23 +140,6 @@ router.post("/messages", async (req, res) => {
     return res.json({ success: true, message: "تم إرسال رسالتك لخدمة العملاء", row: supportPublicMessage(data) });
   } catch (e) {
     return res.status(500).json({ success: false, error: "تعذر إرسال الرسالة" });
-  }
-});
-
-// ===============================
-// مسارات الإدارة (عرض المحادثات والردود)
-// ===============================
-router.get("/admin/threads", requirePermission("workers:read"), async (req, res) => {
-  if (!isSupabaseReady(res)) return;
-  try {
-    const convRes = await supabase.from("support_chat_conversations").select("*").order("last_message_at", { ascending: false }).limit(300);
-    if (convRes.error) throw convRes.error;
-    
-    const convs = convRes.data || [];
-    const threads = convs.map(c => ({ conversation: supportPublicConversation(c), latest: { message_text: "تحديث", created_at: c.last_message_at } }));
-    return res.json({ success: true, threads, unread_count: 0 });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: "تعذر تحميل محادثات خدمة العملاء" });
   }
 });
 

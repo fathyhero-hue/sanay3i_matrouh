@@ -54,9 +54,9 @@ async function loadAllData(){
   buildRatingMaps(); fillTradeSelects(); fillAreaSelects(); renderWorkers(allWorkers); stats();
 }
 
-async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers?limit=1000","/api/admin/workers","/api/workers/all"]))}
-async function loadTrades(){allTrades=arr(await fetchJson(["/api/trades","/api/crafts","/trades","/crafts"]));renderTrades();fillTradeSelects()}
-async function loadAreas(){allAreas=arr(await fetchJson(["/api/areas","/api/locations","/areas","/locations"]));renderAreas();fillAreaSelects()}
+async function loadWorkers(){allWorkers=arr(await fetchJson(["/api/admin/workers"]))}
+async function loadTrades(){allTrades=arr(await fetchJson(["/api/trades"]));renderTrades();fillTradeSelects()}
+async function loadAreas(){allAreas=arr(await fetchJson(["/api/areas"]));renderAreas();fillAreaSelects()}
 async function loadPhotosForAll(){photosByWorker={}}
 async function loadWorkerPhotos(id){if(!id)return;photosByWorker[id]=arr(await fetchJson(["/api/workers/"+id+"/photos"]));filterAdminWorkers();}
 

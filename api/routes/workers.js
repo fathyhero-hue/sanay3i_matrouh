@@ -169,3 +169,4 @@ router.delete("/:id", requirePermission("workers:delete"), async (req, res) => {
 });
 
 module.exports = router;
+module.exports.findDuplicateWorkerByPhone = findDuplicateWorkerByPhone;

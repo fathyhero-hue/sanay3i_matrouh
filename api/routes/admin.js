@@ -2,17 +2,19 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 const { supabase, isSupabaseReady } = require("../config/supabase");
-const { today, bool, clientIp } = require("../utils/helpers");
-const { 
-  requirePermission, 
-  createAdminToken, 
-  setAdminCookie, 
-  clearAdminCookie, 
-  publicAdmin, 
+const { today, addMonths, bool, clientIp, makeRegistrationCode } = require("../utils/helpers");
+const {
+  requirePermission,
+  createAdminToken,
+  setAdminCookie,
+  clearAdminCookie,
+  publicAdmin,
   ADMIN_ROLES,
-  getAdminFromRequest 
+  getAdminFromRequest
 } = require("../middlewares/auth");
 const { logAdminActivity } = require("../utils/activityLogger");
+const { workerUpload, uploadImage, uploadPrivateImage, mainFile, workFiles, idFrontFile, idBackFile } = require("../controllers/uploadController");
+const { findDuplicateWorkerByPhone } = require("./workers");
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456";
 const ADMIN_PASSWORD_ITERATIONS = 120000;
@@ -315,7 +317,102 @@ router.get("/activity-log", requirePermission("activity_log:read"), async (req, 
   res.json({ success: true, items: data || [] });
 });
 
-router.get('/workers/:id/id-card/:side', async (req, res) => {
+// ===============================
+// إضافة صنايعي يدويًا من الإدارة (admin-add-worker.html)
+// ===============================
+router.post("/workers/create", requirePermission("workers:create"), workerUpload, async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const { name, phone, whatsapp, trade, area, description } = req.body;
+    if (!name || !phone || !trade || !area) {
+      return res.status(400).json({ success: false, error: "الاسم ورقم الاتصال والحرفة والمنطقة مطلوبين" });
+    }
+
+    const duplicate = await findDuplicateWorkerByPhone(phone, whatsapp);
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        error: `هذا الرقم مسجل بالفعل باسم ${duplicate.name}. لا يمكن تسجيل نفس الرقم أكثر من مرة.`,
+        duplicate: true,
+        duplicate_worker_id: duplicate.id
+      });
+    }
+
+    const frontFile = idFrontFile(req);
+    const backFile = idBackFile(req);
+    if ((frontFile && !backFile) || (!frontFile && backFile)) {
+      return res.status(400).json({ success: false, error: "لو هترفع البطاقة لازم ترفع الوجه والظهر معًا" });
+    }
+
+    const image = mainFile(req) ? await uploadImage(mainFile(req), "profiles") : "";
+    const id_front_path = frontFile ? await uploadPrivateImage(frontFile, "id-cards") : "";
+    const id_back_path = backFile ? await uploadPrivateImage(backFile, "id-cards") : "";
+    const hasFullId = !!(id_front_path && id_back_path);
+
+    const approved = bool(req.body.approved);
+    const active = bool(req.body.active);
+    const featured = bool(req.body.featured);
+    const identityVerified = hasFullId && bool(req.body.identity_verified);
+
+    const start = today();
+    const months = Math.max(1, Math.min(60, Number(req.body.subscription_months) || 1));
+    const end = addMonths(start, months);
+
+    const { data: worker, error } = await supabase.from("workers").insert({
+      name: String(name).trim(),
+      phone: String(phone).trim(),
+      whatsapp: whatsapp ? String(whatsapp).trim() : "",
+      trade: String(trade).trim(),
+      area: String(area).trim(),
+      description: description ? String(description).trim() : "",
+      image,
+      id_front_path,
+      id_back_path,
+      id_submitted_at: hasFullId ? new Date().toISOString() : null,
+      identity_status: identityVerified ? "verified" : "pending",
+      identity_verified: identityVerified,
+      approved,
+      active,
+      featured,
+      subscription_start: start,
+      subscription_end: end
+    }).select().single();
+
+    if (error) {
+      if (error.code === "23505") {
+        return res.status(400).json({ success: false, error: "رقم الهاتف مسجل بالفعل لصنايعي آخر" });
+      }
+      throw error;
+    }
+
+    const registrationCode = makeRegistrationCode(worker.id, worker.created_at);
+    await supabase.from("workers").update({ registration_code: registrationCode }).eq("id", worker.id);
+
+    const photos = [];
+    for (const f of workFiles(req)) {
+      photos.push({ worker_id: worker.id, image: await uploadImage(f, "work-photos") });
+    }
+    if (photos.length) {
+      await supabase.from("worker_photos").insert(photos);
+    }
+
+    await logAdminActivity(req, "worker_create", {
+      entity_type: "worker", entity_id: worker.id, entity_name: worker.name,
+      details: { registration_code: registrationCode, trade, area, approved, active, featured, identity_verified: identityVerified }
+    });
+
+    res.json({
+      success: true,
+      id: worker.id,
+      registration_code: registrationCode,
+      identity_verified: identityVerified
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "حدث خطأ أثناء إضافة الصنايعي" });
+  }
+});
+
+router.get('/workers/:id/id-card/:side', requirePermission("workers:read"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   try {
     const { id, side } = req.params;
@@ -347,7 +444,54 @@ router.get('/workers/:id/id-card/:side', async (req, res) => {
   }
 });
 
-router.get("/notifications", async (req, res) => {
+// ===============================
+// النسخ الاحتياطي (Backups)
+// ===============================
+const BACKUP_TABLES = [
+  { table: "workers", label: "الصنايعية" },
+  { table: "reviews", label: "التقييمات" },
+  { table: "reports", label: "البلاغات" },
+  { table: "trades", label: "الحرف" },
+  { table: "areas", label: "المناطق" },
+  { table: "admin_users", label: "مستخدمو الإدارة" }
+];
+
+router.get("/backups/summary", requirePermission("backup:export"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  const items = await Promise.all(BACKUP_TABLES.map(async ({ table, label }) => {
+    const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
+    if (error) return { table, label, count: null, error: true };
+    return { table, label, count: count || 0 };
+  }));
+  res.json({ success: true, items });
+});
+
+router.get("/backups/full-json", requirePermission("backup:export"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const [workers, reviews, trades, areas] = await Promise.all([
+      supabase.from("workers").select("*"),
+      supabase.from("reviews").select("*"),
+      supabase.from("trades").select("*"),
+      supabase.from("areas").select("*")
+    ]);
+    const payload = {
+      exported_at: new Date().toISOString(),
+      workers: workers.data || [],
+      reviews: reviews.data || [],
+      trades: trades.data || [],
+      areas: areas.data || []
+    };
+    await logAdminActivity(req, "backup_export_json", { entity_type: "backup" }).catch(() => {});
+    res.setHeader("Content-Disposition", `attachment; filename="sanay3i-matrouh-backup-${today()}.json"`);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.send(JSON.stringify(payload, null, 2));
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "تعذر إنشاء النسخة الاحتياطية" });
+  }
+});
+
+router.get("/notifications", requirePermission("workers:read"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const t = today();
   try {

@@ -56,7 +56,6 @@ async function setBool(req, res, col) {
 }
 
 router.put("/workers/:id/approve", requirePermission("workers:review"), (req, res) => setBool(req, res, "approved"));
-router.put("/workers/:id/active", requirePermission("workers:update"), (req, res) => setBool(req, res, "active"));
 router.put("/workers/:id/featured", requirePermission("workers:update"), (req, res) => setBool(req, res, "featured"));
 
 // ==========================================
@@ -108,36 +107,6 @@ router.get("/workers/:id/photos", async (req, res) => {
 router.delete("/workers/photos/:photoId", requirePermission("workers:update"), async (req, res) => {
   await supabase.from("worker_photos").delete().eq("id", Number(req.params.photoId));
   res.json({ success: true });
-});
-
-// ==========================================
-// 4. التحليلات (Analytics)
-// ==========================================
-router.get("/admin/analytics", requirePermission("analytics:read"), async (req, res) => {
-  const days = Number(req.query.days || 30);
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const { data: events, error } = await supabase.from("analytics_events").select("*").gte("created_at", since);
-  
-  if (error) return res.status(500).json({ success: false, error: "جدول التحليلات غير جاهز" });
-
-  const totals = { profile_view: 0, call: 0, whatsapp: 0, total_contacts: 0, total_events: events.length };
-  const byWorker = {};
-
-  for (const ev of events || []) {
-    const type = String(ev.event_type || "");
-    if (totals[type] !== undefined) totals[type] += 1;
-    if (type === "call" || type === "whatsapp") totals.total_contacts += 1;
-
-    const wid = String(ev.worker_id || "").trim();
-    if (wid) {
-      if (!byWorker[wid]) byWorker[wid] = { worker_id: wid, profile_view: 0, call: 0, whatsapp: 0, total_contacts: 0 };
-      if (byWorker[wid][type] !== undefined) byWorker[wid][type] += 1;
-      if (type === "call" || type === "whatsapp") byWorker[wid].total_contacts += 1;
-    }
-  }
-
-  const top_workers = Object.values(byWorker).sort((a, b) => b.total_contacts - a.total_contacts).slice(0, 30);
-  res.json({ success: true, totals, top_workers });
 });
 
 module.exports = router;

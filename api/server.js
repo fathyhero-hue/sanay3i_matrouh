@@ -1354,6 +1354,37 @@ app.put('/api/admin/workers/renew-all', adminApiRateLimit, requirePermission("su
     }
 });
 
+function csvCell(v) {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+app.get('/api/export-workers', adminApiRateLimit, requirePermission("backup:export"), async (req, res) => {
+    try {
+        const { data: workers, error } = await supabase
+            .from('workers')
+            .select('id,name,phone,whatsapp,trade,area,description,approved,active,featured,identity_status,subscription_start,subscription_end,registration_code,created_at')
+            .order('id', { ascending: false });
+        if (error) throw error;
+
+        const headers = ['ID', 'الاسم', 'الهاتف', 'واتساب', 'الحرفة', 'المنطقة', 'الوصف', 'معتمد', 'نشط', 'مميز', 'حالة التوثيق', 'بداية الاشتراك', 'نهاية الاشتراك', 'رقم الطلب', 'تاريخ التسجيل'];
+        const rows = (workers || []).map(w => [
+            w.id, w.name, w.phone, w.whatsapp, w.trade, w.area, w.description,
+            w.approved ? 'نعم' : 'لا', w.active ? 'نعم' : 'لا', w.featured ? 'نعم' : 'لا',
+            w.identity_status, w.subscription_start, w.subscription_end, w.registration_code, w.created_at
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
+
+        logAdminActivity(req, "backup_export_csv", { entity_type: "backup" }).catch(() => {});
+        res.setHeader('Content-Disposition', `attachment; filename="sanay3i-matrouh-workers-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.send(Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(csv, 'utf8')]));
+    } catch (err) {
+        console.error('Export Workers Error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // ===============================
 // 7. مسارات التحليلات والإحصائيات
 // ===============================
