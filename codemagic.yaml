@@ -67,11 +67,11 @@ workflows:
 
       - name: ترقيم البناء تلقائيًا (build number) عشان كل رفعة تاخد رقم جديد
         script: |
-          # $CM_BUILD_NUMBER رقم بناء Codemagic نفسه، بيزيد تلقائيًا مع كل بناء
-          # وفريد دايمًا، فمفيش داعي لسؤال App Store Connect عن آخر رقم (كان بيرجع
-          # قيم قديمة/مكررة أحيانًا وبيسبب فشل الرفع بسبب تكرار رقم البناء).
+          # وقت البناء الحالي (Unix timestamp) كرقم بناء - دايمًا فريد ودايمًا
+          # بيزيد، من غير ما نعتمد على سؤال App Store Connect عن آخر رقم (كان
+          # بيرجع قيم قديمة/مكررة أحيانًا وبيسبب فشل الرفع).
           cd "$CM_BUILD_DIR/ios-app/ios/App"
-          agvtool new-version -all $CM_BUILD_NUMBER
+          agvtool new-version -all $(date +%s)
 
       - name: بناء الـ IPA
         script: |
