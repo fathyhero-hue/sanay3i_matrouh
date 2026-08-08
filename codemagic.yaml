@@ -39,7 +39,13 @@ workflows:
           npm install
           npx cap sync ios
 
-      - name: تجهيز بروفايلات التوقيع تلقائيًا من App Store Connect
+      - name: إنشاء أو جلب شهادة وبروفايل التوقيع من App Store Connect
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: تطبيق بروفايلات التوقيع على مشروع Xcode
         script: |
           xcode-project use-profiles
 
