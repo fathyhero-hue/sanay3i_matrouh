@@ -1,0 +1,17 @@
+{
+  "name": "sanay3i-matrouh-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor iOS wrapper for Sanay3i Matrouh (loads the live site remotely, same approach as the Android TWA)",
+  "scripts": {
+    "sync": "cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5"
+  }
+}

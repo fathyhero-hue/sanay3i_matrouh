@@ -1,0 +1,16 @@
+{
+  "appId": "com.sanay3imatrouh.app",
+  "appName": "صنايعي مطروح",
+  "webDir": "www",
+  "server": {
+    "url": "https://sanay3i-matrouh.online",
+    "cleartext": false,
+    "allowNavigation": [
+      "sanay3i-matrouh.online",
+      "*.sanay3i-matrouh.online"
+    ]
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

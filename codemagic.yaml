@@ -1,0 +1,67 @@
+workflows:
+  ios-sanay3i-matrouh:
+    name: Sanay3i Matrouh - iOS
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    # لازم تتظبط من واجهة Codemagic نفسها قبل ما الـ workflow ده يشتغل:
+    # 1) Teams > Integrations > App Store Connect: اعمل ربط بمفتاح App Store Connect API
+    #    (من App Store Connect > Users and Access > Integrations > App Store Connect API)
+    #    وسمّي الربط بنفس الاسم اللي حاطه هنا تحت integrations.app_store_connect
+    # 2) سجّل الـ Bundle ID ده في developer.apple.com > Identifiers، وأنشئ سجل التطبيق
+    #    بنفس الـ Bundle ID في App Store Connect قبل أول build
+    integrations:
+      app_store_connect: sanay3i_matrouh_asc_key
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.sanay3imatrouh.app
+      vars:
+        XCODE_PROJECT: "ios-app/ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "com.sanay3imatrouh.app"
+      xcode: latest
+      node: latest
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
+    scripts:
+      - name: تثبيت اعتماديات مشروع الـ iOS ومزامنة Capacitor
+        script: |
+          cd ios-app
+          npm install
+          npx cap sync ios
+
+      - name: تجهيز بروفايلات التوقيع تلقائيًا من App Store Connect
+        script: |
+          xcode-project use-profiles
+
+      - name: ترقيم البناء تلقائيًا (build number) عشان كل رفعة تاخد رقم جديد
+        script: |
+          LATEST=$(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID" || echo 0)
+          cd "$CM_BUILD_DIR/ios-app/ios/App"
+          agvtool new-version -all $((LATEST + 1))
+
+      - name: بناء الـ IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # يرفع أول ما البناء ينجح على TestFlight تلقائيًا (مراجعة داخلية بس، مش نشر عام).
+        submit_to_testflight: true
+        # سيبها false لحد ما تتأكد من كل حاجة على TestFlight وتكون جاهز فعليًا تقدّم للمراجعة العامة.
+        submit_to_app_store: false
