@@ -15,9 +15,11 @@ workflows:
       app_store_connect: codemagic
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.sanay3imatrouh.app
+      # ملحوظة: قصدًا من غير قسم ios_signing هنا - وجوده كان بيخلي Codemagic يحاول
+      # يجهز التوقيع تلقائيًا في مرحلة مبكرة قبل حتى ما تبدأ خطوات scripts تحت،
+      # والمرحلة التلقائية دي كانت بتفشل (No matching profiles found) من غير ما
+      # توصل فرصة لسكريبتاتنا اللي بتعمل fetch-signing-files --create. دلوقتي
+      # سكريبتاتنا هي المسؤولة بالكامل عن التوقيع.
       vars:
         XCODE_PROJECT: "ios-app/ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
