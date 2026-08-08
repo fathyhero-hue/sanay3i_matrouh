@@ -18,11 +18,16 @@ workflows:
       app_store_connect: codemagic
 
     environment:
-      # ملحوظة: قصدًا من غير قسم ios_signing هنا - وجوده كان بيخلي Codemagic يحاول
-      # يجهز التوقيع تلقائيًا في مرحلة مبكرة قبل حتى ما تبدأ خطوات scripts تحت،
-      # والمرحلة التلقائية دي كانت بتفشل (No matching profiles found) من غير ما
-      # توصل فرصة لسكريبتاتنا اللي بتعمل fetch-signing-files --create. دلوقتي
-      # سكريبتاتنا هي المسؤولة بالكامل عن التوقيع.
+      # ملحوظة: قصدًا من غير قسم ios_signing (الحقل الخاص بالتوقيع التلقائي عبر
+      # API أبل) هنا - وجوده كان بيخلي Codemagic يحاول يجهز التوقيع تلقائيًا في
+      # مرحلة مبكرة قبل حتى ما تبدأ خطوات scripts تحت، والمرحلة التلقائية دي
+      # كانت بتفشل (No matching profiles found) بسبب شهادات قديمة في حساب أبل
+      # معندناش مفاتيحها الخاصة. التوقيع دلوقتي بيتم يدويًا بالكامل عن طريق
+      # متغيرات البيئة CM_CERTIFICATE / CM_CERTIFICATE_PASSWORD /
+      # CM_PROVISIONING_PROFILE (مجموعة ios_signing) اللي بيتم فك تشفيرها
+      # (base64) وتحميلها يدويًا في خطوات scripts تحت.
+      groups:
+        - ios_signing
       vars:
         XCODE_PROJECT: "ios-app/ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
@@ -44,12 +49,19 @@ workflows:
           npm install
           npx cap sync ios
 
-      - name: إضافة الشهادة المرفوعة يدويًا لـ keychain البناء
+      - name: فك تشفير الشهادة والبروفايل من متغيرات البيئة وإضافتهم للبناء
         script: |
-          keychain initialize
-          keychain add-certificates
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
 
-      - name: تطبيق بروفايل التوقيع المرفوع يدويًا على مشروع Xcode
+          keychain initialize
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
+
+          PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_HOME"
+          cp /tmp/profile.mobileprovision "$PROFILES_HOME/$(uuidgen).mobileprovision"
+
+      - name: تطبيق بروفايل التوقيع على مشروع Xcode
         script: |
           xcode-project use-profiles
 
