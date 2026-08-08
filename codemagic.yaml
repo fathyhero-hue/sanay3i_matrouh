@@ -67,7 +67,7 @@ workflows:
 
       - name: ترقيم البناء تلقائيًا (build number) عشان كل رفعة تاخد رقم جديد
         script: |
-          LATEST=$(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID" || echo 0)
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" || echo 0)
           cd "$CM_BUILD_DIR/ios-app/ios/App"
           agvtool new-version -all $((LATEST + 1))
 
