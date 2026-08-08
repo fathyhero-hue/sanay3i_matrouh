@@ -5,12 +5,15 @@ workflows:
     instance_type: mac_mini_m2
 
     # المفتاح "codemagic" ده نفس مفتاح Apple Developer Portal API المربوط بالفعل
-    # في Settings > Integrations > Developer Portal (Key: 6842LF2WQN) - نفس المفتاح
-    # المستخدم في تطبيقات تانية، معاد استخدامه هنا بدل ما نعمل مفتاح جديد.
-    # لسه لازم قبل أول build:
-    # 1) سجّل الـ Bundle ID ده في developer.apple.com > Identifiers
-    # 2) أنشئ سجل تطبيق بنفس الـ Bundle ID في App Store Connect
-    # 3) فعّل Automatic code signing لل workflow ده تحديدًا من صفحة الـ workflow نفسها في Codemagic
+    # في Settings > Integrations > Developer Portal (Key: 6842LF2WQN) - بيُستخدم
+    # هنا بس عشان خطوة رفع البناء لـ TestFlight (publishing) في آخر الملف.
+    #
+    # التوقيع نفسه (certificate + provisioning profile) بقى يدوي بالكامل ومرفوع
+    # مباشرة في Codemagic (Team Settings > Code signing identities)، مش عن طريق
+    # fetch-signing-files التلقائي - لأن حساب أبل فيه شهادات قديمة (من تطبيقات
+    # تانية) معندناش مفاتيحها الخاصة، وأي محاولة مزامنة تلقائية مع كل شهادات
+    # الحساب كانت بتفشل بسببها. الشهادة والبروفايل الحاليين اتعملوا بمفتاح خاص
+    # معروف من الأول وترفعوا يدويًا، فمفيش داعي لأي مزامنة API خالص.
     integrations:
       app_store_connect: codemagic
 
@@ -41,13 +44,12 @@ workflows:
           npm install
           npx cap sync ios
 
-      - name: إنشاء أو جلب شهادة وبروفايل التوقيع من App Store Connect
+      - name: إضافة الشهادة المرفوعة يدويًا لـ keychain البناء
         script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
+          keychain initialize
+          keychain add-certificates
 
-      - name: تطبيق بروفايلات التوقيع على مشروع Xcode
+      - name: تطبيق بروفايل التوقيع المرفوع يدويًا على مشروع Xcode
         script: |
           xcode-project use-profiles
 
