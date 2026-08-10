@@ -117,11 +117,28 @@
         <div id="renewPlansContainer" style="display:flex; flex-direction:column; gap:10px;">
           <div style="text-align:center; color:#64748b; padding:20px;">جاري تحميل الأسعار...</div>
         </div>
+
+        <div id="renewMethodContainer" style="display:none; margin-top:16px;">
+          <strong style="display:block; margin-bottom:8px; color:#0f172a; font-size:14px;">طريقة الدفع</strong>
+          <div style="display:flex; gap:10px;">
+            <div data-method="card" onclick="selectPaymentMethod('card')" style="flex:1; text-align:center; border:2px solid #061A3D; background:#f0f5ff; border-radius:10px; padding:10px; cursor:pointer; font-weight:800; font-size:13px;">
+              <i class="fa-solid fa-credit-card"></i> بطاقة / حساب بنكي
+            </div>
+            <div data-method="wallet" onclick="selectPaymentMethod('wallet')" style="flex:1; text-align:center; border:2px solid #e2e8f0; background:#fff; border-radius:10px; padding:10px; cursor:pointer; font-weight:800; font-size:13px;">
+              <i class="fa-solid fa-wallet"></i> محفظة إلكترونية
+            </div>
+          </div>
+          <div id="walletPhoneWrap" style="display:none; margin-top:12px;">
+            <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">رقم المحفظة الإلكترونية</label>
+            <input id="walletPhoneInput" type="tel" placeholder="01xxxxxxxxx" style="width:100%; box-sizing:border-box; padding:11px 14px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px;" />
+          </div>
+        </div>
+
         <div id="renewError" style="display:none; background:#fee2e2; color:#991b1b; padding:10px 14px; border-radius:10px; margin-top:12px; font-size:13px;"></div>
         <button type="button" id="renewPayBtn" onclick="startCheckout()" disabled style="width:100%; margin-top:16px; background:#061A3D; color:#fff; border:none; padding:13px; border-radius:999px; font-weight:900; font-size:15px; cursor:pointer; opacity:.5;">
           ادفع الآن
         </button>
-        <p style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px;">الدفع آمن عبر PayMob - هتقدر تختار محفظة إلكترونية أو بطاقة أو إنستا باي من صفحة الدفع.</p>
+        <p style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px;">الدفع آمن عبر PayMob.</p>
       </div>
     </div>
 
@@ -450,11 +467,15 @@
     // ==========================================
     const PLAN_LABELS = { month: 'شهر واحد', quarter: '3 أشهر (ربع سنوي)', half: '6 أشهر (نصف سنوي)', year: '12 شهر (سنوي)' };
     let selectedPlan = null;
+    let selectedMethod = 'card';
 
     async function openRenewModal() {
       document.getElementById('renewModal').style.display = 'flex';
       document.getElementById('renewError').style.display = 'none';
+      document.getElementById('renewMethodContainer').style.display = 'none';
       selectedPlan = null;
+      selectedMethod = 'card';
+      selectPaymentMethod('card');
       document.getElementById('renewPayBtn').disabled = true;
       document.getElementById('renewPayBtn').style.opacity = '.5';
 
@@ -466,6 +487,16 @@
       } catch (e) {
         document.getElementById('renewPlansContainer').innerHTML = '<div style="color:#991b1b; text-align:center; padding:20px;">تعذر تحميل الأسعار، حاول مرة أخرى</div>';
       }
+    }
+
+    function selectPaymentMethod(method) {
+      selectedMethod = method;
+      document.querySelectorAll('#renewMethodContainer [data-method]').forEach(el => {
+        const active = el.getAttribute('data-method') === method;
+        el.style.borderColor = active ? '#061A3D' : '#e2e8f0';
+        el.style.background = active ? '#f0f5ff' : '#fff';
+      });
+      document.getElementById('walletPhoneWrap').style.display = method === 'wallet' ? 'block' : 'none';
     }
 
     function closeRenewModal() {
@@ -492,6 +523,7 @@
           card.style.borderColor = '#061A3D';
           card.style.background = '#f0f5ff';
           selectedPlan = key;
+          document.getElementById('renewMethodContainer').style.display = 'block';
           const btn = document.getElementById('renewPayBtn');
           btn.disabled = false;
           btn.style.opacity = '1';
@@ -505,6 +537,17 @@
       const btn = document.getElementById('renewPayBtn');
       const errBox = document.getElementById('renewError');
       errBox.style.display = 'none';
+
+      let walletPhone = '';
+      if (selectedMethod === 'wallet') {
+        walletPhone = document.getElementById('walletPhoneInput').value.replace(/\D/g, '');
+        if (!/^01[0-9]{9}$/.test(walletPhone)) {
+          errBox.textContent = 'اكتب رقم محفظة صحيح (01xxxxxxxxx)';
+          errBox.style.display = 'block';
+          return;
+        }
+      }
+
       btn.disabled = true;
       btn.textContent = 'جاري التحويل لصفحة الدفع...';
 
@@ -512,11 +555,21 @@
         const r = await fetch('/api/worker/' + workerId + '/subscription/checkout', {
           method: 'POST',
           headers: authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ plan: selectedPlan })
+          body: JSON.stringify({ plan: selectedPlan, payment_method: selectedMethod, walletPhone })
         });
         const d = await r.json();
         if (!d.success) throw new Error(d.error || 'تعذر بدء عملية الدفع');
-        window.location.href = d.checkoutUrl;
+
+        if (selectedMethod === 'wallet') {
+          if (d.walletRedirectUrl) {
+            window.location.href = d.walletRedirectUrl;
+          } else {
+            closeRenewModal();
+            alert('تم إرسال طلب الدفع - افتح تطبيق المحفظة على موبايلك ووافق على العملية، أو استنى رسالة تأكيد على الرقم.');
+          }
+        } else {
+          window.location.href = d.checkoutUrl;
+        }
       } catch (e) {
         errBox.textContent = e.message;
         errBox.style.display = 'block';

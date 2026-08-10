@@ -1200,11 +1200,20 @@ app.get('/api/subscription-pricing', async (req, res) => {
   }
 });
 
-// الصنايعي بيبدأ عملية الدفع - بيرجع رابط صفحة الدفع الموحدة بتاعة PayMob
+// الصنايعي بيبدأ عملية الدفع - بيرجع رابط صفحة الدفع (بطاقة عبر PayMob Unified
+// Checkout) أو بيبدأ طلب دفع بالمحفظة مباشرة (النظام القديم، integration
+// المحفظة عندنا مُجهّز له بس)
 app.post('/api/worker/:id/subscription/checkout', registrationUpdateRateLimit, requireWorkerOwnership, async (req, res) => {
   try {
-    if (!paymob.isPaymobReady()) {
-      return res.status(503).json({ success: false, error: 'خدمة الدفع الإلكتروني غير متاحة حاليًا' });
+    const method = String(req.body?.payment_method || 'card').trim();
+    if (!['card', 'wallet'].includes(method)) {
+      return res.status(400).json({ success: false, error: 'طريقة الدفع غير معروفة' });
+    }
+    if (method === 'card' && !paymob.isPaymobReady()) {
+      return res.status(503).json({ success: false, error: 'خدمة الدفع بالبطاقة غير متاحة حاليًا' });
+    }
+    if (method === 'wallet' && !paymob.isWalletReady()) {
+      return res.status(503).json({ success: false, error: 'خدمة الدفع بالمحفظة غير متاحة حاليًا' });
     }
 
     const plan = String(req.body?.plan || '').trim();
@@ -1212,6 +1221,14 @@ app.post('/api/worker/:id/subscription/checkout', registrationUpdateRateLimit, r
     const planInfo = pricing.plans[plan];
     if (!planInfo) {
       return res.status(400).json({ success: false, error: 'باقة الاشتراك غير معروفة' });
+    }
+
+    let walletPhone = '';
+    if (method === 'wallet') {
+      walletPhone = String(req.body?.walletPhone || '').replace(/\D/g, '');
+      if (!/^01[0-9]{9}$/.test(walletPhone)) {
+        return res.status(400).json({ success: false, error: 'رقم المحفظة غير صحيح' });
+      }
     }
 
     const { data: worker, error: workerErr } = await supabase
@@ -1231,12 +1248,22 @@ app.post('/api/worker/:id/subscription/checkout', registrationUpdateRateLimit, r
         plan,
         months: planInfo.months,
         amount: planInfo.price,
-        payment_method: 'paymob',
+        payment_method: method === 'wallet' ? 'paymob_wallet' : 'paymob_card',
         status: 'pending'
       })
       .select()
       .single();
     if (insertErr) throw insertErr;
+
+    if (method === 'wallet') {
+      const walletPayment = await paymob.createWalletPayment({
+        amountEgp: planInfo.price,
+        specialReference: String(payment.id),
+        worker,
+        walletPhone
+      });
+      return res.json({ success: true, walletRedirectUrl: walletPayment.redirectUrl, pending: walletPayment.pending });
+    }
 
     const intention = await paymob.createPaymentIntention({
       amountEgp: planInfo.price,
