@@ -145,11 +145,44 @@ async function sendPasswordChangedEmail(worker) {
   return sendMail({ to: worker.email, subject: "تم تغيير كلمة المرور | صنايعي مطروح", html });
 }
 
+// 6. تنبيه اقتراب/وصول انتهاء الاشتراك
+async function sendSubscriptionReminderEmail(worker, daysLeft) {
+  const loginUrl = `${APP_BASE_URL}/worker-login`;
+  const isToday = daysLeft === 0;
+  const html = baseTemplate({
+    title: isToday ? "⏰ اشتراكك بينتهي النهاردة" : `⏰ اشتراكك هينتهي بعد ${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"}`,
+    bodyHtml: `
+      <p>يا ${worker.name}، ${isToday ? "اشتراكك في دليل صنايعي مطروح بينتهي النهاردة." : `باقي ${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"} بس على انتهاء اشتراكك في دليل صنايعي مطروح.`}</p>
+      <p>لو الاشتراك خلص، بروفايلك هيختفي من نتائج بحث العملاء لحد ما تجدده.</p>
+      <p><a href="${loginUrl}" style="color:#0284c7;font-weight:bold;">سجّل دخولك من هنا لتجديد الاشتراك</a></p>
+    `
+  });
+  return sendMail({ to: worker.email, subject: isToday ? "اشتراكك بينتهي النهاردة | صنايعي مطروح" : `تذكير: اشتراكك هينتهي بعد ${daysLeft} ${daysLeft === 1 ? "يوم" : "أيام"} | صنايعي مطروح`, html });
+}
+
+// 7. تأكيد نجاح تجديد الاشتراك
+async function sendSubscriptionRenewedEmail(worker, { months, amount, newEnd }) {
+  const profileUrl = `${APP_BASE_URL}/worker/${worker.id}`;
+  const html = baseTemplate({
+    title: "✅ تم تجديد اشتراكك بنجاح",
+    bodyHtml: `
+      <p>يا ${worker.name}، تم تجديد اشتراكك في دليل صنايعي مطروح بنجاح.</p>
+      <p><b>المدة:</b> ${months} ${months === 1 ? "شهر" : "أشهر"}</p>
+      ${amount ? `<p><b>المبلغ:</b> ${amount} جنيه</p>` : ""}
+      <p><b>الاشتراك سار لحد:</b> ${new Date(newEnd).toLocaleDateString("ar-EG")}</p>
+      <p><a href="${profileUrl}" style="color:#0284c7;">شاهد بروفايلك العام</a></p>
+    `
+  });
+  return sendMail({ to: worker.email, subject: "تم تجديد اشتراكك بنجاح | صنايعي مطروح", html });
+}
+
 module.exports = {
   isMailerReady,
   sendWelcomeEmail,
   sendIdentityVerifiedEmail,
   sendIdentityActionEmail,
   sendPasswordResetEmail,
-  sendPasswordChangedEmail
+  sendPasswordChangedEmail,
+  sendSubscriptionReminderEmail,
+  sendSubscriptionRenewedEmail
 };

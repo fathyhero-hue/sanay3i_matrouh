@@ -39,6 +39,7 @@ function switchTab(t,b){
   if(t==='analytics') loadAnalytics();
   if(t==='users') loadAdminUsers();
   if(t==='backups') loadBackupSummary();
+  if(t==='subscriptions') loadSubscriptionsAdmin();
   if(t==='activityLog') loadActivityLog();
   if(t==='whatsapp'){renderWaSingleWorkerOptions();previewWhatsappSingle();previewWhatsappBulk();loadWhatsappInbox();loadWhatsappLogs();}
 }
@@ -264,15 +265,20 @@ function openIdentity(w){
   });
 }
 
-function openRenew(w){
+async function openRenew(w){
   const id=String(wid(w)); const sub=subInfo(w);
+  if(!__subPricingCache){ try{ const r=await fetch("/api/admin/settings/subscription-pricing",{credentials:"include"}); const d=await r.json(); if(d.success) __subPricingCache=d.pricing; }catch(e){} }
+  const plans=(__subPricingCache&&__subPricingCache.plans)||{month:{months:1,price:100},quarter:{months:3,price:285},half:{months:6,price:540},year:{months:12,price:1020}};
+  const planLabels={month:"شهر",quarter:"ربع سنوي (3 أشهر)",half:"نصف سنوي (6 أشهر)",year:"سنوي (12 شهر)"};
+  const planOptions=Object.keys(plans).map(k=>`<option value="${k}">${planLabels[k]} - ${plans[k].price} جنيه</option>`).join("")+'<option value="custom">مخصص</option>';
+
   openForceModal('الاشتراك والتجديد', `${workerSummary(w)}
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;padding:12px;margin-bottom:14px;font-weight:900;color:#475569;">نهاية الاشتراك الحالية: ${esc(formatDate(sub.end))}</div>
     <form id="forceRenewFormV8">
       <div class="edit-grid">
-        <label class="edit-field"><b>الباقة</b><select id="v8_renew_plan"><option value="month">شهر - 100 جنيه</option><option value="half">نصف سنة - 600 جنيه</option><option value="year">سنة - 1200 جنيه</option><option value="custom">مخصص</option></select></label>
-        <label class="edit-field"><b>عدد الشهور</b><input id="v8_renew_months" type="number" min="1" max="60" value="1" required></label>
-        <label class="edit-field"><b>المبلغ المدفوع</b><input id="v8_renew_amount" type="number" min="0" step="1" value="100" required></label>
+        <label class="edit-field"><b>الباقة</b><select id="v8_renew_plan">${planOptions}</select></label>
+        <label class="edit-field"><b>عدد الشهور</b><input id="v8_renew_months" type="number" min="1" max="60" value="${plans.month.months}" required></label>
+        <label class="edit-field"><b>المبلغ المدفوع</b><input id="v8_renew_amount" type="number" min="0" step="1" value="${plans.month.price}" required></label>
         <label class="edit-field"><b>طريقة الدفع</b><select id="v8_renew_method"><option value="cash">كاش</option><option value="vodafone_cash">فودافون كاش</option><option value="instapay">إنستاباي</option><option value="bank_transfer">تحويل بنكي</option><option value="free">مجاني / هدية</option><option value="other">أخرى</option></select></label>
         <label class="edit-field"><b>حالة الدفع</b><select id="v8_renew_status"><option value="paid">مدفوع</option><option value="pending">منتظر الدفع</option><option value="partial">مدفوع جزئيًا</option></select></label>
         <label class="edit-field full"><b>ملاحظات الدفع</b><textarea id="v8_renew_note" style="min-height:100px"></textarea></label>
@@ -282,7 +288,10 @@ function openRenew(w){
         <button type="submit" class="modal-btn modal-btn-primary">حفظ التجديد</button>
       </div>
     </form>`);
-  document.getElementById('v8_renew_plan').onchange=function(){ const p=this.value; const map={month:[1,100],half:[6,600],year:[12,1200],custom:[1,0]}; document.getElementById('v8_renew_months').value=map[p][0]; document.getElementById('v8_renew_amount').value=map[p][1]; };
+  document.getElementById('v8_renew_plan').onchange=function(){
+    const p=plans[this.value];
+    if(p){ document.getElementById('v8_renew_months').value=p.months; document.getElementById('v8_renew_amount').value=p.price; }
+  };
   submitForceForm(document.getElementById('forceRenewFormV8'),{
     url:'/api/workers/'+id+'/renew', method:'PUT',
     buildBody:()=>({plan:document.getElementById('v8_renew_plan').value,months:Number(document.getElementById('v8_renew_months').value)||1,amount:Number(document.getElementById('v8_renew_amount').value)||0,payment_method:document.getElementById('v8_renew_method').value,payment_status:document.getElementById('v8_renew_status').value,note:document.getElementById('v8_renew_note').value.trim()}),
@@ -615,6 +624,81 @@ async function loadBackupSummary(){
     if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل ملخص النسخ الاحتياطي");
     if(box){ box.innerHTML=(d.items||[]).map(item=>`<div class="backup-summary-item"><strong>${item.count===null?"—":item.count}</strong><span>${item.label||item.table}</span>${item.error?`<small style="display:block;color:#991b1b;margin-top:5px">غير جاهز</small>`:""}</div>`).join("") || '<div class="empty-state">لا توجد بيانات</div>'; }
   }catch(e){ if(box)box.innerHTML='<div class="empty-state">تعذر تحميل الملخص</div>'; }
+}
+
+let __subPricingCache=null;
+
+async function loadSubscriptionsAdmin(){
+  await Promise.all([loadSubscriptionPricingForm(), loadSubscriptionPayments()]);
+}
+
+async function loadSubscriptionPricingForm(){
+  try{
+    const r=await fetch("/api/admin/settings/subscription-pricing",{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success) throw new Error(d.error||"تعذر تحميل التسعير");
+    __subPricingCache=d.pricing;
+    document.getElementById("subPriceMonthly").value=d.pricing.monthly;
+    document.getElementById("subDiscountQuarter").value=d.pricing.discounts.quarter;
+    document.getElementById("subDiscountHalf").value=d.pricing.discounts.half;
+    document.getElementById("subDiscountYear").value=d.pricing.discounts.year;
+    renderSubPricingPreview(d.pricing);
+  }catch(e){ toast("error", e.message||"تعذر تحميل إعدادات التسعير"); }
+}
+
+function renderSubPricingPreview(pricing){
+  const box=document.getElementById("subPricingPreview"); if(!box) return;
+  const labels={month:"شهر",quarter:"ربع سنوي",half:"نصف سنوي",year:"سنوي"};
+  box.innerHTML = Object.keys(pricing.plans).map(k=>{
+    const p=pricing.plans[k];
+    return `<span style="display:inline-block;background:#f1f5f9;border-radius:999px;padding:6px 14px;margin:4px;font-weight:800;">${labels[k]}: ${p.price} ج.م</span>`;
+  }).join("");
+}
+
+async function saveSubscriptionPricing(){
+  const monthly=Number(document.getElementById("subPriceMonthly").value)||0;
+  const discounts={
+    quarter:Number(document.getElementById("subDiscountQuarter").value)||0,
+    half:Number(document.getElementById("subDiscountHalf").value)||0,
+    year:Number(document.getElementById("subDiscountYear").value)||0
+  };
+  try{
+    const r=await fetch("/api/admin/settings/subscription-pricing",{
+      method:"PUT", credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({monthly,discounts})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success) throw new Error(d.error||"فشل حفظ التسعير");
+    __subPricingCache=d.pricing;
+    renderSubPricingPreview(d.pricing);
+    toast("success","تم حفظ التسعير بنجاح");
+  }catch(e){ toast("error", e.message||"فشل حفظ التسعير"); }
+}
+
+async function loadSubscriptionPayments(){
+  const box=document.getElementById("subscriptionPaymentsList"); if(box)box.innerHTML='<div class="empty-admin">جاري تحميل سجل المدفوعات...</div>';
+  try{
+    const r=await fetch("/api/admin/subscription-payments",{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success) throw new Error(d.error||"تعذر تحميل سجل المدفوعات");
+    const items=d.payments||[];
+    if(box) box.innerHTML = items.length ? items.map(renderSubscriptionPaymentItem).join("") : '<div class="empty-admin">لا يوجد مدفوعات مسجّلة بعد</div>';
+  }catch(e){ if(box) box.innerHTML='<div class="empty-admin">تعذر تحميل سجل المدفوعات</div>'; }
+}
+
+function renderSubscriptionPaymentItem(p){
+  const statusLabels={paid:"مدفوع",pending:"منتظر",failed:"فشل",cancelled:"ملغي"};
+  const statusColors={paid:"#166534",pending:"#92400e",failed:"#991b1b",cancelled:"#64748b"};
+  const workerName=esc((p.workers&&p.workers.name)||"صنايعي محذوف");
+  const methodLabels={paymob:"PayMob",cash:"كاش",vodafone_cash:"فودافون كاش",instapay:"إنستاباي",bank_transfer:"تحويل بنكي",free:"مجاني",other:"أخرى"};
+  return `<div class="list-item">
+    <div>
+      <strong>${workerName}</strong> — ${p.months} ${p.months===1?"شهر":"أشهر"} — <strong>${p.amount} ${esc(p.currency||"EGP")}</strong>
+      <div style="color:var(--muted);font-size:12px;font-weight:800;margin-top:4px;">${methodLabels[p.payment_method]||esc(p.payment_method)} · ${waDate(p.created_at)}</div>
+    </div>
+    <span style="font-weight:900;color:${statusColors[p.status]||"#64748b"}">${statusLabels[p.status]||esc(p.status)}</span>
+  </div>`;
 }
 
 async function loadActivityLog(){

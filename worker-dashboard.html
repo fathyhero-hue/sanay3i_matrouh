@@ -99,7 +99,30 @@
         <strong style="display:block; color:#0f172a; margin-bottom:4px;"><i class="fa-solid fa-crown"></i> حالة الاشتراك</strong>
         <span style="color:#64748b; font-size:13px;">من <span id="subStart">-</span> إلى <span id="subEnd">-</span></span>
       </div>
-      <span id="subStatusBadge" style="padding:8px 14px; border-radius:999px; font-weight:900; font-size:13px;"></span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="subStatusBadge" style="padding:8px 14px; border-radius:999px; font-weight:900; font-size:13px;"></span>
+        <button type="button" onclick="openRenewModal()" style="background:#061A3D; color:#fff; border:none; padding:9px 16px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap;">
+          <i class="fa-solid fa-crown"></i> تجديد الاشتراك
+        </button>
+      </div>
+    </div>
+
+    <!-- مودال تجديد الاشتراك -->
+    <div id="renewModal" style="display:none; position:fixed; inset:0; background:rgba(6,26,61,.55); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+      <div style="background:#fff; border-radius:16px; max-width:460px; width:100%; padding:22px; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <strong style="font-size:17px; color:#0f172a;"><i class="fa-solid fa-crown"></i> تجديد الاشتراك</strong>
+          <button type="button" onclick="closeRenewModal()" style="background:none; border:none; font-size:20px; color:#64748b; cursor:pointer;">&times;</button>
+        </div>
+        <div id="renewPlansContainer" style="display:flex; flex-direction:column; gap:10px;">
+          <div style="text-align:center; color:#64748b; padding:20px;">جاري تحميل الأسعار...</div>
+        </div>
+        <div id="renewError" style="display:none; background:#fee2e2; color:#991b1b; padding:10px 14px; border-radius:10px; margin-top:12px; font-size:13px;"></div>
+        <button type="button" id="renewPayBtn" onclick="startCheckout()" disabled style="width:100%; margin-top:16px; background:#061A3D; color:#fff; border:none; padding:13px; border-radius:999px; font-weight:900; font-size:15px; cursor:pointer; opacity:.5;">
+          ادفع الآن
+        </button>
+        <p style="text-align:center; color:#94a3b8; font-size:12px; margin-top:10px;">الدفع آمن عبر PayMob - هتقدر تختار محفظة إلكترونية أو بطاقة أو إنستا باي من صفحة الدفع.</p>
+      </div>
     </div>
 
     <div class="tabs">
@@ -420,6 +443,97 @@
         badge.style.background = '#dcfce7'; badge.style.color = '#166534';
         badge.textContent = 'نشط - متبقي ' + days + ' يوم';
       }
+    }
+
+    // ==========================================
+    // تجديد الاشتراك بالدفع الإلكتروني
+    // ==========================================
+    const PLAN_LABELS = { month: 'شهر واحد', quarter: '3 أشهر (ربع سنوي)', half: '6 أشهر (نصف سنوي)', year: '12 شهر (سنوي)' };
+    let selectedPlan = null;
+
+    async function openRenewModal() {
+      document.getElementById('renewModal').style.display = 'flex';
+      document.getElementById('renewError').style.display = 'none';
+      selectedPlan = null;
+      document.getElementById('renewPayBtn').disabled = true;
+      document.getElementById('renewPayBtn').style.opacity = '.5';
+
+      try {
+        const r = await fetch('/api/subscription-pricing');
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error || 'فشل تحميل الأسعار');
+        renderRenewPlans(d.pricing.plans);
+      } catch (e) {
+        document.getElementById('renewPlansContainer').innerHTML = '<div style="color:#991b1b; text-align:center; padding:20px;">تعذر تحميل الأسعار، حاول مرة أخرى</div>';
+      }
+    }
+
+    function closeRenewModal() {
+      document.getElementById('renewModal').style.display = 'none';
+    }
+
+    function renderRenewPlans(plans) {
+      const container = document.getElementById('renewPlansContainer');
+      container.innerHTML = '';
+      Object.keys(plans).forEach(key => {
+        const plan = plans[key];
+        const card = document.createElement('div');
+        card.setAttribute('data-plan', key);
+        card.style.cssText = 'border:2px solid #e2e8f0; border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:.15s;';
+        card.innerHTML = `
+          <div>
+            <strong style="display:block; color:#0f172a;">${PLAN_LABELS[key] || key}</strong>
+            ${plan.discount > 0 ? `<span style="color:#16a34a; font-size:12px; font-weight:800;">خصم ${plan.discount}%</span>` : ''}
+          </div>
+          <strong style="color:#061A3D; font-size:17px;">${plan.price} ج.م</strong>
+        `;
+        card.onclick = () => {
+          document.querySelectorAll('#renewPlansContainer > div').forEach(el => { el.style.borderColor = '#e2e8f0'; el.style.background = '#fff'; });
+          card.style.borderColor = '#061A3D';
+          card.style.background = '#f0f5ff';
+          selectedPlan = key;
+          const btn = document.getElementById('renewPayBtn');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        };
+        container.appendChild(card);
+      });
+    }
+
+    async function startCheckout() {
+      if (!selectedPlan) return;
+      const btn = document.getElementById('renewPayBtn');
+      const errBox = document.getElementById('renewError');
+      errBox.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'جاري التحويل لصفحة الدفع...';
+
+      try {
+        const r = await fetch('/api/worker/' + workerId + '/subscription/checkout', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ plan: selectedPlan })
+        });
+        const d = await r.json();
+        if (!d.success) throw new Error(d.error || 'تعذر بدء عملية الدفع');
+        window.location.href = d.checkoutUrl;
+      } catch (e) {
+        errBox.textContent = e.message;
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'ادفع الآن';
+      }
+    }
+
+    // بعد الرجوع من صفحة PayMob - نستنى شوية ونعيد تحميل البروفايل عشان نشوف
+    // هل الاشتراك اتجدد فعلاً (الـ webhook بياخد كام ثانية)
+    if (new URLSearchParams(window.location.search).get('subscription') === 'return') {
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts += 1;
+        await loadProfile();
+        if (attempts >= 6) clearInterval(poll);
+      }, 3000);
     }
 
     function formatArDate(value) {

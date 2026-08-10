@@ -13,6 +13,16 @@ function addMonths(start, months) {
   return d.toISOString().split("T")[0];
 }
 
+// تمديد نهاية الاشتراك: من نهاية الاشتراك الحالي لو لسه ما انتهاش، أو من
+// النهاردة لو منتهي/مش موجود أصلاً - نفس منطق مسارات التجديد الموجودة
+function extendSubscription(currentEndIso, months) {
+  const now = new Date();
+  let currentEnd = currentEndIso ? new Date(currentEndIso) : new Date(now);
+  if (isNaN(currentEnd.getTime()) || currentEnd < now) currentEnd = new Date(now);
+  currentEnd.setMonth(currentEnd.getMonth() + (parseInt(months, 10) || 1));
+  return currentEnd.toISOString();
+}
+
 // تحويل أي قيمة لـ (صح أو خطأ) boolean
 function bool(v) {
   return v === true || v === "true" || v === "1" || v === 1;
@@ -69,6 +79,7 @@ function hashToken(token) {
 module.exports = {
   today,
   addMonths,
+  extendSubscription,
   bool,
   normalizeWorkerPhone,
   workerPhoneKeysFromValues,

@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 // ===============================
 // 2. تفعيل حراس الأمان (Rate Limiters)
 // ===============================
-const { adminApiRateLimit, analyticsRateLimit, adminLoginRateLimit, workerLoginRateLimit } = require("./middlewares/rateLimit");
+const { adminApiRateLimit, analyticsRateLimit, adminLoginRateLimit, workerLoginRateLimit, registrationUpdateRateLimit } = require("./middlewares/rateLimit");
 
 app.use("/api/admin", (req, res, next) => {
   if (req.path === "/login") return adminLoginRateLimit(req, res, next);
@@ -62,9 +62,11 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 const { requirePermission, createWorkerToken, requireWorkerOwnership } = require("./middlewares/auth");
-const { isValidEmail, generateSecureToken, hashToken } = require("./utils/helpers");
+const { isValidEmail, generateSecureToken, hashToken, extendSubscription } = require("./utils/helpers");
 const { logAdminActivity } = require("./utils/activityLogger");
 const mailer = require("./utils/mailer");
+const paymob = require("./utils/paymob");
+const { getSubscriptionPricing, setSubscriptionPricing } = require("./utils/settings");
 
 async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
@@ -1185,6 +1187,156 @@ app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.f
 });
 
 // ===============================
+// 5.2.5 تجديد الاشتراك بالدفع الإلكتروني (PayMob)
+// ===============================
+
+// أسعار الباقات - عام، بدون تسجيل دخول (بتتعرض في لوحة الصنايعي قبل الدفع)
+app.get('/api/subscription-pricing', async (req, res) => {
+  try {
+    const pricing = await getSubscriptionPricing();
+    res.json({ success: true, pricing });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// الصنايعي بيبدأ عملية الدفع - بيرجع رابط صفحة الدفع الموحدة بتاعة PayMob
+app.post('/api/worker/:id/subscription/checkout', registrationUpdateRateLimit, requireWorkerOwnership, async (req, res) => {
+  try {
+    if (!paymob.isPaymobReady()) {
+      return res.status(503).json({ success: false, error: 'خدمة الدفع الإلكتروني غير متاحة حاليًا' });
+    }
+
+    const plan = String(req.body?.plan || '').trim();
+    const pricing = await getSubscriptionPricing();
+    const planInfo = pricing.plans[plan];
+    if (!planInfo) {
+      return res.status(400).json({ success: false, error: 'باقة الاشتراك غير معروفة' });
+    }
+
+    const { data: worker, error: workerErr } = await supabase
+      .from('workers')
+      .select('id, name, phone, whatsapp, email, area')
+      .eq('id', req.params.id)
+      .single();
+    if (workerErr || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+    if (!worker.email) {
+      return res.status(400).json({ success: false, error: 'لازم تسجّل بريد إلكتروني في بياناتك الأول عشان نقدر نأكدلك التجديد' });
+    }
+
+    const { data: payment, error: insertErr } = await supabase
+      .from('subscription_payments')
+      .insert({
+        worker_id: worker.id,
+        plan,
+        months: planInfo.months,
+        amount: planInfo.price,
+        payment_method: 'paymob',
+        status: 'pending'
+      })
+      .select()
+      .single();
+    if (insertErr) throw insertErr;
+
+    const intention = await paymob.createPaymentIntention({
+      amountEgp: planInfo.price,
+      specialReference: payment.id,
+      worker,
+      redirectionUrl: `${process.env.APP_BASE_URL || ''}/worker-dashboard.html?subscription=return`,
+      notificationUrl: `${process.env.APP_BASE_URL || ''}/api/payments/paymob/webhook`
+    });
+
+    await supabase
+      .from('subscription_payments')
+      .update({ paymob_intention_id: intention.intentionId })
+      .eq('id', payment.id);
+
+    res.json({ success: true, checkoutUrl: intention.checkoutUrl });
+  } catch (err) {
+    console.error('Subscription Checkout Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// استقبال نتيجة الدفع من PayMob (webhook) - محمي بتوقيع HMAC بدل تسجيل دخول عادي
+app.post('/api/payments/paymob/webhook', express.json({ limit: '2mb' }), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const transaction = body.obj || body;
+    const receivedHmac = req.query.hmac || req.body.hmac;
+
+    if (!paymob.verifyWebhookHmac(transaction, receivedHmac)) {
+      console.warn('PayMob webhook: توقيع HMAC غير صحيح، تم تجاهل الطلب');
+      return res.status(401).json({ success: false, error: 'invalid signature' });
+    }
+
+    // نعتمد فقط على success/pending الأساسيين، ومش بنعمل أي حاجة لو الدفع لسه معلق
+    if (transaction.pending) {
+      return res.json({ success: true, message: 'pending' });
+    }
+
+    // special_reference بتاعنا (= id صف subscription_payments) المفروض يترجع في
+    // أكتر من مكان محتمل حسب شكل الـ payload بالظبط - بنجرب كل الاحتمالات
+    const paymentId = transaction.special_reference
+      || transaction.order?.merchant_order_id
+      || transaction.merchant_order_id;
+
+    const { data: payment } = await supabase
+      .from('subscription_payments')
+      .select('*')
+      .eq('id', paymentId)
+      .maybeSingle();
+
+    if (!payment) {
+      console.warn('PayMob webhook: مفيش صف دفع مطابق لـ', paymentId, '- الـ payload الكامل:', JSON.stringify(transaction));
+      return res.json({ success: true, message: 'no matching payment' });
+    }
+    if (payment.status === 'paid') {
+      return res.json({ success: true, message: 'already processed' });
+    }
+
+    if (!transaction.success) {
+      await supabase.from('subscription_payments').update({ status: 'failed', raw_webhook: transaction }).eq('id', payment.id);
+      return res.json({ success: true, message: 'payment failed' });
+    }
+
+    const { data: worker } = await supabase
+      .from('workers')
+      .select('id, name, email, subscription_end')
+      .eq('id', payment.worker_id)
+      .single();
+    if (!worker) return res.json({ success: true, message: 'worker not found' });
+
+    const newEnd = extendSubscription(worker.subscription_end, payment.months);
+
+    await supabase
+      .from('workers')
+      .update({ subscription_end: newEnd, last_subscription_reminder_days: null })
+      .eq('id', worker.id);
+
+    await supabase
+      .from('subscription_payments')
+      .update({ status: 'paid', paid_at: new Date().toISOString(), paymob_transaction_id: String(transaction.id || ''), raw_webhook: transaction })
+      .eq('id', payment.id);
+
+    logAdminActivity(req, "subscription_renewed_online", {
+      entity_type: "worker",
+      entity_id: worker.id,
+      entity_name: worker.name,
+      details: { plan: payment.plan, months: payment.months, amount: payment.amount, via: 'paymob' }
+    }).catch(err => console.warn("Failed to log subscription_renewed_online activity:", err.message));
+
+    mailer.sendSubscriptionRenewedEmail(worker, { months: payment.months, amount: payment.amount, newEnd })
+      .catch(err => console.error('Failed to send subscription renewed email:', err.message));
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('PayMob Webhook Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===============================
 // 5.3. مسارات عرض صور البطاقات السرية
 // ===============================
 async function serveIdentityImage(req, res) {
@@ -1283,8 +1435,8 @@ app.put('/api/workers/:id/active', adminApiRateLimit, requirePermission("workers
 
 app.put('/api/workers/:id/renew', adminApiRateLimit, requirePermission("subscriptions:manage"), async (req, res) => {
     try {
-        const { months, amount, payment_method, payment_status, note } = req.body;
-        const addMonths = parseInt(months) || 1;
+        const { months, amount, payment_method, plan, note } = req.body;
+        const addMonthsCount = parseInt(months) || 1;
 
         const { data: worker, error: fetchError } = await supabase
             .from('workers')
@@ -1294,16 +1446,11 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, requirePermission("subscrip
 
         if (fetchError) throw fetchError;
 
-        const now = new Date();
-        let currentEnd = worker?.subscription_end ? new Date(worker.subscription_end) : new Date(now);
-        if (currentEnd < now) currentEnd = new Date(now);
+        const newEnd = extendSubscription(worker?.subscription_end, addMonthsCount);
+        const updateData = { subscription_end: newEnd, last_subscription_reminder_days: null };
 
-        currentEnd.setMonth(currentEnd.getMonth() + addMonths);
-
-        const updateData = { subscription_end: currentEnd.toISOString() };
-        
         if (!worker?.subscription_start) {
-            updateData.subscription_start = now.toISOString();
+            updateData.subscription_start = new Date().toISOString();
         }
 
         const { error: updateError } = await supabase
@@ -1312,6 +1459,17 @@ app.put('/api/workers/:id/renew', adminApiRateLimit, requirePermission("subscrip
             .eq('id', req.params.id);
 
         if (updateError) throw updateError;
+
+        await supabase.from('subscription_payments').insert({
+            worker_id: req.params.id,
+            plan: ['month', 'quarter', 'half', 'year', 'custom'].includes(plan) ? plan : 'month',
+            months: addMonthsCount,
+            amount: Number(amount) || 0,
+            payment_method: payment_method || 'cash',
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            note: note || null
+        }).then(({ error }) => { if (error) console.warn('Failed to log manual renew payment:', error.message); });
 
         res.json({ success: true, message: 'تم تجديد الاشتراك بنجاح' });
     } catch (err) {
@@ -1330,12 +1488,8 @@ app.put('/api/admin/workers/renew-all', adminApiRateLimit, requirePermission("su
 
         const now = new Date();
         const updatePromises = workers.map(worker => {
-            let currentEnd = worker.subscription_end ? new Date(worker.subscription_end) : new Date(now);
-            if (currentEnd < now) currentEnd = new Date(now);
-            currentEnd.setMonth(currentEnd.getMonth() + addMonths);
+            const updateData = { subscription_end: extendSubscription(worker.subscription_end, addMonths), last_subscription_reminder_days: null };
 
-            const updateData = { subscription_end: currentEnd.toISOString() };
-            
             if (!worker.subscription_start) {
                 updateData.subscription_start = now.toISOString();
             }
@@ -1350,6 +1504,43 @@ app.put('/api/admin/workers/renew-all', adminApiRateLimit, requirePermission("su
         res.json({ success: true, message: `تم تجديد اشتراك ${workers.length} صنايعي بنجاح.` });
     } catch (err) {
         console.error('Renew All Error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// إعدادات تسعير الاشتراك (السعر الشهري + نسب الخصم لكل باقة)
+app.get('/api/admin/settings/subscription-pricing', adminApiRateLimit, requirePermission("settings:manage"), async (req, res) => {
+    try {
+        const pricing = await getSubscriptionPricing();
+        res.json({ success: true, pricing });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.put('/api/admin/settings/subscription-pricing', adminApiRateLimit, requirePermission("settings:manage"), async (req, res) => {
+    try {
+        const { monthly, discounts } = req.body;
+        const pricing = await setSubscriptionPricing({ monthly, discounts });
+        logAdminActivity(req, "subscription_pricing_updated", { details: { monthly, discounts } })
+          .catch(err => console.warn("Failed to log subscription_pricing_updated activity:", err.message));
+        res.json({ success: true, pricing });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// سجل مدفوعات الاشتراك (يدوي من الأدمن + إلكتروني عبر PayMob) - لمراجعة/تسوية الأدمن
+app.get('/api/admin/subscription-payments', adminApiRateLimit, requirePermission("settings:manage"), async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('subscription_payments')
+            .select('id, worker_id, plan, months, amount, currency, payment_method, status, created_at, paid_at, note, workers(name, phone)')
+            .order('created_at', { ascending: false })
+            .limit(300);
+        if (error) throw error;
+        res.json({ success: true, payments: data || [] });
+    } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -1420,6 +1611,7 @@ const workersRoutes = require("./routes/workers");
 const whatsappRoutes = require("./routes/whatsapp");
 const supportRoutes = require("./routes/support");
 const coreRoutes = require("./routes/core");
+const cronRoutes = require("./routes/cron");
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/workers", workersRoutes);
@@ -1427,6 +1619,7 @@ app.use("/api/sanaieya", workersRoutes);
 app.use("/api", whatsappRoutes);
 app.use("/api/support-chat", supportRoutes);
 app.use("/api", coreRoutes);
+app.use("/api/cron", cronRoutes);
 
 
 // ===============================

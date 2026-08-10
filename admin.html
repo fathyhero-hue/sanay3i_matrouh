@@ -109,6 +109,7 @@
       <a class="admin-tab" data-permission="workers:create" href="/admin/add-worker"><i class="fa-solid fa-user-plus"></i> إضافة صنايعي</a>
       <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button>
       <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
+      <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('subscriptions',this)"><i class="fa-solid fa-crown"></i> الاشتراكات</button>
       <button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button>
       <button class="admin-tab" data-permission="reports:read" onclick="switchTab('reports',this)"><i class="fa-solid fa-triangle-exclamation"></i> البلاغات</button>
       <button class="admin-tab" data-permission="whatsapp:send" onclick="switchTab('whatsapp',this)"><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button>
@@ -198,6 +199,39 @@
           <button type="submit"><i class="fa-solid fa-plus"></i> إضافة منطقة</button>
         </form>
         <div class="items-list" id="areasList"></div>
+      </div>
+    </section>
+
+    <!-- Subscriptions Section -->
+    <section class="admin-section" id="subscriptionsSection">
+      <div class="admin-panel">
+        <h3><i class="fa-solid fa-crown"></i> إعدادات تسعير الاشتراك</h3>
+        <p>حدد سعر الاشتراك الشهري، ونسبة الخصم لكل باقة أطول.</p>
+        <div class="edit-grid" style="margin-top:14px">
+          <div class="edit-field">
+            <label>السعر الشهري (جنيه)</label>
+            <input id="subPriceMonthly" type="number" min="0" step="1" />
+          </div>
+          <div class="edit-field">
+            <label>خصم الباقة الربع سنوية (%)</label>
+            <input id="subDiscountQuarter" type="number" min="0" max="100" step="1" />
+          </div>
+          <div class="edit-field">
+            <label>خصم الباقة النصف سنوية (%)</label>
+            <input id="subDiscountHalf" type="number" min="0" max="100" step="1" />
+          </div>
+          <div class="edit-field">
+            <label>خصم الباقة السنوية (%)</label>
+            <input id="subDiscountYear" type="number" min="0" max="100" step="1" />
+          </div>
+        </div>
+        <div id="subPricingPreview" style="margin:14px 0; color:#475569; font-size:14px;"></div>
+        <button class="btn btn-primary" onclick="saveSubscriptionPricing()"><i class="fa-solid fa-floppy-disk"></i> حفظ التسعير</button>
+      </div>
+      <div class="admin-panel" style="margin-top:20px">
+        <h3><i class="fa-solid fa-receipt"></i> سجل مدفوعات الاشتراك</h3>
+        <p>كل عمليات التجديد (اليدوية من الإدارة والإلكترونية عبر PayMob).</p>
+        <div class="items-list" id="subscriptionPaymentsList" style="margin-top:14px"></div>
       </div>
     </section>
 
