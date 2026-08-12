@@ -3,6 +3,13 @@ let allTrades = [];
 let allAreas = [];
 let ratingsByWorker = {};
 let expandedTradeKey = "";
+let renderDebounceTimer = null;
+
+// البحث كان يعيد بناء كل البطاقات مع كل حرف؛ تأخير صغير يجعل الكتابة سلسة.
+function scheduleTradeGroupsRender() {
+  window.clearTimeout(renderDebounceTimer);
+  renderDebounceTimer = window.setTimeout(renderTradeGroups, 180);
+}
 
 function toggleMobileMenu() {
   const nav = document.getElementById("mobileNav");
@@ -322,8 +329,8 @@ function renderTopDemandTrades() {
   });
 }
 
-async function loadTrades() {
-  const data = await fetchJson("/api/trades");
+async function loadTrades(data) {
+  data = data || await fetchJson("/api/trades");
   allTrades = normalizeArray(data);
   const select = document.getElementById("tradeFilter");
   if(select) {
@@ -337,8 +344,8 @@ async function loadTrades() {
   if(tCount) tCount.textContent = allTrades.length;
 }
 
-async function loadAreas() {
-  const data = await fetchJson("/api/areas");
+async function loadAreas(data) {
+  data = data || await fetchJson("/api/areas");
   allAreas = normalizeArray(data);
   const select = document.getElementById("areaFilter");
   if(select) {
@@ -351,13 +358,13 @@ async function loadAreas() {
   renderAreaIcons();
 }
 
-async function loadWorkers() {
+async function loadWorkers(data) {
   const loadingBox = document.getElementById("loadingBox");
   const emptyBox = document.getElementById("emptyBox");
   if(loadingBox) loadingBox.style.display = "flex";
   if(emptyBox) emptyBox.style.display = "none";
 
-  const data = await fetchJson("/api/workers?limit=1200");
+  data = data || await fetchJson("/api/workers?limit=1200");
   const workers = normalizeArray(data);
 
   allWorkers = workers.filter(worker => {
@@ -366,7 +373,7 @@ async function loadWorkers() {
     return ok(approved) && ok(active) && isSubscriptionOk(worker);
   });
 
-  await loadRatingsForWorkers();
+  loadRatingsForWorkers();
   if(loadingBox) loadingBox.style.display = "none";
   renderTradeGroups();
   updateStats();
@@ -609,9 +616,15 @@ function setFooterYear() {
 
 async function initPage() {
   setFooterYear();
-  await loadTrades();
-  await loadAreas();
-  await loadWorkers();
+  // هذه البيانات مستقلة؛ تحميلها بالتوازي يوفر جولتي انتظار شبكي على الصفحة الرئيسية.
+  const [tradesData, areasData, workersData] = await Promise.all([
+    fetchJson("/api/trades"),
+    fetchJson("/api/areas"),
+    fetchJson("/api/workers?limit=1200")
+  ]);
+  await loadTrades(tradesData);
+  await loadAreas(areasData);
+  await loadWorkers(workersData);
   applyFilterFromUrl();
 }
 

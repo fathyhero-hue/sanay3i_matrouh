@@ -1,4 +1,5 @@
 const express = require("express");
+const compression = require("compression");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
@@ -12,6 +13,8 @@ const app = express();
 // ===============================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// ضغط JSON وملفات النص يقلل حجم نقل بيانات القوائم والصفحات بشكل ملحوظ.
+app.use(compression());
 app.disable("x-powered-by");
 
 app.use((req, res, next) => {

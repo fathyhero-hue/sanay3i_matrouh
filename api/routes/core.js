@@ -9,6 +9,8 @@ const { bool, today } = require("../utils/helpers");
 // ==========================================
 router.get("/trades", async (req, res) => {
   const { data } = await supabase.from("trades").select("*").order("id", { ascending: false });
+  // بيانات عامة نادرًا ما تتغير؛ نسمح لكاش CDN قصير مع تحديث بالخلفية.
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
   res.json(data || []);
 });
 router.post("/trades", requirePermission("settings:manage"), async (req, res) => {
@@ -23,6 +25,7 @@ router.delete("/trades/:id", requirePermission("settings:manage"), async (req, r
 
 router.get("/areas", async (req, res) => {
   const { data } = await supabase.from("areas").select("*").order("id", { ascending: false });
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
   res.json(data || []);
 });
 router.post("/areas", requirePermission("settings:manage"), async (req, res) => {
