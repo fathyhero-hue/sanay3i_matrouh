@@ -113,6 +113,14 @@
     .rate-btn:hover { transform: translateY(-1px); }
     .review-done-badge { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-weight: 800; font-size: 12.5px; }
 
+    .cancel-request-btn {
+      margin-top: 12px; margin-inline-start: 8px; background: #fff; color: var(--danger); border: 1px solid rgba(220,38,38,0.35);
+      padding: 9px 16px; border-radius: 999px; font-family: inherit; font-weight: 900; font-size: 12.5px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .cancel-request-btn:hover { background: #fef2f2; }
+    .cancel-request-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
     .review-modal-overlay {
       position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 4200;
       display: none; align-items: center; justify-content: center; padding: 18px;
@@ -281,6 +289,9 @@
             ? `<div class="review-done-badge"><i class="fa-solid fa-circle-check"></i> تم إرسال تقييمك</div>`
             : `<button type="button" class="rate-btn" data-request-id="${escapeHtml(r.id)}" data-worker-name="${escapeHtml(r.worker_name || 'الصنايعي')}"><i class="fa-solid fa-star"></i> قيّم الصنايعي</button>`;
         }
+        const cancelBlock = ['new', 'accepted'].includes(r.status)
+          ? `<button type="button" class="cancel-request-btn" data-cancel-id="${escapeHtml(r.id)}"><i class="fa-solid fa-ban"></i> إلغاء الطلب</button>`
+          : '';
         return `
           <div class="request-card">
             <div class="request-top">
@@ -297,6 +308,7 @@
               <span><i class="fa-regular fa-calendar"></i> ${formatDate(r.created_at)}</span>
             </div>
             ${reviewBlock}
+            ${cancelBlock}
           </div>`;
       }).join('');
     }
@@ -385,6 +397,43 @@
 
     document.getElementById('reviewCancelBtn').addEventListener('click', closeReviewModal);
     reviewModal.addEventListener('click', (e) => { if (e.target === reviewModal) closeReviewModal(); });
+
+    // إلغاء الطلب (متاح فقط للحالات new/accepted - الزرار أصلًا مش بيظهر لغيرهم)
+    content.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.cancel-request-btn');
+      if (!btn) return;
+      if (!confirm('متأكد إنك عايز تلغي الطلب ده؟ الإجراء ده مايترجعش فيه.')) return;
+
+      const token = getCustomerToken();
+      if (!token) { renderLoginRequired('expired'); return; }
+
+      const requestId = btn.dataset.cancelId;
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإلغاء...';
+
+      try {
+        const r = await fetch('/api/service-requests/' + requestId + '/cancel', {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (r.status === 401) {
+          clearCustomerSession();
+          renderLoginRequired('expired');
+          return;
+        }
+
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر إلغاء الطلب');
+
+        loadRequests(); // نجيب الحالة الحقيقية من السيرفر فورًا عشان البطاقة تتحدث لـ "ملغي"
+      } catch (err) {
+        alert(err.message || 'تعذر إلغاء الطلب');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    });
 
     reviewForm.addEventListener('submit', async (e) => {
       e.preventDefault();

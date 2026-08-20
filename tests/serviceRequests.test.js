@@ -8,6 +8,7 @@ const {
   createServiceRequest,
   listMyRequests,
   submitServiceRequestReview,
+  cancelServiceRequest,
   listWorkerRequests,
   updateServiceRequestStatus,
   withWorkerIdParam,
@@ -427,5 +428,155 @@ describe("PATCH /api/service-requests/:id/status", () => {
 
     assert.equal(res.statusCode, 401);
     assert.equal(res.body.success, false);
+  });
+});
+
+describe("PATCH /api/service-requests/:id/cancel (cancelServiceRequest)", () => {
+  test("العميل يلغي طلبه new بنجاح", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 40, customer_id: 1, status: "new" }, error: null },
+      { data: { id: 40, worker_id: 1, status: "cancelled" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "40" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.request.status, "cancelled");
+    } finally {
+      restore();
+    }
+  });
+
+  test("العميل يلغي طلبه accepted بنجاح", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 41, customer_id: 1, status: "accepted" }, error: null },
+      { data: { id: 41, worker_id: 1, status: "cancelled" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "41" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.request.status, "cancelled");
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض إلغاء طلب عميل تاني (403) - من غير أي نداء update", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 42, customer_id: 1, status: "new" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "42" }, customerId: 2 }); // عميل تاني
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 403);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض إلغاء طلب in_progress (400)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 43, customer_id: 1, status: "in_progress" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "43" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض إلغاء طلب completed (400)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 44, customer_id: 1, status: "completed" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "44" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض إلغاء طلب rejected بالفعل (400)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 45, customer_id: 1, status: "rejected" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "45" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض إلغاء طلب ملغي بالفعل (400)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 46, customer_id: 1, status: "cancelled" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "46" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض طلب غير موجود (404)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: null, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "999" }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.statusCode, 404);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("مافيش أي طريقة يتحكم بيها العميل في status/customer_id عن طريق body - الهاندلر مابيقراش الـ body خالص", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 47, customer_id: 1, status: "new" }, error: null },
+      { data: { id: 47, worker_id: 1, status: "cancelled" }, error: null }
+    ]);
+    try {
+      // محاولة تزوير - المفروض تتجاهل تمامًا لأن الهاندلر مابيستخدمش body
+      const req = fakeReq({ params: { id: "47" }, body: { status: "completed", customer_id: 999 }, customerId: 1 });
+      const res = fakeRes();
+      await cancelServiceRequest(req, res);
+
+      assert.equal(res.body.request.status, "cancelled");
+    } finally {
+      restore();
+    }
   });
 });

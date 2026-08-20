@@ -212,6 +212,50 @@ async function submitServiceRequestReview(req, res) {
   }
 }
 
+// 1.7 إلغاء طلب بواسطة العميل صاحبه (محمي - مسموح بس من new/accepted؛ مفيش
+// سبب إلغاء دلوقتي لأن واجهة العميل مش بتاخد سبب، والحقل هيتسيب null)
+async function cancelServiceRequest(req, res) {
+  try {
+    if (!isSupabaseReady(res)) return;
+
+    const requestId = Number(req.params.id);
+    if (!requestId) {
+      return res.status(400).json({ success: false, error: "معرف الطلب غير صحيح" });
+    }
+
+    const { data: sr, error: fetchErr } = await supabase
+      .from("service_requests")
+      .select("id, customer_id, status")
+      .eq("id", requestId)
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+    if (!sr) {
+      return res.status(404).json({ success: false, error: "الطلب غير موجود" });
+    }
+    if (Number(sr.customer_id) !== Number(req.customerId)) {
+      return res.status(403).json({ success: false, error: "هذا الطلب لا يخصك" });
+    }
+    if (!["new", "accepted"].includes(sr.status)) {
+      return res.status(400).json({ success: false, error: `لا يمكن إلغاء الطلب في حالته الحالية (${sr.status})` });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from("service_requests")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", requestId)
+      .select(FULL_COLUMNS)
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    res.json({ success: true, request: updated });
+  } catch (err) {
+    console.error("Cancel Service Request Error:", err);
+    res.status(500).json({ success: false, error: err.message || "تعذر إلغاء الطلب" });
+  }
+}
+
 // 2. جلب طلبات صنايعي معيّن (محمي - صاحب الحساب فقط)
 async function listWorkerRequests(req, res) {
   try {
@@ -304,6 +348,7 @@ async function updateServiceRequestStatus(req, res) {
 router.post("/", reportsRateLimit, requireCustomerAuth, createServiceRequest);
 router.get("/mine", requireCustomerAuth, listMyRequests);
 router.post("/:id/review", requireCustomerAuth, submitServiceRequestReview);
+router.patch("/:id/cancel", requireCustomerAuth, cancelServiceRequest);
 router.get("/worker/:workerId", withWorkerIdParam, requireWorkerOwnership, listWorkerRequests);
 router.patch("/:id/status", updateServiceRequestStatus);
 
@@ -314,5 +359,6 @@ module.exports.extractWorkerToken = extractWorkerToken;
 module.exports.createServiceRequest = createServiceRequest;
 module.exports.listMyRequests = listMyRequests;
 module.exports.submitServiceRequestReview = submitServiceRequestReview;
+module.exports.cancelServiceRequest = cancelServiceRequest;
 module.exports.listWorkerRequests = listWorkerRequests;
 module.exports.updateServiceRequestStatus = updateServiceRequestStatus;
