@@ -1173,6 +1173,13 @@
     setInterval(() => {
       if(document.getElementById('chat').classList.contains('active')) loadMessages();
     }, 10000);
+    // polling خفيف لطلبات الخدمة بس وقت ما التبويبة دي فاتحة وواضحة (بيتوقف
+    // تلقائيًا لو المستخدم غيّر تبويبة أو خبّى الصفحة/التاب)
+    setInterval(() => {
+      if (!document.hidden && document.getElementById('serviceRequests').classList.contains('active')) {
+        loadServiceRequests();
+      }
+    }, 30000);
   </script>
 </body>
 </html>

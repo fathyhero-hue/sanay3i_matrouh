@@ -7,6 +7,7 @@ const { requireWorkerOwnership } = require("../api/middlewares/auth");
 const {
   createServiceRequest,
   listMyRequests,
+  submitServiceRequestReview,
   listWorkerRequests,
   updateServiceRequestStatus,
   withWorkerIdParam,
@@ -36,6 +37,7 @@ function queueSupabaseFrom(results) {
     const builder = {
       select: () => builder,
       eq: () => builder,
+      in: () => builder,
       order: () => builder,
       insert: () => builder,
       update: () => builder,
@@ -126,14 +128,15 @@ describe("POST /api/service-requests (createServiceRequest) - محمي بـ requ
 });
 
 describe("GET /api/service-requests/mine (listMyRequests)", () => {
-  test("بيرجع طلبات العميل الحالي فقط مع اسم/حرفة/منطقة الصنايعي", async () => {
+  test("بيرجع طلبات العميل الحالي فقط مع اسم/حرفة/منطقة الصنايعي وhas_review=false لما مفيش تقييم", async () => {
     const restore = queueSupabaseFrom([
       {
         data: [
           { id: 10, worker_id: 1, customer_id: 1, description: "تسريب مياه", status: "new", created_at: "2026-08-20T00:00:00.000Z", workers: { name: "محمد سيد", trade: "سباك", area: "مطروح" } }
         ],
         error: null
-      }
+      },
+      { data: [], error: null } // مفيش تقييمات لأي طلب من دول
     ]);
     try {
       const req = fakeReq({ customerId: 1 });
@@ -144,7 +147,129 @@ describe("GET /api/service-requests/mine (listMyRequests)", () => {
       assert.equal(res.body.requests.length, 1);
       assert.equal(res.body.requests[0].worker_name, "محمد سيد");
       assert.equal(res.body.requests[0].worker_trade, "سباك");
+      assert.equal(res.body.requests[0].has_review, false);
       assert.equal(res.body.requests[0].workers, undefined); // الكائن المتداخل الخام مايتسربش في الرد
+    } finally {
+      restore();
+    }
+  });
+
+  test("has_review=true للطلب اللي ليه تقييم بالفعل", async () => {
+    const restore = queueSupabaseFrom([
+      {
+        data: [
+          { id: 20, worker_id: 1, customer_id: 1, description: "تركيب دش", status: "completed", created_at: "2026-08-20T00:00:00.000Z", workers: { name: "محمد سيد", trade: "سباك", area: "مطروح" } }
+        ],
+        error: null
+      },
+      { data: [{ service_request_id: 20 }], error: null }
+    ]);
+    try {
+      const req = fakeReq({ customerId: 1 });
+      const res = fakeRes();
+      await listMyRequests(req, res);
+
+      assert.equal(res.body.requests[0].has_review, true);
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe("POST /api/service-requests/:id/review (submitServiceRequestReview)", () => {
+  test("تقييم صحيح لطلب مكتمل يخص العميل - worker_id/customer_name من الطلب مش من الـ body", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 30, worker_id: 5, customer_id: 1, customer_name: "أحمد علي", status: "completed" }, error: null }, // جلب الطلب
+      { data: null, error: null }, // مفيش تقييم سابق
+      { data: { id: 99, worker_id: 5, service_request_id: 30, rating: 5, comment: "ممتاز", approved: false, created_at: "2026-08-20T00:00:00.000Z" }, error: null } // نتيجة الإدراج
+    ]);
+    try {
+      const req = fakeReq({
+        params: { id: "30" },
+        body: { rating: 5, comment: "ممتاز", worker_id: 999, customer_name: "منتحل" }, // محاولة تزوير - المفروض تتجاهل
+        customerId: 1
+      });
+      const res = fakeRes();
+      await submitServiceRequestReview(req, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.review.worker_id, 5);
+      assert.equal(res.body.review.service_request_id, 30);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض تقييم رقم غير صحيح (400) - مفيش نداء لقاعدة البيانات", async () => {
+    const req = fakeReq({ params: { id: "30" }, body: { rating: 6 }, customerId: 1 });
+    const res = fakeRes();
+    await submitServiceRequestReview(req, res);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.success, false);
+  });
+
+  test("رفض تقييم طلب لا يخص العميل الحالي (403)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 30, worker_id: 5, customer_id: 1, customer_name: "أحمد علي", status: "completed" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "30" }, body: { rating: 5 }, customerId: 2 }); // عميل تاني
+      const res = fakeRes();
+      await submitServiceRequestReview(req, res);
+
+      assert.equal(res.statusCode, 403);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض تقييم طلب لسه مش completed (400)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 30, worker_id: 5, customer_id: 1, customer_name: "أحمد علي", status: "in_progress" }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "30" }, body: { rating: 5 }, customerId: 1 });
+      const res = fakeRes();
+      await submitServiceRequestReview(req, res);
+
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض تقييم مكرر لنفس الطلب (409)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 30, worker_id: 5, customer_id: 1, customer_name: "أحمد علي", status: "completed" }, error: null },
+      { data: { id: 77 }, error: null } // فيه تقييم سابق بالفعل
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "30" }, body: { rating: 4 }, customerId: 1 });
+      const res = fakeRes();
+      await submitServiceRequestReview(req, res);
+
+      assert.equal(res.statusCode, 409);
+      assert.equal(res.body.success, false);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض طلب غير موجود (404)", async () => {
+    const restore = queueSupabaseFrom([
+      { data: null, error: null }
+    ]);
+    try {
+      const req = fakeReq({ params: { id: "999" }, body: { rating: 5 }, customerId: 1 });
+      const res = fakeRes();
+      await submitServiceRequestReview(req, res);
+
+      assert.equal(res.statusCode, 404);
+      assert.equal(res.body.success, false);
     } finally {
       restore();
     }

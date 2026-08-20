@@ -8,10 +8,10 @@ const {
   verifyCustomerToken,
   requireCustomerAuth
 } = require("../api/middlewares/customerAuth");
-const { createWorkerToken, createAdminToken } = require("../api/middlewares/auth");
+const { createWorkerToken, createAdminToken, requireWorkerOwnership, requirePermission } = require("../api/middlewares/auth");
 
-function fakeReq({ headers, body, query } = {}) {
-  return { headers: headers || {}, body: body || {}, query: query || {} };
+function fakeReq({ headers, body, query, params } = {}) {
+  return { headers: headers || {}, body: body || {}, query: query || {}, params: params || {} };
 }
 function fakeRes() {
   const res = { statusCode: 200, body: null };
@@ -91,6 +91,48 @@ describe("requireCustomerAuth", () => {
     const res = fakeRes();
     let nextCalled = false;
     requireCustomerAuth(req, res, () => { nextCalled = true; });
+    assert.equal(nextCalled, false);
+    assert.equal(res.statusCode, 401);
+  });
+});
+
+describe("عزل التوكنات بين الأنظمة الثلاثة (عميل / صنايعي / أدمن)", () => {
+  test("توكن العميل مايشتغلش مع requireWorkerOwnership (مسارات الصنايعي)", () => {
+    const customerToken = createCustomerToken({ id: 3 });
+    const req = fakeReq({ headers: { authorization: `Bearer ${customerToken}` }, params: { id: "3" } });
+    const res = fakeRes();
+    let nextCalled = false;
+    requireWorkerOwnership(req, res, () => { nextCalled = true; });
+    assert.equal(nextCalled, false);
+    assert.equal(res.statusCode, 401);
+  });
+
+  test("توكن الصنايعي مايشتغلش مع requirePermission (مسارات الأدمن) - محتاج كوكي أدمن مش Bearer token", () => {
+    const workerToken = createWorkerToken(3);
+    const req = fakeReq({ headers: { authorization: `Bearer ${workerToken}` } });
+    const res = fakeRes();
+    let nextCalled = false;
+    requirePermission("workers:read")(req, res, () => { nextCalled = true; });
+    assert.equal(nextCalled, false);
+    assert.equal(res.statusCode, 401);
+  });
+
+  test("توكن العميل مايشتغلش مع requirePermission (مسارات الأدمن)", () => {
+    const customerToken = createCustomerToken({ id: 3 });
+    const req = fakeReq({ headers: { authorization: `Bearer ${customerToken}` } });
+    const res = fakeRes();
+    let nextCalled = false;
+    requirePermission("workers:read")(req, res, () => { nextCalled = true; });
+    assert.equal(nextCalled, false);
+    assert.equal(res.statusCode, 401);
+  });
+
+  test("توكن الأدمن مايشتغلش مع requireWorkerOwnership (مسارات الصنايعي)", () => {
+    const adminToken = createAdminToken({ id: 1, username: "boss", role: "super_admin" });
+    const req = fakeReq({ headers: { authorization: `Bearer ${adminToken}` }, params: { id: "1" } });
+    const res = fakeRes();
+    let nextCalled = false;
+    requireWorkerOwnership(req, res, () => { nextCalled = true; });
     assert.equal(nextCalled, false);
     assert.equal(res.statusCode, 401);
   });

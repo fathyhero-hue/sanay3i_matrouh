@@ -105,6 +105,35 @@
 
     .loading { text-align: center; padding: 40px; color: var(--muted); font-weight: 700; }
 
+    .rate-btn {
+      margin-top: 12px; background: linear-gradient(135deg, var(--gold), #fbbf24); color: #fff; border: none;
+      padding: 10px 18px; border-radius: 999px; font-family: inherit; font-weight: 900; font-size: 12.5px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .rate-btn:hover { transform: translateY(-1px); }
+    .review-done-badge { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-weight: 800; font-size: 12.5px; }
+
+    .review-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 4200;
+      display: none; align-items: center; justify-content: center; padding: 18px;
+    }
+    .review-modal-overlay.show { display: flex; }
+    .review-modal-box { width: min(440px, 100%); background: #fff; border-radius: 22px; padding: 22px; box-shadow: 0 25px 65px rgba(15,23,42,0.3); }
+    .review-modal-box h3 { margin: 0 0 6px; color: #0f172a; }
+    .review-modal-box p { color: var(--muted); font-weight: 700; margin: 0 0 16px; font-size: 13px; }
+    .review-modal-box select, .review-modal-box textarea {
+      width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px;
+      margin-bottom: 10px; font-family: inherit; font-weight: 700; outline: none; box-sizing: border-box;
+    }
+    .review-modal-box textarea { min-height: 90px; resize: vertical; }
+    .review-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .review-modal-actions button { flex: 1; min-height: 44px; border: 0; border-radius: 14px; font-weight: 900; cursor: pointer; }
+    .review-submit-btn { background: var(--sanay3i-navy); color: #fff; }
+    .review-cancel-btn { background: #f1f5f9; color: var(--sanay3i-navy); }
+    .review-modal-message { display: none; margin-top: 10px; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: 13px; }
+    .review-modal-message.success { display: block; background: #dcfce7; color: #166534; }
+    .review-modal-message.error { display: block; background: #fee2e2; color: #991b1b; }
+
     @media (max-width: 400px) {
       .header-content { justify-content: center; }
       .brand-text h1 { font-size: 17px; }
@@ -146,6 +175,29 @@
       <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>
     </div>
   </main>
+
+  <div class="review-modal-overlay" id="reviewModal">
+    <div class="review-modal-box">
+      <h3><i class="fa-solid fa-star"></i> قيّم الصنايعي</h3>
+      <p id="reviewModalWorkerName"></p>
+      <form id="reviewForm">
+        <select id="reviewRatingInput" required>
+          <option value="">اختر التقييم</option>
+          <option value="5">5 نجوم - ممتاز</option>
+          <option value="4">4 نجوم - جيد جدًا</option>
+          <option value="3">3 نجوم - جيد</option>
+          <option value="2">2 نجوم - مقبول</option>
+          <option value="1">1 نجمة - ضعيف</option>
+        </select>
+        <textarea id="reviewCommentInput" maxlength="1000" placeholder="تعليقك (اختياري)..."></textarea>
+        <div class="review-modal-actions">
+          <button type="submit" class="review-submit-btn" id="reviewSubmitBtn">إرسال التقييم</button>
+          <button type="button" class="review-cancel-btn" id="reviewCancelBtn">إلغاء</button>
+        </div>
+        <div class="review-modal-message" id="reviewModalMessage"></div>
+      </form>
+    </div>
+  </div>
 
   <script>
     const STATUS_LABELS = {
@@ -223,6 +275,12 @@
         const rejectedBlock = (r.status === 'rejected' && r.rejected_reason)
           ? `<div class="rejected-reason"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(r.rejected_reason)}</div>`
           : '';
+        let reviewBlock = '';
+        if (r.status === 'completed') {
+          reviewBlock = r.has_review
+            ? `<div class="review-done-badge"><i class="fa-solid fa-circle-check"></i> تم إرسال تقييمك</div>`
+            : `<button type="button" class="rate-btn" data-request-id="${escapeHtml(r.id)}" data-worker-name="${escapeHtml(r.worker_name || 'الصنايعي')}"><i class="fa-solid fa-star"></i> قيّم الصنايعي</button>`;
+        }
         return `
           <div class="request-card">
             <div class="request-top">
@@ -238,6 +296,7 @@
             <div class="request-meta">
               <span><i class="fa-regular fa-calendar"></i> ${formatDate(r.created_at)}</span>
             </div>
+            ${reviewBlock}
           </div>`;
       }).join('');
     }
@@ -290,6 +349,87 @@
 
     window.addEventListener('pagehide', stopPolling);
     window.addEventListener('beforeunload', stopPolling);
+
+    // ===============================
+    // تقييم طلب مكتمل
+    // ===============================
+    const reviewModal = document.getElementById('reviewModal');
+    const reviewForm = document.getElementById('reviewForm');
+    const reviewModalMessage = document.getElementById('reviewModalMessage');
+    let activeReviewRequestId = null;
+
+    function showReviewMessage(type, text) {
+      reviewModalMessage.className = 'review-modal-message ' + (type || '');
+      reviewModalMessage.textContent = text || '';
+    }
+
+    function openReviewModal(requestId, workerName) {
+      activeReviewRequestId = requestId;
+      document.getElementById('reviewModalWorkerName').textContent = 'قيّم تجربتك مع: ' + workerName;
+      reviewForm.reset();
+      showReviewMessage('', '');
+      reviewModal.classList.add('show');
+    }
+
+    function closeReviewModal() {
+      reviewModal.classList.remove('show');
+      activeReviewRequestId = null;
+    }
+
+    // تفويض النقر بدل onclick مباشر عشان اسم الصنايعي ميكسرش الـ HTML لو فيه علامات اقتباس
+    content.addEventListener('click', (e) => {
+      const btn = e.target.closest('.rate-btn');
+      if (!btn) return;
+      openReviewModal(btn.dataset.requestId, btn.dataset.workerName || 'الصنايعي');
+    });
+
+    document.getElementById('reviewCancelBtn').addEventListener('click', closeReviewModal);
+    reviewModal.addEventListener('click', (e) => { if (e.target === reviewModal) closeReviewModal(); });
+
+    reviewForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!activeReviewRequestId) return;
+
+      const rating = Number(document.getElementById('reviewRatingInput').value);
+      const comment = document.getElementById('reviewCommentInput').value.trim();
+      if (!rating) return showReviewMessage('error', 'يرجى اختيار التقييم');
+
+      const token = getCustomerToken();
+      if (!token) { closeReviewModal(); renderLoginRequired('expired'); return; }
+
+      const btn = document.getElementById('reviewSubmitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+      showReviewMessage('', '');
+
+      try {
+        const r = await fetch('/api/service-requests/' + activeReviewRequestId + '/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ rating, comment })
+        });
+        const d = await r.json().catch(() => ({}));
+
+        if (r.status === 401) {
+          clearCustomerSession();
+          closeReviewModal();
+          renderLoginRequired('expired');
+          return;
+        }
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر إرسال التقييم');
+
+        showReviewMessage('success', 'تم إرسال تقييمك');
+        setTimeout(() => {
+          closeReviewModal();
+          loadRequests(); // نجيب الحالة الحقيقية من السيرفر عشان زرار التقييم يختفي ويظهر بدله علامة "تم التقييم"
+        }, 900);
+      } catch (err) {
+        showReviewMessage('error', err.message || 'تعذر إرسال التقييم');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'إرسال التقييم';
+      }
+    });
 
     loadRequests();
   </script>

@@ -108,9 +108,27 @@ async function listMyRequests(req, res) {
 
     if (error) throw error;
 
-    const requests = (data || []).map(r => {
+    const rows = data || [];
+    const ids = rows.map(r => r.id);
+    let reviewedIds = new Set();
+    if (ids.length) {
+      const { data: reviewRows, error: reviewErr } = await supabase
+        .from("reviews")
+        .select("service_request_id")
+        .in("service_request_id", ids);
+      if (reviewErr) throw reviewErr;
+      reviewedIds = new Set((reviewRows || []).map(r => r.service_request_id));
+    }
+
+    const requests = rows.map(r => {
       const worker = r.workers || {};
-      const row = { ...r, worker_name: worker.name || "", worker_trade: worker.trade || "", worker_area: worker.area || "" };
+      const row = {
+        ...r,
+        worker_name: worker.name || "",
+        worker_trade: worker.trade || "",
+        worker_area: worker.area || "",
+        has_review: reviewedIds.has(r.id)
+      };
       delete row.workers;
       return row;
     });
@@ -119,6 +137,78 @@ async function listMyRequests(req, res) {
   } catch (err) {
     console.error("List My Service Requests Error:", err);
     res.status(500).json({ success: false, error: err.message || "تعذر جلب طلباتك" });
+  }
+}
+
+// 1.6 تقييم طلب مكتمل (محمي - صاحب الطلب فقط، وبعد الاكتمال، وتقييم واحد فقط)
+async function submitServiceRequestReview(req, res) {
+  try {
+    if (!isSupabaseReady(res)) return;
+
+    const requestId = Number(req.params.id);
+    if (!requestId) {
+      return res.status(400).json({ success: false, error: "معرف الطلب غير صحيح" });
+    }
+
+    const rating = Number(req.body?.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, error: "التقييم يجب أن يكون رقمًا من 1 إلى 5" });
+    }
+    const comment = String(req.body?.comment || "").trim().slice(0, 1000);
+
+    const { data: sr, error: fetchErr } = await supabase
+      .from("service_requests")
+      .select("id, worker_id, customer_id, customer_name, status")
+      .eq("id", requestId)
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+    if (!sr) {
+      return res.status(404).json({ success: false, error: "الطلب غير موجود" });
+    }
+    if (Number(sr.customer_id) !== Number(req.customerId)) {
+      return res.status(403).json({ success: false, error: "هذا الطلب لا يخصك" });
+    }
+    if (sr.status !== "completed") {
+      return res.status(400).json({ success: false, error: "لا يمكن تقييم طلب لم يكتمل بعد" });
+    }
+
+    const { data: existingReview, error: existingErr } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("service_request_id", requestId)
+      .maybeSingle();
+    if (existingErr) throw existingErr;
+    if (existingReview) {
+      return res.status(409).json({ success: false, error: "تم تقييم هذا الطلب بالفعل" });
+    }
+
+    // worker_id وcustomer_name ماخوذين من الطلب نفسه في قاعدة البيانات - العميل
+    // مش قادر يبعتهم أو يزوّرهم عن طريق الـ body
+    const { data: created, error: insertErr } = await supabase
+      .from("reviews")
+      .insert([{
+        worker_id: sr.worker_id,
+        service_request_id: sr.id,
+        customer_name: sr.customer_name,
+        rating,
+        comment,
+        approved: false
+      }])
+      .select("id, worker_id, service_request_id, rating, comment, approved, created_at")
+      .single();
+
+    if (insertErr) {
+      if (insertErr.code === "23505") {
+        return res.status(409).json({ success: false, error: "تم تقييم هذا الطلب بالفعل" });
+      }
+      throw insertErr;
+    }
+
+    res.json({ success: true, review: created });
+  } catch (err) {
+    console.error("Submit Service Request Review Error:", err);
+    res.status(500).json({ success: false, error: err.message || "تعذر إرسال التقييم" });
   }
 }
 
@@ -213,6 +303,7 @@ async function updateServiceRequestStatus(req, res) {
 
 router.post("/", reportsRateLimit, requireCustomerAuth, createServiceRequest);
 router.get("/mine", requireCustomerAuth, listMyRequests);
+router.post("/:id/review", requireCustomerAuth, submitServiceRequestReview);
 router.get("/worker/:workerId", withWorkerIdParam, requireWorkerOwnership, listWorkerRequests);
 router.patch("/:id/status", updateServiceRequestStatus);
 
@@ -222,5 +313,6 @@ module.exports.withWorkerIdParam = withWorkerIdParam;
 module.exports.extractWorkerToken = extractWorkerToken;
 module.exports.createServiceRequest = createServiceRequest;
 module.exports.listMyRequests = listMyRequests;
+module.exports.submitServiceRequestReview = submitServiceRequestReview;
 module.exports.listWorkerRequests = listWorkerRequests;
 module.exports.updateServiceRequestStatus = updateServiceRequestStatus;

@@ -1,4 +1,4 @@
-let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications=[],adminUsers=[],adminReports=[],currentAdmin=null,activeQuickFilter="";
+let allWorkers=[],allTrades=[],allAreas=[],photosByWorker={},allReviews=[],ratingsByWorker={},pendingReviewsByWorker={},adminNotifications=[],adminUsers=[],adminReports=[],adminServiceRequests=[],srAdminSearchDebounceTimer=null,currentAdmin=null,activeQuickFilter="";
 let __adminLoaded={reviews:false,reports:false,users:false,backups:false,whatsapp:false,analytics:false};
 
 async function loginAdmin(e) {
@@ -28,6 +28,7 @@ function switchTab(t,b){
   if(t==="users"&&!can("admin_users:manage")){toast("error","ليس لديك صلاحية إدارة المستخدمين");return}
   if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}
   if(t==="reports"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض البلاغات");return}
+  if(t==="serviceRequests"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض طلبات الخدمة");return}
   if(t==="whatsapp"&&!can("whatsapp:send")){toast("error","ليس لديك صلاحية رسائل واتساب");return}
   if(t==="activityLog"&&!can("activity_log:read")){toast("error","ليس لديك صلاحية عرض سجل النشاط");return}
 
@@ -36,6 +37,7 @@ function switchTab(t,b){
 
   if(t==='reviews'){loadReviewsAdmin().then(()=>{__adminLoaded.reviews=true;renderReviews()})}
   if(t==='reports') loadReports();
+  if(t==='serviceRequests') loadServiceRequestsAdmin();
   if(t==='analytics') loadAnalytics();
   if(t==='users') loadAdminUsers();
   if(t==='backups') loadBackupSummary();
@@ -609,6 +611,83 @@ async function updateReportStatus(reportId,status){
     if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحديث البلاغ");
     toast("success","تم تحديث البلاغ"); await loadReports();
   }catch(e){toast("error",e.message||"تعذر تحديث البلاغ")}
+}
+
+// ===============================
+// طلبات الخدمة (متابعة فقط - بدون تعديل محتوى الطلب أو التقييم)
+// ===============================
+const SR_STATUS_LABELS={new:"جديد",accepted:"تم القبول",in_progress:"جاري التنفيذ",completed:"مكتمل",rejected:"مرفوض",cancelled:"ملغي"};
+const SR_STATUS_BTN_CLASS={new:"btn-blue",accepted:"btn-green",in_progress:"btn-yellow",completed:"btn-purple",rejected:"btn-red",cancelled:"btn-dark"};
+function srDate(v){try{return v?new Date(v).toLocaleString("ar-EG"):"—"}catch(e){return v||"—"}}
+function debouncedLoadServiceRequestsAdmin(){clearTimeout(srAdminSearchDebounceTimer);srAdminSearchDebounceTimer=setTimeout(loadServiceRequestsAdmin,300);}
+
+async function loadServiceRequestsAdmin(){
+  if(!can("reports:read"))return;
+  const box=document.getElementById("srAdminList"); if(box)box.innerHTML='<div class="empty-admin">جاري تحميل طلبات الخدمة...</div>';
+  try{
+    const status=document.getElementById("srAdminStatusFilter")?.value||"";
+    const search=document.getElementById("srAdminSearchInput")?.value.trim()||"";
+    const params=new URLSearchParams();
+    if(status)params.set("status",status);
+    if(search)params.set("search",search);
+    const qs=params.toString();
+    const r=await fetch("/api/admin/service-requests"+(qs?"?"+qs:""),{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل طلبات الخدمة");
+    adminServiceRequests=d.items||[]; renderServiceRequestsAdmin();
+  }catch(e){if(box)box.innerHTML=`<div class="empty-admin">${adminHtmlEscape(e.message||"تعذر تحميل طلبات الخدمة")}</div>`;}
+}
+
+function renderServiceRequestsAdmin(){
+  const box=document.getElementById("srAdminList"); if(!box)return;
+  const rows=adminServiceRequests||[];
+  if(!rows.length){box.innerHTML='<div class="empty-admin">لا توجد طلبات خدمة مطابقة.</div>';return}
+  const canManage=can("reports:manage");
+  box.innerHTML=rows.map(r=>{
+    const statusLabel=SR_STATUS_LABELS[r.status]||r.status;
+    const statusClass=SR_STATUS_BTN_CLASS[r.status]||"btn-blue";
+    const reasonBlock=r.rejected_reason?`<div class="sr-admin-reason"><i class="fa-solid fa-circle-exclamation"></i> ${adminHtmlEscape(r.rejected_reason)}</div>`:"";
+    let actions="";
+    if(canManage){
+      if(r.status==='new')actions=`<button class="action-btn btn-green" onclick="updateServiceRequestAdminStatus(${r.id},'accepted')">قبول</button><button class="action-btn btn-red" onclick="updateServiceRequestAdminStatus(${r.id},'rejected')">رفض</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled')">إلغاء</button>`;
+      else if(r.status==='accepted')actions=`<button class="action-btn btn-yellow" onclick="updateServiceRequestAdminStatus(${r.id},'in_progress')">بدء التنفيذ</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled')">إلغاء</button>`;
+      else if(r.status==='in_progress')actions=`<button class="action-btn btn-purple" onclick="updateServiceRequestAdminStatus(${r.id},'completed')">إتمام</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled')">إلغاء</button>`;
+    }
+    return `<div class="sr-admin-card">
+      <div class="sr-admin-top">
+        <div class="sr-admin-id">طلب رقم #${adminHtmlEscape(r.id)}</div>
+        <span class="action-btn ${statusClass}">${adminHtmlEscape(statusLabel)}</span>
+      </div>
+      <div class="sr-admin-parties">
+        <div class="sr-admin-party"><small>العميل</small><strong>${adminHtmlEscape(r.customer_name||"—")}</strong><div style="color:var(--muted);font-size:12px;margin-top:2px">${adminHtmlEscape(r.customer_phone||"")}</div></div>
+        <div class="sr-admin-party"><small>الصنايعي</small><strong>${adminHtmlEscape(r.worker_name||("صنايعي رقم "+(r.worker_id||"")))}</strong><div style="color:var(--muted);font-size:12px;margin-top:2px">${[r.worker_trade,r.worker_area].filter(Boolean).map(adminHtmlEscape).join(" - ")}</div></div>
+      </div>
+      <div class="sr-admin-desc">${adminHtmlEscape(r.description||"")}</div>
+      ${reasonBlock}
+      <div class="sr-admin-meta">
+        <span><i class="fa-regular fa-calendar"></i> ${srDate(r.created_at)}</span>
+        ${r.accepted_at?`<span><i class="fa-solid fa-check"></i> قُبل: ${srDate(r.accepted_at)}</span>`:""}
+        ${r.completed_at?`<span><i class="fa-solid fa-flag-checkered"></i> اكتمل: ${srDate(r.completed_at)}</span>`:""}
+        <span class="sr-admin-review-flag" style="color:${r.has_review?"#166534":"var(--muted)"}"><i class="fa-solid ${r.has_review?"fa-star":"fa-star-half-stroke"}"></i> ${r.has_review?"تم تقييم الطلب":"لم يُقيَّم بعد"}</span>
+      </div>
+      ${actions?`<div class="sr-admin-actions">${actions}</div>`:""}
+    </div>`;
+  }).join("");
+}
+
+async function updateServiceRequestAdminStatus(id,status){
+  if(!can("reports:manage")){toast("error","ليس لديك صلاحية تعديل طلبات الخدمة");return}
+  let reason="";
+  if(status==='rejected'||status==='cancelled'){
+    reason=prompt(status==='cancelled'?"اكتب سبب الإلغاء (اختياري):":"اكتب سبب الرفض (اختياري):");
+    if(reason===null)return; // المستخدم ألغى العملية
+  }
+  try{
+    const r=await fetch(`/api/admin/service-requests/${encodeURIComponent(id)}/status`,{method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,rejected_reason:reason||""})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحديث حالة الطلب");
+    toast("success","تم تحديث حالة الطلب"); await loadServiceRequestsAdmin();
+  }catch(e){toast("error",e.message||"تعذر تحديث حالة الطلب")}
 }
 
 function requireBackupPermission(){if(!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return false}return true}

@@ -405,6 +405,117 @@ router.put("/reports/:id", requirePermission("reports:manage"), async (req, res)
   }
 });
 
+// ===============================
+// متابعة طلبات الخدمة من الإدارة (عرض + تغيير حالة تشغيلي فقط - بدون تعديل
+// محتوى الطلب أو تقييم العميل). نفس صلاحيات البلاغات (reports:*) لأنها أقرب
+// عمليًا لطبيعة المتابعة التشغيلية اليومية دي.
+// ===============================
+const SR_ADMIN_COLUMNS = "id, worker_id, customer_id, customer_name, customer_phone, description, status, created_at, updated_at, accepted_at, completed_at, rejected_reason";
+
+// انتقالات منطقية فقط + cancelled كإجراء إداري إضافي من أي حالة نشطة (مش موجود
+// في مسار الصنايعي العادي) - الحالات النهائية (completed/rejected/cancelled) مفيهاش رجوع
+const ADMIN_SR_TRANSITIONS = {
+  new: ["accepted", "rejected", "cancelled"],
+  accepted: ["in_progress", "cancelled"],
+  in_progress: ["completed", "cancelled"]
+};
+
+async function attachReviewFlags(rows) {
+  const ids = rows.map(r => r.id);
+  if (!ids.length) return rows.map(r => ({ ...r, has_review: false }));
+  const { data: reviewRows } = await supabase.from("reviews").select("service_request_id").in("service_request_id", ids);
+  const reviewedIds = new Set((reviewRows || []).map(r => r.service_request_id));
+  return rows.map(r => ({ ...r, has_review: reviewedIds.has(r.id) }));
+}
+
+router.get("/service-requests", requirePermission("reports:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    let query = supabase
+      .from("service_requests")
+      .select(`${SR_ADMIN_COLUMNS}, workers(name, trade, area)`)
+      .order("created_at", { ascending: false });
+
+    const status = String(req.query.status || "").trim();
+    if (status) query = query.eq("status", status);
+
+    const workerId = Number(req.query.worker_id);
+    if (Number.isInteger(workerId) && workerId > 0) query = query.eq("worker_id", workerId);
+
+    const search = String(req.query.search || "").trim();
+    if (search) query = query.or(`customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const withReviewFlag = await attachReviewFlags(data || []);
+    const items = withReviewFlag.map(r => {
+      const worker = r.workers || {};
+      const row = { ...r, worker_name: worker.name || "", worker_trade: worker.trade || "", worker_area: worker.area || "" };
+      delete row.workers;
+      return row;
+    });
+
+    res.json({ success: true, items });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "تعذر تحميل طلبات الخدمة" });
+  }
+});
+
+router.patch("/service-requests/:id/status", requirePermission("reports:manage"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const requestId = Number(req.params.id);
+    if (!requestId) return res.status(400).json({ success: false, error: "معرف الطلب غير صحيح" });
+
+    const nextStatus = String(req.body?.status || "").trim();
+    if (!["accepted", "in_progress", "completed", "rejected", "cancelled"].includes(nextStatus)) {
+      return res.status(400).json({ success: false, error: "حالة غير صحيحة" });
+    }
+
+    const { data: current, error: fetchErr } = await supabase
+      .from("service_requests")
+      .select("id, worker_id, customer_name, status")
+      .eq("id", requestId)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!current) return res.status(404).json({ success: false, error: "الطلب غير موجود" });
+
+    const allowedNext = ADMIN_SR_TRANSITIONS[current.status] || [];
+    if (!allowedNext.includes(nextStatus)) {
+      return res.status(400).json({ success: false, error: `لا يمكن تغيير حالة الطلب من ${current.status} إلى ${nextStatus}` });
+    }
+
+    const now = new Date().toISOString();
+    const updates = { status: nextStatus, updated_at: now };
+    if (nextStatus === "accepted") updates.accepted_at = now;
+    if (nextStatus === "completed") updates.completed_at = now;
+    if (nextStatus === "rejected" || nextStatus === "cancelled") {
+      const reason = String(req.body?.rejected_reason || req.body?.reason || "").trim();
+      updates.rejected_reason = reason ? reason.slice(0, 500) : null;
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from("service_requests")
+      .update(updates)
+      .eq("id", requestId)
+      .select(SR_ADMIN_COLUMNS)
+      .single();
+    if (updateErr) throw updateErr;
+
+    logAdminActivity(req, "service_request_status_update", {
+      entity_type: "service_request",
+      entity_id: requestId,
+      entity_name: current.customer_name,
+      details: { from: current.status, to: nextStatus, reason: updates.rejected_reason || null }
+    }).catch(() => {});
+
+    res.json({ success: true, request: updated });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "تعذر تحديث حالة الطلب" });
+  }
+});
+
 router.get("/activity-log", requirePermission("activity_log:read"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   const limit = Math.max(10, Math.min(500, Number(req.query.limit) || 150));
