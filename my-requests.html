@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلباتي | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#061A3D">
+  <style>
+    :root {
+      --sanay3i-navy: #061A3D; --sanay3i-navy-2: #082052; --sanay3i-navy-3: #0B2A66;
+      --blue: #1d4ed8; --gold: #f59e0b; --danger: #dc2626; --green: #16a34a; --purple: #7c3aed;
+      --muted: #64748b; --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Cairo', sans-serif; margin: 0; min-height: 100vh; color: #0f172a;
+      display: flex; flex-direction: column; align-items: center;
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 30%),
+        linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+    }
+
+    .site-header {
+      width: 100%; position: sticky; top: 0; z-index: 10;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2) 55%, var(--sanay3i-navy-3));
+      box-shadow: 0 18px 45px rgba(2,6,23,.20);
+    }
+    .header-content {
+      max-width: 1180px; margin: auto; width: calc(100% - 30px);
+      min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 13px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-logo-frame {
+      width: 50px; height: 50px; border-radius: 17px; padding: 4px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.22); overflow: hidden;
+    }
+    .brand-logo-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 13px; display: block; }
+    .brand-text h1 { margin: 0; font-size: 19px; font-weight: 900; color: #fff; line-height: 1.2; }
+    .brand-text span { display: block; color: rgba(226,232,240,.8); font-size: 11.5px; font-weight: 800; margin-top: 3px; }
+
+    .logout-btn {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff;
+      padding: 9px 16px; border-radius: 999px; font-family: inherit; font-weight: 800; font-size: 12.5px;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.18); }
+
+    main { flex: 1; width: 100%; max-width: 760px; padding: 30px 16px 60px; }
+
+    .page-title { text-align: center; font-size: 22px; font-weight: 900; margin: 8px 0 4px; }
+    .page-subtitle { text-align: center; font-size: 13.5px; color: var(--muted); font-weight: 700; margin: 0 0 24px; }
+
+    .login-required {
+      background: #fff; border: 1px solid var(--border); border-radius: 22px; padding: 36px 24px;
+      text-align: center; box-shadow: 0 20px 50px rgba(15,23,42,0.08);
+    }
+    .login-required i { font-size: 30px; color: var(--blue); margin-bottom: 12px; }
+    .login-required p { color: var(--muted); font-weight: 700; margin: 10px 0 18px; }
+    .login-required a {
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2));
+      color: #fff; padding: 12px 26px; border-radius: 999px; font-weight: 900; font-size: 14px;
+    }
+
+    .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); font-weight: 700; }
+    .empty-state i { font-size: 34px; margin-bottom: 12px; display: block; color: #cbd5e1; }
+
+    .request-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 20px;
+      margin-bottom: 16px; box-shadow: 0 14px 34px rgba(15,23,42,0.06);
+    }
+    .request-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .request-worker { font-weight: 900; font-size: 15.5px; color: #0f172a; }
+    .request-worker span { display: block; font-weight: 700; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+    .status-badge { padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 900; white-space: nowrap; }
+    .status-new { background: #e0f2fe; color: #0369a1; }
+    .status-accepted { background: #dcfce7; color: #15803d; }
+    .status-in_progress { background: #fef3c7; color: #b45309; }
+    .status-completed { background: #ede9fe; color: #6d28d9; }
+    .status-rejected { background: #fee2e2; color: #b91c1c; }
+    .status-cancelled { background: #f1f5f9; color: #475569; }
+
+    .request-desc { font-size: 13.5px; color: #334155; font-weight: 600; line-height: 1.8; margin: 8px 0; }
+    .request-meta { font-size: 12px; color: var(--muted); font-weight: 700; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .request-meta span i { margin-left: 4px; }
+    .rejected-reason { margin-top: 10px; font-size: 12.5px; color: var(--danger); font-weight: 700; background: #fef2f2; padding: 8px 12px; border-radius: 12px; }
+
+    .loading { text-align: center; padding: 40px; color: var(--muted); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-content">
+      <a href="/" class="brand">
+        <div class="brand-logo-frame">
+          <img src="/icons/icon-192.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>دليل موثوق لصنايعية مرسى مطروح</span>
+        </div>
+      </a>
+      <button class="logout-btn" id="logoutBtn" style="display:none">
+        <i class="fa-solid fa-right-from-bracket"></i> خروج
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <h2 class="page-title">طلباتي</h2>
+    <p class="page-subtitle">متابعة طلبات الخدمة اللي بعتّها للصنايعية</p>
+
+    <div id="content">
+      <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>
+    </div>
+  </main>
+
+  <script>
+    const STATUS_LABELS = {
+      new: 'جديد', accepted: 'تم القبول', in_progress: 'جاري التنفيذ',
+      completed: 'مكتمل', rejected: 'مرفوض', cancelled: 'ملغي'
+    };
+
+    const content = document.getElementById('content');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const token = localStorage.getItem('sanay3i_customer_token');
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      try {
+        return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch (e) { return ''; }
+    }
+
+    function renderLoginRequired() {
+      content.innerHTML = `
+        <div class="login-required">
+          <i class="fa-solid fa-lock"></i>
+          <h3>سجّل دخولك الأول</h3>
+          <p>لازم تسجّل دخول كعميل عشان تقدر تشوف طلباتك</p>
+          <a href="/customer-auth?redirect=/my-requests"><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</a>
+        </div>`;
+    }
+
+    function renderEmpty() {
+      content.innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-inbox"></i>
+          لسه معملتش أي طلب خدمة.<br>هتلاقي زرار "اطلب خدمة" في صفحة أي صنايعي.
+        </div>`;
+    }
+
+    function renderRequests(requests) {
+      content.innerHTML = requests.map(r => {
+        const statusClass = 'status-' + (r.status || 'new');
+        const statusLabel = STATUS_LABELS[r.status] || r.status;
+        const rejectedBlock = (r.status === 'rejected' && r.rejected_reason)
+          ? `<div class="rejected-reason"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(r.rejected_reason)}</div>`
+          : '';
+        return `
+          <div class="request-card">
+            <div class="request-top">
+              <div class="request-worker">
+                ${escapeHtml(r.worker_name || 'صنايعي')}
+                <span>${escapeHtml(r.worker_trade || '')}${r.worker_area ? ' - ' + escapeHtml(r.worker_area) : ''}</span>
+              </div>
+              <span class="status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>
+            </div>
+            <div class="request-desc">${escapeHtml(r.description)}</div>
+            ${rejectedBlock}
+            <div class="request-meta">
+              <span><i class="fa-regular fa-calendar"></i> ${formatDate(r.created_at)}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadRequests() {
+      if (!token) { renderLoginRequired(); return; }
+      logoutBtn.style.display = 'flex';
+
+      try {
+        const r = await fetch('/api/service-requests/mine', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const d = await r.json();
+
+        if (r.status === 401) { renderLoginRequired(); return; }
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحميل الطلبات');
+
+        if (!d.requests || !d.requests.length) { renderEmpty(); return; }
+        renderRequests(d.requests);
+      } catch (err) {
+        content.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('sanay3i_customer_token');
+      localStorage.removeItem('sanay3i_customer_id');
+      localStorage.removeItem('sanay3i_customer_name');
+      window.location.href = '/customer-auth';
+    });
+
+    loadRequests();
+  </script>
+</body>
+</html>

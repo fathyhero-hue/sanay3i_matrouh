@@ -50,7 +50,7 @@ module.exports = [
   { ignores: ["node_modules/**", "uploads/**", "backups/**"] },
   js.configs.recommended,
   {
-    files: ["api/**/*.js", "tests/**/*.js", "eslint.config.js"],
+    files: ["api/**/*.js", "tests/**/*.js", "scripts/**/*.js", "eslint.config.js"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "commonjs",

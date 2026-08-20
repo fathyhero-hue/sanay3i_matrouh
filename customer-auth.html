@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حسابي كعميل | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#061A3D">
+  <style>
+    :root {
+      --sanay3i-navy: #061A3D; --sanay3i-navy-2: #082052; --sanay3i-navy-3: #0B2A66;
+      --blue: #1d4ed8; --gold: #f59e0b; --danger: #dc2626; --green: #16a34a;
+      --muted: #64748b; --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Cairo', sans-serif; margin: 0; min-height: 100vh; color: #0f172a;
+      display: flex; flex-direction: column; align-items: center;
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 30%),
+        linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+    }
+
+    .site-header {
+      width: 100%; position: sticky; top: 0; z-index: 10;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2) 55%, var(--sanay3i-navy-3));
+      box-shadow: 0 18px 45px rgba(2,6,23,.20);
+    }
+    .header-content {
+      max-width: 1180px; margin: auto; width: calc(100% - 30px);
+      min-height: 78px; display: flex; align-items: center; justify-content: center; gap: 13px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-logo-frame {
+      width: 50px; height: 50px; border-radius: 17px; padding: 4px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.22); overflow: hidden;
+    }
+    .brand-logo-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 13px; display: block; }
+    .brand-text h1 { margin: 0; font-size: 19px; font-weight: 900; color: #fff; line-height: 1.2; }
+    .brand-text span { display: block; color: rgba(226,232,240,.8); font-size: 11.5px; font-weight: 800; margin-top: 3px; }
+
+    main {
+      flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+      padding: 36px 16px;
+    }
+
+    .login-card {
+      width: 100%; max-width: 420px; background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(226,232,240,0.9); border-radius: 28px;
+      padding: 34px 28px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    .login-icon {
+      width: 62px; height: 62px; margin: 0 auto 16px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--blue));
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; box-shadow: 0 14px 28px rgba(6, 26, 61, 0.28);
+    }
+
+    .login-title { text-align: center; margin: 0 0 6px; font-size: 22px; font-weight: 900; color: #0f172a; }
+    .login-subtitle { text-align: center; margin: 0 0 22px; font-size: 13.5px; color: var(--muted); font-weight: 700; line-height: 1.7; }
+
+    .tabs { display: flex; gap: 8px; background: #f1f5f9; border-radius: 999px; padding: 5px; margin-bottom: 22px; }
+    .tab-btn {
+      flex: 1; border: none; background: transparent; padding: 10px 8px; border-radius: 999px;
+      font-family: inherit; font-weight: 800; font-size: 13.5px; color: var(--muted); cursor: pointer; transition: 0.2s ease;
+    }
+    .tab-btn.active { background: #fff; color: var(--sanay3i-navy); box-shadow: 0 6px 16px rgba(15,23,42,0.10); }
+
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 7px; font-weight: 800; font-size: 13.5px; color: #334155; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--blue); font-size: 15px; }
+    .input-wrap input {
+      width: 100%; padding: 13px 44px 13px 14px; border: 1px solid var(--border); border-radius: 14px;
+      font-family: inherit; font-size: 14.5px; background: #f8fafc; outline: none;
+      transition: 0.2s ease; box-sizing: border-box;
+    }
+    .input-wrap input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 4px rgba(29,78,216,0.10); }
+
+    .btn-main {
+      width: 100%; padding: 14px; margin-top: 6px;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2));
+      color: #fff; border: none; border-radius: 999px; font-weight: 900; font-size: 15px;
+      cursor: pointer; font-family: inherit; transition: 0.25s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 14px 26px rgba(6, 26, 61, 0.24);
+    }
+    .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 18px 30px rgba(6, 26, 61, 0.3); }
+    .btn-main:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .status-msg { margin-top: 16px; font-size: 13.5px; text-align: center; font-weight: 800; line-height: 1.7; min-height: 0; }
+    .status-msg.error { color: var(--danger); }
+    .status-msg.success { color: var(--green); }
+
+    .back-home { display: block; text-align: center; margin-top: 22px; color: var(--muted); font-size: 13px; font-weight: 800; text-decoration: none; }
+    .back-home:hover { color: var(--sanay3i-navy); }
+    .back-home i { margin-left: 5px; }
+
+    @media (max-width: 460px) {
+      .login-card { padding: 28px 20px; border-radius: 24px; }
+      main { padding: 24px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-content">
+      <a href="/" class="brand">
+        <div class="brand-logo-frame">
+          <img src="/icons/icon-192.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>دليل موثوق لصنايعية مرسى مطروح</span>
+        </div>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="login-card">
+      <div class="login-icon"><i class="fa-solid fa-user"></i></div>
+      <h2 class="login-title">حسابي كعميل</h2>
+      <p class="login-subtitle">سجّل دخولك أو اعمل حساب جديد عشان تقدر تطلب خدمة وتتابع طلباتك</p>
+
+      <div class="tabs">
+        <button type="button" class="tab-btn active" id="loginTabBtn">تسجيل الدخول</button>
+        <button type="button" class="tab-btn" id="registerTabBtn">حساب جديد</button>
+      </div>
+
+      <form id="loginForm" class="auth-form active">
+        <div class="form-group">
+          <label>رقم الهاتف</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-phone"></i>
+            <input type="text" id="loginPhone" required placeholder="01xxxxxxxxx">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="loginPassword" required placeholder="كلمة المرور">
+          </div>
+        </div>
+        <button type="submit" class="btn-main" id="loginBtn">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          دخول
+        </button>
+        <div id="loginStatusMsg" class="status-msg"></div>
+      </form>
+
+      <form id="registerForm" class="auth-form">
+        <div class="form-group">
+          <label>الاسم</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-id-card"></i>
+            <input type="text" id="registerName" required placeholder="اسمك بالكامل">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>رقم الهاتف</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-phone"></i>
+            <input type="text" id="registerPhone" required placeholder="01xxxxxxxxx">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>كلمة المرور</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="registerPassword" required placeholder="6 أحرف على الأقل">
+          </div>
+        </div>
+        <button type="submit" class="btn-main" id="registerBtn">
+          <i class="fa-solid fa-user-plus"></i>
+          إنشاء الحساب
+        </button>
+        <div id="registerStatusMsg" class="status-msg"></div>
+      </form>
+
+      <a href="/" class="back-home"><i class="fa-solid fa-arrow-right"></i>رجوع لدليل الصنايعية</a>
+    </div>
+  </main>
+
+  <script>
+    const loginTabBtn = document.getElementById('loginTabBtn');
+    const registerTabBtn = document.getElementById('registerTabBtn');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    loginTabBtn.addEventListener('click', () => {
+      loginTabBtn.classList.add('active'); registerTabBtn.classList.remove('active');
+      loginForm.classList.add('active'); registerForm.classList.remove('active');
+    });
+    registerTabBtn.addEventListener('click', () => {
+      registerTabBtn.classList.add('active'); loginTabBtn.classList.remove('active');
+      registerForm.classList.add('active'); loginForm.classList.remove('active');
+    });
+
+    function showStatus(el, type, msg) {
+      el.className = 'status-msg ' + type;
+      el.textContent = msg;
+    }
+
+    function saveSessionAndRedirect(customer, token) {
+      localStorage.setItem('sanay3i_customer_token', token);
+      localStorage.setItem('sanay3i_customer_id', customer.id);
+      localStorage.setItem('sanay3i_customer_name', customer.name);
+
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect') || '/my-requests';
+      setTimeout(() => { window.location.href = redirectTo; }, 900);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('loginStatusMsg');
+      const btn = document.getElementById('loginBtn');
+      const phone = document.getElementById('loginPhone').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if (!phone || !password) return showStatus(statusEl, 'error', 'يرجى إدخال رقم الهاتف وكلمة المرور');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
+      try {
+        const r = await fetch('/api/customers/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.success) throw new Error(d.error || 'خطأ في تسجيل الدخول');
+
+        showStatus(statusEl, 'success', 'تم تسجيل الدخول! جاري تحويلك...');
+        saveSessionAndRedirect(d.customer, d.token);
+      } catch (err) {
+        showStatus(statusEl, 'error', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
+      }
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('registerStatusMsg');
+      const btn = document.getElementById('registerBtn');
+      const name = document.getElementById('registerName').value.trim();
+      const phone = document.getElementById('registerPhone').value.trim();
+      const password = document.getElementById('registerPassword').value.trim();
+
+      if (!name || !phone || !password) return showStatus(statusEl, 'error', 'يرجى إكمال كل الحقول');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري إنشاء الحساب...';
+      try {
+        const r = await fetch('/api/customers/register', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, password })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر إنشاء الحساب');
+
+        showStatus(statusEl, 'success', 'تم إنشاء الحساب! جاري تحويلك...');
+        saveSessionAndRedirect(d.customer, d.token);
+      } catch (err) {
+        showStatus(statusEl, 'error', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> إنشاء الحساب';
+      }
+    });
+  </script>
+</body>
+</html>

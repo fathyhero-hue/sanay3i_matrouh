@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { supabase, isSupabaseReady } = require("../config/supabase");
 const { requireWorkerOwnership, verifyWorkerToken } = require("../middlewares/auth");
+const { requireCustomerAuth } = require("../middlewares/customerAuth");
 const { reportsRateLimit } = require("../middlewares/rateLimit");
 
 // المرحلة الأولى فقط: new -> accepted/rejected -> in_progress -> completed.
@@ -31,25 +32,19 @@ function withWorkerIdParam(req, res, next) {
   next();
 }
 
-// 1. إنشاء طلب خدمة جديد (عام - العميل مش مسجل دخول)
+// 1. إنشاء طلب خدمة جديد (محمي - محتاج تسجيل دخول عميل؛ الاسم والتليفون
+// بياخدهم السيرفر من الحساب الموثّق مش من العميل، عشان ميتقدرش حد ينتحل
+// اسم/رقم حد تاني)
 async function createServiceRequest(req, res) {
   try {
     if (!isSupabaseReady(res)) return;
     const body = req.body || {};
 
     const workerId = Number(body.worker_id);
-    const customerName = String(body.customer_name || "").trim();
-    const customerPhone = String(body.customer_phone || "").trim();
     const description = String(body.description || "").trim();
 
     if (!Number.isInteger(workerId) || workerId <= 0) {
       return res.status(400).json({ success: false, error: "معرف الصنايعي مطلوب وغير صحيح" });
-    }
-    if (!customerName || customerName.length > 100) {
-      return res.status(400).json({ success: false, error: "اسم العميل مطلوب" });
-    }
-    if (!customerPhone || !/^[\d+\s-]{8,20}$/.test(customerPhone)) {
-      return res.status(400).json({ success: false, error: "رقم هاتف العميل غير صحيح" });
     }
     if (!description || description.length > 1000) {
       return res.status(400).json({ success: false, error: "وصف الخدمة المطلوبة مطلوب" });
@@ -66,13 +61,25 @@ async function createServiceRequest(req, res) {
       return res.status(404).json({ success: false, error: "الصنايعي غير موجود" });
     }
 
+    const { data: customer, error: customerErr } = await supabase
+      .from("customers")
+      .select("id, name, phone")
+      .eq("id", req.customerId)
+      .maybeSingle();
+
+    if (customerErr) throw customerErr;
+    if (!customer) {
+      return res.status(401).json({ success: false, error: "الحساب غير موجود، سجّل الدخول تاني" });
+    }
+
     // status وكل التواريخ بتتحدد من السيرفر فقط - أي قيمة مبعوتة من العميل ليهم بتتجاهل
     const { data: created, error: insertErr } = await supabase
       .from("service_requests")
       .insert([{
         worker_id: workerId,
-        customer_name: customerName,
-        customer_phone: customerPhone,
+        customer_id: customer.id,
+        customer_name: customer.name,
+        customer_phone: customer.phone,
         description,
         status: "new"
       }])
@@ -85,6 +92,33 @@ async function createServiceRequest(req, res) {
   } catch (err) {
     console.error("Create Service Request Error:", err);
     res.status(500).json({ success: false, error: err.message || "تعذر إنشاء الطلب" });
+  }
+}
+
+// 1.5 جلب طلبات العميل الحالي فقط (محمي)
+async function listMyRequests(req, res) {
+  try {
+    if (!isSupabaseReady(res)) return;
+
+    const { data, error } = await supabase
+      .from("service_requests")
+      .select(`${FULL_COLUMNS}, workers(name, trade, area)`)
+      .eq("customer_id", req.customerId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    const requests = (data || []).map(r => {
+      const worker = r.workers || {};
+      const row = { ...r, worker_name: worker.name || "", worker_trade: worker.trade || "", worker_area: worker.area || "" };
+      delete row.workers;
+      return row;
+    });
+
+    res.json({ success: true, requests });
+  } catch (err) {
+    console.error("List My Service Requests Error:", err);
+    res.status(500).json({ success: false, error: err.message || "تعذر جلب طلباتك" });
   }
 }
 
@@ -177,7 +211,8 @@ async function updateServiceRequestStatus(req, res) {
   }
 }
 
-router.post("/", reportsRateLimit, createServiceRequest);
+router.post("/", reportsRateLimit, requireCustomerAuth, createServiceRequest);
+router.get("/mine", requireCustomerAuth, listMyRequests);
 router.get("/worker/:workerId", withWorkerIdParam, requireWorkerOwnership, listWorkerRequests);
 router.patch("/:id/status", updateServiceRequestStatus);
 
@@ -186,5 +221,6 @@ module.exports.ALLOWED_TRANSITIONS = ALLOWED_TRANSITIONS;
 module.exports.withWorkerIdParam = withWorkerIdParam;
 module.exports.extractWorkerToken = extractWorkerToken;
 module.exports.createServiceRequest = createServiceRequest;
+module.exports.listMyRequests = listMyRequests;
 module.exports.listWorkerRequests = listWorkerRequests;
 module.exports.updateServiceRequestStatus = updateServiceRequestStatus;

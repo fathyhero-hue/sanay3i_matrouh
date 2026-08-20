@@ -1643,6 +1643,7 @@ const supportRoutes = require("./routes/support");
 const coreRoutes = require("./routes/core");
 const cronRoutes = require("./routes/cron");
 const serviceRequestsRoutes = require("./routes/serviceRequests");
+const customersRoutes = require("./routes/customers");
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/workers", workersRoutes);
@@ -1652,6 +1653,7 @@ app.use("/api/support-chat", supportRoutes);
 app.use("/api", coreRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/service-requests", serviceRequestsRoutes);
+app.use("/api/customers", customersRoutes);
 
 
 // ===============================
@@ -1732,6 +1734,8 @@ app.get(["/worker-login", "/worker-login.html"], (req, res) => {
 
 app.get("/reset-password", (req, res) => res.sendFile(path.join(STATIC_DIR, "reset-password.html")));
 app.get("/worker-dashboard", (req, res) => res.sendFile(path.join(STATIC_DIR, "worker-dashboard.html")));
+app.get("/customer-auth", (req, res) => res.sendFile(path.join(STATIC_DIR, "customer-auth.html")));
+app.get("/my-requests", (req, res) => res.sendFile(path.join(STATIC_DIR, "my-requests.html")));
 app.get("/status", (req, res) => res.sendFile(path.join(STATIC_DIR, "status.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin.html")));
 app.get("/admin/add-worker", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin-add-worker.html")));

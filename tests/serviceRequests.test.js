@@ -6,14 +6,15 @@ const { createWorkerToken } = require("../api/middlewares/auth");
 const { requireWorkerOwnership } = require("../api/middlewares/auth");
 const {
   createServiceRequest,
+  listMyRequests,
   listWorkerRequests,
   updateServiceRequestStatus,
   withWorkerIdParam,
   ALLOWED_TRANSITIONS
 } = require("../api/routes/serviceRequests");
 
-function fakeReq({ body, params, query, headers } = {}) {
-  return { body: body || {}, params: params || {}, query: query || {}, headers: headers || {} };
+function fakeReq({ body, params, query, headers, customerId } = {}) {
+  return { body: body || {}, params: params || {}, query: query || {}, headers: headers || {}, customerId };
 }
 
 function fakeRes() {
@@ -50,8 +51,6 @@ function queueSupabaseFrom(results) {
 
 const validBody = {
   worker_id: 1,
-  customer_name: "أحمد علي",
-  customer_phone: "01012345678",
   description: "تسريب مياه في المطبخ محتاج معاينة سريعة"
 };
 
@@ -65,20 +64,26 @@ describe("ALLOWED_TRANSITIONS", () => {
   });
 });
 
-describe("POST /api/service-requests (createServiceRequest)", () => {
-  test("إنشاء طلب صحيح: status دايمًا new ومش بياخد status/timestamps من العميل", async () => {
+describe("POST /api/service-requests (createServiceRequest) - محمي بـ requireCustomerAuth، الاسم/التليفون من الحساب الموثّق فقط", () => {
+  test("إنشاء طلب صحيح: status دايمًا new، والاسم/التليفون من حساب العميل الموثّق مش من الـ body", async () => {
     const restore = queueSupabaseFrom([
       { data: { id: 1 }, error: null }, // الصنايعي موجود
+      { data: { id: 1, name: "أحمد علي", phone: "01012345678" }, error: null }, // بيانات العميل الموثّق
       { data: { id: 10, worker_id: 1, customer_name: "أحمد علي", customer_phone: "01012345678", description: validBody.description, status: "new", created_at: "2026-08-20T00:00:00.000Z" }, error: null } // نتيجة الإدراج
     ]);
     try {
-      const req = fakeReq({ body: { ...validBody, status: "completed", accepted_at: "hacked" } });
+      // العميل بيحاول ينتحل اسم/رقم/status/تاريخ مختلف في الـ body - المفروض كله يتجاهل
+      const req = fakeReq({
+        body: { ...validBody, customer_name: "منتحل", customer_phone: "0100000000", status: "completed", accepted_at: "hacked" },
+        customerId: 1
+      });
       const res = fakeRes();
       await createServiceRequest(req, res);
 
       assert.equal(res.statusCode, 200);
       assert.equal(res.body.success, true);
       assert.equal(res.body.request.status, "new");
+      assert.equal(res.body.request.customer_name, "أحمد علي");
       assert.equal(res.body.request.id, 10);
     } finally {
       restore();
@@ -90,7 +95,7 @@ describe("POST /api/service-requests (createServiceRequest)", () => {
       { data: null, error: null } // مفيش صنايعي بالـ id ده
     ]);
     try {
-      const req = fakeReq({ body: { ...validBody, worker_id: 999999 } });
+      const req = fakeReq({ body: { ...validBody, worker_id: 999999 }, customerId: 1 });
       const res = fakeRes();
       await createServiceRequest(req, res);
 
@@ -101,8 +106,8 @@ describe("POST /api/service-requests (createServiceRequest)", () => {
     }
   });
 
-  test("رفض طلب من غير اسم عميل (400) - مفيش نداء لقاعدة البيانات أصلاً", async () => {
-    const req = fakeReq({ body: { ...validBody, customer_name: "" } });
+  test("رفض طلب من غير وصف (400) - مفيش نداء لقاعدة البيانات أصلاً", async () => {
+    const req = fakeReq({ body: { ...validBody, description: "" }, customerId: 1 });
     const res = fakeRes();
     await createServiceRequest(req, res);
 
@@ -110,13 +115,39 @@ describe("POST /api/service-requests (createServiceRequest)", () => {
     assert.equal(res.body.success, false);
   });
 
-  test("رفض رقم هاتف غير صحيح (400)", async () => {
-    const req = fakeReq({ body: { ...validBody, customer_phone: "abc" } });
+  test("رفض worker_id غير رقم صحيح (400)", async () => {
+    const req = fakeReq({ body: { ...validBody, worker_id: "abc" }, customerId: 1 });
     const res = fakeRes();
     await createServiceRequest(req, res);
 
     assert.equal(res.statusCode, 400);
     assert.equal(res.body.success, false);
+  });
+});
+
+describe("GET /api/service-requests/mine (listMyRequests)", () => {
+  test("بيرجع طلبات العميل الحالي فقط مع اسم/حرفة/منطقة الصنايعي", async () => {
+    const restore = queueSupabaseFrom([
+      {
+        data: [
+          { id: 10, worker_id: 1, customer_id: 1, description: "تسريب مياه", status: "new", created_at: "2026-08-20T00:00:00.000Z", workers: { name: "محمد سيد", trade: "سباك", area: "مطروح" } }
+        ],
+        error: null
+      }
+    ]);
+    try {
+      const req = fakeReq({ customerId: 1 });
+      const res = fakeRes();
+      await listMyRequests(req, res);
+
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.requests.length, 1);
+      assert.equal(res.body.requests[0].worker_name, "محمد سيد");
+      assert.equal(res.body.requests[0].worker_trade, "سباك");
+      assert.equal(res.body.requests[0].workers, undefined); // الكائن المتداخل الخام مايتسربش في الرد
+    } finally {
+      restore();
+    }
   });
 });
 

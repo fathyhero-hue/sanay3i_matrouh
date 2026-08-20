@@ -126,6 +126,24 @@ const workerLoginRateLimit = createDbRateLimiter({
   message: "محاولات دخول كثيرة جدًا. انتظر شوية وحاول تاني"
 });
 
+// حارس لتسجيل حسابات العملاء الجدد (منع سبام إنشاء حسابات)
+const customerRegisterRateLimit = createDbRateLimiter({
+  windowMs: 60 * 60 * 1000, // ساعة
+  max: Number(process.env.CUSTOMER_REGISTER_RATE_LIMIT || 10),
+  keyFn: req => clientIp(req),
+  prefix: "customer-register",
+  message: "محاولات تسجيل كثيرة جدًا. حاول مرة أخرى بعد قليل"
+});
+
+// حارس صارم على تسجيل دخول العميل (منع تخمين كلمة السر بالتكرار)
+const customerLoginRateLimit = createDbRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.CUSTOMER_LOGIN_RATE_LIMIT || 15),
+  keyFn: req => clientIp(req),
+  prefix: "customer-login",
+  message: "محاولات دخول كثيرة جدًا. انتظر شوية وحاول تاني"
+});
+
 module.exports = {
   analyticsRateLimit,
   reportsRateLimit,
@@ -133,6 +151,8 @@ module.exports = {
   adminApiRateLimit,
   adminLoginRateLimit,
   workerLoginRateLimit,
+  customerRegisterRateLimit,
+  customerLoginRateLimit,
   createMemoryRateLimiter,
   createDbRateLimiter
 };
