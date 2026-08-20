@@ -1642,6 +1642,7 @@ const whatsappRoutes = require("./routes/whatsapp");
 const supportRoutes = require("./routes/support");
 const coreRoutes = require("./routes/core");
 const cronRoutes = require("./routes/cron");
+const serviceRequestsRoutes = require("./routes/serviceRequests");
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/workers", workersRoutes);
@@ -1650,6 +1651,7 @@ app.use("/api", whatsappRoutes);
 app.use("/api/support-chat", supportRoutes);
 app.use("/api", coreRoutes);
 app.use("/api/cron", cronRoutes);
+app.use("/api/service-requests", serviceRequestsRoutes);
 
 
 // ===============================
