@@ -76,6 +76,41 @@
     .remove-img-btn { position: absolute; top: 2px; right: 60px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ======================================================
+       طلبات الخدمة
+       ====================================================== */
+    .sr-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .sr-refresh-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .sr-refresh-btn:hover { background: #e2e8f0; }
+    .sr-refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .sr-empty { text-align: center; color: #94a3b8; padding: 40px 10px; font-weight: 700; }
+    .sr-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; overflow: hidden; }
+    .sr-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .sr-customer { font-weight: 800; color: #0f172a; font-size: 14.5px; }
+    .sr-customer small { display: block; color: #64748b; font-weight: 700; font-size: 12px; margin-top: 2px; }
+    .sr-id { color: #94a3b8; font-size: 11.5px; font-weight: 700; }
+    .sr-status { padding: 5px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 900; white-space: nowrap; flex: none; }
+    .sr-status-new { background: #e0f2fe; color: #0369a1; }
+    .sr-status-accepted { background: #dcfce7; color: #15803d; }
+    .sr-status-in_progress { background: #fef3c7; color: #b45309; }
+    .sr-status-completed { background: #ede9fe; color: #6d28d9; }
+    .sr-status-rejected { background: #fee2e2; color: #b91c1c; }
+    .sr-status-cancelled { background: #f1f5f9; color: #475569; }
+    .sr-desc { font-size: 13.5px; color: #334155; line-height: 1.7; margin: 8px 0; word-break: break-word; }
+    .sr-meta { font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; }
+    .sr-reason { font-size: 12.5px; color: #b91c1c; background: #fef2f2; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; word-break: break-word; }
+    .sr-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .sr-btn { border: none; border-radius: 8px; padding: 9px 16px; font-family: inherit; font-weight: 800; font-size: 12.5px; cursor: pointer; }
+    .sr-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .sr-btn-accept { background: #16a34a; color: #fff; }
+    .sr-btn-accept:hover { background: #15803d; }
+    .sr-btn-reject { background: #fee2e2; color: #b91c1c; }
+    .sr-btn-reject:hover { background: #fecaca; }
+    .sr-btn-start { background: #0284c7; color: #fff; }
+    .sr-btn-start:hover { background: #0369a1; }
+    .sr-btn-complete { background: #7c3aed; color: #fff; }
+    .sr-btn-complete:hover { background: #6d28d9; }
   </style>
 </head>
 <body>
@@ -146,6 +181,7 @@
       <div class="tab active" onclick="switchTab('info', event)"><i class="fa-solid fa-user-pen"></i> البيانات الشخصية</div>
       <div class="tab" onclick="switchTab('gallery', event)"><i class="fa-solid fa-images"></i> معرض الأعمال</div>
       <div class="tab" onclick="switchTab('chat', event)"><i class="fa-solid fa-headset"></i> مراسلة الإدارة</div>
+      <div class="tab" onclick="switchTab('serviceRequests', event)"><i class="fa-solid fa-clipboard-list"></i> طلبات الخدمة</div>
     </div>
 
     <!-- 1. تبويبة البيانات الشخصية -->
@@ -324,6 +360,19 @@
                 </button>
             </form>
         </div>
+    </div>
+
+    <!-- 4. تبويبة طلبات الخدمة -->
+    <div id="serviceRequests" class="tab-content">
+      <div class="sr-toolbar">
+        <h3 style="margin:0; color:#0f172a;"><i class="fa-solid fa-clipboard-list"></i> طلبات الخدمة</h3>
+        <button type="button" class="sr-refresh-btn" id="srRefreshBtn" onclick="loadServiceRequests()">
+          <i class="fa-solid fa-rotate"></i> تحديث
+        </button>
+      </div>
+      <div id="srList">
+        <div class="sr-empty"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>
+      </div>
     </div>
   </div>
 
@@ -986,6 +1035,116 @@
 
 
     // ==========================================
+    // طلبات الخدمة
+    // ==========================================
+    const SR_STATUS_LABELS = {
+      new: 'جديد', accepted: 'تم القبول', in_progress: 'جاري التنفيذ',
+      completed: 'مكتمل', rejected: 'مرفوض', cancelled: 'ملغي'
+    };
+
+    function srEsc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function srFormatDate(iso) {
+      if (!iso) return '';
+      try { return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+      catch (e) { return ''; }
+    }
+
+    // الأزرار حسب الحالة فقط - completed/rejected/cancelled من غير أزرار تعديل
+    function srActionsHtml(r) {
+      if (r.status === 'new') {
+        return `<div class="sr-actions">
+          <button type="button" class="sr-btn sr-btn-accept" onclick="srUpdateStatus(${r.id}, 'accepted')"><i class="fa-solid fa-check"></i> قبول</button>
+          <button type="button" class="sr-btn sr-btn-reject" onclick="srRejectRequest(${r.id})"><i class="fa-solid fa-xmark"></i> رفض</button>
+        </div>`;
+      }
+      if (r.status === 'accepted') {
+        return `<div class="sr-actions">
+          <button type="button" class="sr-btn sr-btn-start" onclick="srUpdateStatus(${r.id}, 'in_progress')"><i class="fa-solid fa-play"></i> بدء التنفيذ</button>
+        </div>`;
+      }
+      if (r.status === 'in_progress') {
+        return `<div class="sr-actions">
+          <button type="button" class="sr-btn sr-btn-complete" onclick="srUpdateStatus(${r.id}, 'completed')"><i class="fa-solid fa-flag-checkered"></i> إتمام الخدمة</button>
+        </div>`;
+      }
+      return '';
+    }
+
+    function renderServiceRequests(requests) {
+      const list = document.getElementById('srList');
+      if (!requests || !requests.length) {
+        list.innerHTML = '<div class="sr-empty"><i class="fa-solid fa-inbox"></i><br>لا يوجد طلبات خدمة حتى الآن.</div>';
+        return;
+      }
+      list.innerHTML = requests.map(r => {
+        const statusClass = 'sr-status-' + (r.status || 'new');
+        const statusLabel = SR_STATUS_LABELS[r.status] || r.status;
+        const reasonBlock = (r.status === 'rejected' && r.rejected_reason)
+          ? `<div class="sr-reason"><i class="fa-solid fa-circle-exclamation"></i> ${srEsc(r.rejected_reason)}</div>` : '';
+        return `<div class="sr-card" id="sr-card-${r.id}">
+          <div class="sr-top">
+            <div class="sr-customer">
+              ${srEsc(r.customer_name)}
+              <small><i class="fa-solid fa-phone"></i> ${srEsc(r.customer_phone)}</small>
+              <div class="sr-id">طلب رقم #${srEsc(r.id)}</div>
+            </div>
+            <span class="sr-status ${statusClass}">${srEsc(statusLabel)}</span>
+          </div>
+          <div class="sr-desc">${srEsc(r.description)}</div>
+          ${reasonBlock}
+          <div class="sr-meta"><i class="fa-regular fa-calendar"></i> ${srFormatDate(r.created_at)}</div>
+          ${srActionsHtml(r)}
+        </div>`;
+      }).join('');
+    }
+
+    async function loadServiceRequests() {
+      const list = document.getElementById('srList');
+      const btn = document.getElementById('srRefreshBtn');
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch('/api/service-requests/worker/' + workerId, { headers: authHeaders() });
+        if (r.status === 401) {
+          list.innerHTML = '<div class="sr-empty">انتهت جلستك، سجّل دخولك تاني.</div>';
+          return;
+        }
+        const d = await r.json();
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحميل الطلبات');
+        renderServiceRequests(d.requests);
+      } catch (e) {
+        list.innerHTML = '<div class="sr-empty"><i class="fa-solid fa-triangle-exclamation"></i><br>تعذر تحميل الطلبات، جرب تاني.</div>';
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function srUpdateStatus(id, status, rejectedReason) {
+      const body = { status };
+      if (rejectedReason) body.rejected_reason = rejectedReason;
+      try {
+        const r = await fetch('/api/service-requests/' + id + '/status', {
+          method: 'PATCH',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(body)
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحديث حالة الطلب');
+        loadServiceRequests();
+      } catch (e) {
+        alert(e.message || 'تعذر تحديث حالة الطلب');
+      }
+    }
+
+    function srRejectRequest(id) {
+      const reason = prompt('اكتب سبب رفض الطلب:');
+      if (reason === null) return; // المستخدم ألغى
+      srUpdateStatus(id, 'rejected', reason.trim());
+    }
+
+    // ==========================================
     // التنقل بين التبويبات وتسجيل الخروج
     // ==========================================
     function switchTab(tabId, event) {
@@ -994,9 +1153,11 @@
       document.getElementById(tabId).classList.add('active');
       if(event) event.currentTarget.classList.add('active');
       else document.querySelector(`.tab[onclick*="${tabId}"]`).classList.add('active');
-      
+
       if(tabId === 'chat') {
           loadMessages();
+      } else if (tabId === 'serviceRequests') {
+          loadServiceRequests();
       }
     }
 

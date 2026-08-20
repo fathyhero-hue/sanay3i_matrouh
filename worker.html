@@ -67,6 +67,7 @@
       <nav class="main-nav">
         <a href="/" style="color:rgba(241, 245, 249, 0.88);">الرئيسية</a>
         <a href="/#workers" style="color:rgba(241, 245, 249, 0.88);">الصنايعية</a>
+        <a href="/my-requests" style="color:rgba(241, 245, 249, 0.88);">طلباتي</a>
         <a href="/status" style="color:rgba(241, 245, 249, 0.88);">حالة الطلب</a>
       </nav>
 
@@ -83,6 +84,7 @@
     <div class="mobile-nav" id="mobileNav">
       <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
       <a href="/#workers" onclick="toggleMobileMenu()">الصنايعية</a>
+      <a href="/my-requests" onclick="toggleMobileMenu()">طلباتي</a>
       <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
@@ -258,6 +260,11 @@
               </div>
 
               <div class="contact-actions">
+                <button type="button" class="details-action details-request" id="requestServiceBtn">
+                  <i class="fa-solid fa-handshake"></i>
+                  اطلب خدمة
+                </button>
+
                 <a href="#" class="details-action details-call" id="callBtn">
                   <i class="fa-solid fa-phone"></i>
                   اتصال مباشر
@@ -373,6 +380,34 @@
         </div>
         <div class="report-message" id="reportMessage"></div>
       </form>
+    </div>
+  </div>
+
+  <div class="report-modal-overlay" id="requestServiceModal" onclick="closeRequestServiceModal(event)">
+    <div class="report-modal-box" onclick="event.stopPropagation()">
+      <div id="requestServiceFormBox">
+        <h3><i class="fa-solid fa-handshake"></i> اطلب خدمة</h3>
+        <p id="requestServiceWorkerName">اكتب وصف مشكلتك أو الخدمة المطلوبة وهيوصل الصنايعي فورًا.</p>
+        <form id="requestServiceForm">
+          <textarea id="requestServiceDescription" required maxlength="1000" placeholder="مثال: عندي تسريب مياه في المطبخ محتاج معاينة سريعة..."></textarea>
+          <div class="report-modal-actions">
+            <button type="submit" class="report-submit-btn" id="requestServiceSubmitBtn">إرسال الطلب</button>
+            <button type="button" class="report-cancel-btn" onclick="closeRequestServiceModal()">إلغاء</button>
+          </div>
+          <div class="report-message" id="requestServiceMessage"></div>
+        </form>
+      </div>
+
+      <div id="requestServiceSuccessBox" style="display:none; text-align:center;">
+        <i class="fa-solid fa-circle-check" style="font-size:34px;color:var(--green);margin-bottom:10px;display:block;"></i>
+        <h3 style="margin:0 0 6px;">تم إرسال طلبك بنجاح</h3>
+        <p style="margin:0 0 4px;">رقم الطلب: <strong id="requestServiceCreatedId"></strong></p>
+        <p style="font-size:12.5px;">هيتراجع الصنايعي عليك في أقرب وقت، وتقدر تتابع حالته من "طلباتي".</p>
+        <div class="report-modal-actions">
+          <a href="/my-requests" class="report-submit-btn" style="text-decoration:none;display:flex;align-items:center;justify-content:center;">عرض طلباتي</a>
+          <button type="button" class="report-cancel-btn" onclick="closeRequestServiceModal()">إغلاق</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1036,6 +1071,113 @@
       if (e && e.target && e.target.id === "reportModal") hideReportModal();
     }
 
+    // ===============================
+    // اطلب خدمة (طلب خدمة من العميل للصنايعي - محتاج تسجيل دخول عميل)
+    // ===============================
+    const PENDING_SERVICE_REQUEST_KEY = "sanay3i_pending_service_request";
+
+    function getCustomerToken() {
+      return localStorage.getItem("sanay3i_customer_token") || "";
+    }
+
+    function clearCustomerSession() {
+      localStorage.removeItem("sanay3i_customer_token");
+      localStorage.removeItem("sanay3i_customer_id");
+      localStorage.removeItem("sanay3i_customer_name");
+    }
+
+    function openRequestServiceFlow() {
+      if (!currentReportWorker.id) return;
+      const token = getCustomerToken();
+      if (!token) {
+        // خزّن رقم الصنايعي المطلوب مؤقتًا فقط عشان نرجع له بعد تسجيل الدخول -
+        // بيتحذف فور استخدامه من صفحة customer-auth
+        try {
+          localStorage.setItem(PENDING_SERVICE_REQUEST_KEY, JSON.stringify({ workerId: String(currentReportWorker.id), ts: Date.now() }));
+        } catch (e) {}
+        window.location.href = "/customer-auth";
+        return;
+      }
+      openRequestModal();
+    }
+
+    function showRequestServiceMessage(type, text) {
+      const msg = document.getElementById("requestServiceMessage");
+      if (!msg) return;
+      msg.className = "report-message " + (type || "");
+      msg.textContent = text || "";
+    }
+
+    function openRequestModal() {
+      const modal = document.getElementById("requestServiceModal");
+      if (!modal) return;
+      const title = document.getElementById("requestServiceWorkerName");
+      if (title) {
+        title.textContent = currentReportWorker.name
+          ? "الطلب موجّه إلى: " + currentReportWorker.name
+          : "اكتب وصف مشكلتك أو الخدمة المطلوبة وهيوصل الصنايعي فورًا.";
+      }
+      document.getElementById("requestServiceFormBox").style.display = "block";
+      document.getElementById("requestServiceSuccessBox").style.display = "none";
+      showRequestServiceMessage("", "");
+      const form = document.getElementById("requestServiceForm");
+      if (form) form.reset();
+      modal.classList.add("show");
+    }
+
+    function closeRequestServiceModal(e) {
+      if (e && e.target && e.target.id !== "requestServiceModal") return;
+      const modal = document.getElementById("requestServiceModal");
+      if (modal) modal.classList.remove("show");
+    }
+
+    async function submitServiceRequest(e) {
+      e.preventDefault();
+      if (!currentReportWorker.id) return;
+
+      const description = (document.getElementById("requestServiceDescription")?.value || "").trim();
+      if (description.length < 3) {
+        return showRequestServiceMessage("error", "اكتب وصف مختصر للمشكلة أو الخدمة المطلوبة");
+      }
+
+      const token = getCustomerToken();
+      if (!token) {
+        showRequestServiceMessage("error", "انتهت الجلسة، يرجى تسجيل الدخول تاني");
+        return;
+      }
+
+      const btn = document.getElementById("requestServiceSubmitBtn");
+      const oldHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+      showRequestServiceMessage("", "");
+
+      try {
+        const r = await fetch("/api/service-requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ worker_id: currentReportWorker.id, description })
+        });
+        const d = await r.json().catch(() => ({}));
+
+        if (r.status === 401) {
+          clearCustomerSession();
+          showRequestServiceMessage("error", "انتهت صلاحية جلستك، يرجى تسجيل الدخول تاني ثم إعادة المحاولة");
+          return;
+        }
+        if (!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال الطلب");
+
+        document.getElementById("requestServiceFormBox").style.display = "none";
+        document.getElementById("requestServiceSuccessBox").style.display = "block";
+        document.getElementById("requestServiceCreatedId").textContent = "#" + d.request.id;
+      } catch (err) {
+        showRequestServiceMessage("error", err.message || "تعذر إرسال الطلب، حاول مرة أخرى");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      }
+    }
+
     async function submitWorkerReport(e) {
       e.preventDefault();
       if (!currentReportWorker.id) return showReportMessage("error", "بيانات الصنايعي غير متاحة");
@@ -1116,6 +1258,14 @@
           }
         });
 
+        const requestServiceBtn = document.getElementById("requestServiceBtn");
+        if (requestServiceBtn) {
+          requestServiceBtn.onclick = function (e) {
+            e.preventDefault();
+            openRequestServiceFlow();
+          };
+        }
+
         document.getElementById("workerImage").src = imgPath(w.image || w.photo || "");
         document.getElementById("workerImage").onerror = function () {
           this.onerror = null;
@@ -1168,6 +1318,17 @@
         loading.style.display = "none";
         error.style.display = "none";
         content.style.display = "block";
+
+        // لو راجعين من تسجيل دخول عميل عشان نفتح نموذج الطلب تلقائيًا (customer-auth.html)
+        try {
+          const params = new URLSearchParams(location.search);
+          if (params.get("openRequest") === "1" && getCustomerToken()) {
+            openRequestModal();
+            params.delete("openRequest");
+            const cleanQuery = params.toString();
+            history.replaceState(null, "", location.pathname + (cleanQuery ? "?" + cleanQuery : ""));
+          }
+        } catch (e) {}
       } catch(e) {
         loading.style.display = "none";
         content.style.display = "none";
@@ -1177,6 +1338,9 @@
 
     const reportForm = document.getElementById("reportForm");
     if (reportForm) reportForm.addEventListener("submit", submitWorkerReport);
+
+    const requestServiceForm = document.getElementById("requestServiceForm");
+    if (requestServiceForm) requestServiceForm.addEventListener("submit", submitServiceRequest);
 
     loadWorker();
   </script>

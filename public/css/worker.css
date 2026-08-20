@@ -325,6 +325,21 @@
       grid-column: 1 / -1;
     }
 
+    .contact-actions .details-request {
+      grid-column: 1 / -1;
+    }
+
+    .details-request {
+      background: rgba(245, 158, 11, 0.14);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.32);
+    }
+
+    .details-request:hover {
+      background: var(--gold);
+      color: #fff;
+    }
+
     .details-action {
       min-height: 46px;
       border-radius: 15px;

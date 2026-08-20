@@ -129,6 +129,12 @@
 
   <main>
     <div class="login-card">
+      <div id="sessionCheckBox" style="display:none; text-align:center; padding: 18px 0;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:26px;color:var(--blue);margin-bottom:12px;display:block;"></i>
+        <p style="color:var(--muted);font-weight:800;margin:0;">جاري التحقق من جلستك...</p>
+      </div>
+
+      <div id="authFormsBox">
       <div class="login-icon"><i class="fa-solid fa-user"></i></div>
       <h2 class="login-title">حسابي كعميل</h2>
       <p class="login-subtitle">سجّل دخولك أو اعمل حساب جديد عشان تقدر تطلب خدمة وتتابع طلباتك</p>
@@ -190,10 +196,68 @@
       </form>
 
       <a href="/" class="back-home"><i class="fa-solid fa-arrow-right"></i>رجوع لدليل الصنايعية</a>
+      </div>
     </div>
   </main>
 
   <script>
+    // مفتاح مؤقت بيتخزن في worker.html لما عميل مسجّلش دخول يضغط "اطلب خدمة" -
+    // بيتحذف فورًا بمجرد قراءته هنا (يُستخدم مرة واحدة بس)
+    const PENDING_SERVICE_REQUEST_KEY = 'sanay3i_pending_service_request';
+    const PENDING_MAX_AGE_MS = 30 * 60 * 1000; // نتجاهله لو أقدم من نص ساعة
+
+    function clearCustomerSession() {
+      localStorage.removeItem('sanay3i_customer_token');
+      localStorage.removeItem('sanay3i_customer_id');
+      localStorage.removeItem('sanay3i_customer_name');
+    }
+
+    function consumePendingWorkerRedirect() {
+      try {
+        const raw = localStorage.getItem(PENDING_SERVICE_REQUEST_KEY);
+        if (!raw) return null;
+        localStorage.removeItem(PENDING_SERVICE_REQUEST_KEY);
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.workerId) return null;
+        if (parsed.ts && (Date.now() - parsed.ts) > PENDING_MAX_AGE_MS) return null;
+        return '/worker/' + encodeURIComponent(parsed.workerId) + '?openRequest=1';
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function resolvePostAuthRedirect() {
+      const pending = consumePendingWorkerRedirect();
+      if (pending) return pending;
+      const params = new URLSearchParams(window.location.search);
+      return params.get('redirect') || '/my-requests';
+    }
+
+    // لو عنده توكن عميل صالح بالفعل، منجبروش يسجل دخول تاني - نوجهه على طول
+    (async function checkExistingSession() {
+      const token = localStorage.getItem('sanay3i_customer_token');
+      if (!token) return;
+
+      document.getElementById('authFormsBox').style.display = 'none';
+      document.getElementById('sessionCheckBox').style.display = 'block';
+
+      try {
+        const r = await fetch('/api/customers/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (r.ok) {
+          const d = await r.json().catch(() => ({}));
+          if (d.success) {
+            window.location.href = resolvePostAuthRedirect();
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // توكن منتهي/غير صالح - امسحه واعرض نموذج تسجيل الدخول العادي
+      clearCustomerSession();
+      document.getElementById('sessionCheckBox').style.display = 'none';
+      document.getElementById('authFormsBox').style.display = 'block';
+    })();
+
     const loginTabBtn = document.getElementById('loginTabBtn');
     const registerTabBtn = document.getElementById('registerTabBtn');
     const loginForm = document.getElementById('loginForm');
@@ -218,8 +282,7 @@
       localStorage.setItem('sanay3i_customer_id', customer.id);
       localStorage.setItem('sanay3i_customer_name', customer.name);
 
-      const params = new URLSearchParams(window.location.search);
-      const redirectTo = params.get('redirect') || '/my-requests';
+      const redirectTo = resolvePostAuthRedirect();
       setTimeout(() => { window.location.href = redirectTo; }, 900);
     }
 
