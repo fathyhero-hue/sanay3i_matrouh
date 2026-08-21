@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const { supabase } = require("../api/config/supabase");
 const { hashCustomerPassword } = require("../api/middlewares/customerAuth");
-const { registerCustomer, loginCustomer, getMe } = require("../api/routes/customers");
+const { registerCustomer, loginCustomer, getMe, identifyCustomer } = require("../api/routes/customers");
 
 function fakeReq({ body, headers, customerId } = {}) {
   return { body: body || {}, headers: headers || {}, query: {}, customerId };
@@ -27,6 +27,7 @@ function queueSupabaseFrom(results) {
       select: () => builder,
       eq: () => builder,
       insert: () => builder,
+      update: () => builder,
       single: () => Promise.resolve(result),
       maybeSingle: () => Promise.resolve(result),
       then: (resolve, reject) => Promise.resolve(result).then(resolve, reject)
@@ -56,9 +57,9 @@ describe("POST /api/customers/register", () => {
     }
   });
 
-  test("رفض رقم هاتف مسجل بالفعل (409)", async () => {
+  test("رفض رقم هاتف مسجل بالفعل بكلمة مرور حقيقية (409)", async () => {
     const restore = queueSupabaseFrom([
-      { data: { id: 1 }, error: null } // فيه رقم مكرر بالفعل
+      { data: { id: 1, password_set: true }, error: null } // فيه حساب حقيقي مسجل بكلمة مرور بالفعل
     ]);
     try {
       const req = fakeReq({ body: { name: "سارة أحمد", phone: "01099998888", password: "secret123" } });
@@ -76,6 +77,87 @@ describe("POST /api/customers/register", () => {
     const req = fakeReq({ body: { name: "سارة أحمد", phone: "01099998888", password: "123" } });
     const res = fakeRes();
     await registerCustomer(req, res);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.success, false);
+  });
+
+  test("حساب اتعمل بالبوابة البسيطة (password_set=false) بيترقّى بدل ما يترفض كمكرر", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 5, password_set: false }, error: null }, // حساب بوابة قديم من غير كلمة مرور حقيقية
+      { data: { id: 5, name: "سارة أحمد", phone: "01099998888" }, error: null } // نتيجة الترقية (update)
+    ]);
+    try {
+      const req = fakeReq({ body: { name: "سارة أحمد", phone: "01099998888", password: "secret123" } });
+      const res = fakeRes();
+      await registerCustomer(req, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.customer.id, 5); // نفس الـ id القديم اتحافظ عليه
+      assert.ok(res.body.token);
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe("POST /api/customers/identify (تسجيل بسيط اسم + رقم بس)", () => {
+  test("رقم جديد بيتعمله حساب وبيرجع توكن", async () => {
+    const restore = queueSupabaseFrom([
+      { data: null, error: null }, // مفيش حساب بالرقم ده
+      { data: { id: 10, name: "زائر", phone: "01011112222" }, error: null } // نتيجة الإدراج
+    ]);
+    try {
+      const req = fakeReq({ body: { name: "زائر", phone: "01011112222" } });
+      const res = fakeRes();
+      await identifyCustomer(req, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.token);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رقم اتعمل بالبوابة قبل كده (password_set=false) بيرجع نفس الحساب من غير ما يعمل واحد جديد", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 10, name: "زائر", phone: "01011112222", password_set: false }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ body: { name: "زائر تاني", phone: "01011112222" } });
+      const res = fakeRes();
+      await identifyCustomer(req, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.customer.id, 10);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض انتحال رقم بحساب محمي بكلمة مرور حقيقية (409) - من غير أي نداء إدراج", async () => {
+    const restore = queueSupabaseFrom([
+      { data: { id: 1, name: "أحمد", phone: "01099998888", password_set: true }, error: null }
+    ]);
+    try {
+      const req = fakeReq({ body: { name: "محاولة انتحال", phone: "01099998888" } });
+      const res = fakeRes();
+      await identifyCustomer(req, res);
+
+      assert.equal(res.statusCode, 409);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.requires_login, true);
+    } finally {
+      restore();
+    }
+  });
+
+  test("رفض اسم أو رقم غير صحيح (400)", async () => {
+    const req = fakeReq({ body: { name: "", phone: "01011112222" } });
+    const res = fakeRes();
+    await identifyCustomer(req, res);
 
     assert.equal(res.statusCode, 400);
     assert.equal(res.body.success, false);

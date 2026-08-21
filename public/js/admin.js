@@ -29,6 +29,7 @@ function switchTab(t,b){
   if(t==="backups"&&!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return}
   if(t==="reports"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض البلاغات");return}
   if(t==="serviceRequests"&&!can("reports:read")){toast("error","ليس لديك صلاحية عرض طلبات الخدمة");return}
+  if(t==="customers"&&!can("analytics:read")){toast("error","ليس لديك صلاحية عرض العملاء");return}
   if(t==="whatsapp"&&!can("whatsapp:send")){toast("error","ليس لديك صلاحية رسائل واتساب");return}
   if(t==="activityLog"&&!can("activity_log:read")){toast("error","ليس لديك صلاحية عرض سجل النشاط");return}
 
@@ -38,6 +39,7 @@ function switchTab(t,b){
   if(t==='reviews'){loadReviewsAdmin().then(()=>{__adminLoaded.reviews=true;renderReviews()})}
   if(t==='reports') loadReports();
   if(t==='serviceRequests') loadServiceRequestsAdmin();
+  if(t==='customers') loadCustomersAdmin();
   if(t==='analytics') loadAnalytics();
   if(t==='users') loadAdminUsers();
   if(t==='backups') loadBackupSummary();
@@ -690,6 +692,98 @@ async function updateServiceRequestAdminStatus(id,status){
   }catch(e){toast("error",e.message||"تعذر تحديث حالة الطلب")}
 }
 
+// ===============================
+// العملاء (نظام البوابة البسيطة) - عرض فقط
+// ===============================
+let adminCustomers=[];
+const CUST_EVENT_LABELS={app_open:"فتح التطبيق",category_view:"مشاهدة قسم",worker_profile_view:"مشاهدة بروفايل",profile_view:"مشاهدة بروفايل",search:"بحث",phone_reveal:"إظهار رقم الهاتف",call_click:"ضغط اتصال",call:"ضغط اتصال",whatsapp_click:"ضغط واتساب",whatsapp:"ضغط واتساب",share:"مشاركة",filter_trade:"فلترة حرفة",filter_area:"فلترة منطقة",copy_phone:"نسخ الرقم"};
+const CUST_EVENT_ICONS={app_open:"fa-door-open",category_view:"fa-layer-group",worker_profile_view:"fa-eye",profile_view:"fa-eye",search:"fa-magnifying-glass",phone_reveal:"fa-phone-volume",call_click:"fa-phone",call:"fa-phone",whatsapp_click:"fa-brands fa-whatsapp",whatsapp:"fa-brands fa-whatsapp",share:"fa-share-nodes",filter_trade:"fa-filter",filter_area:"fa-filter",copy_phone:"fa-copy"};
+function custDate(v){try{return v?new Date(v).toLocaleString("ar-EG"):"—"}catch(e){return v||"—"}}
+
+async function loadCustomersAdmin(){
+  if(!can("analytics:read"))return;
+  const box=document.getElementById("customersAdminList"); if(box)box.innerHTML='<div class="empty-admin">جاري تحميل العملاء...</div>';
+  try{
+    const r=await fetch("/api/admin/customers",{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل العملاء");
+    adminCustomers=d.items||[]; renderCustomersAdmin();
+  }catch(e){if(box)box.innerHTML=`<div class="empty-admin">${adminHtmlEscape(e.message||"تعذر تحميل العملاء")}</div>`;}
+}
+
+function renderCustomerStats(){
+  const box=document.getElementById("customersStats"); if(!box)return;
+  const total=adminCustomers.length;
+  const active=adminCustomers.filter(c=>c.status==='نشط').length;
+  const calls=adminCustomers.reduce((s,c)=>s+(c.call_clicks||0),0);
+  const wa=adminCustomers.reduce((s,c)=>s+(c.whatsapp_clicks||0),0);
+  box.innerHTML=`<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-users"></i></div><div><h3>${total}</h3><p>إجمالي العملاء</p></div></div><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-bolt"></i></div><div><h3>${active}</h3><p>نشطين (آخر 30 يوم)</p></div></div><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-phone"></i></div><div><h3>${calls}</h3><p>إجمالي ضغطات اتصال</p></div></div><div class="admin-stat"><div class="admin-stat-icon"><i class="fa-brands fa-whatsapp"></i></div><div><h3>${wa}</h3><p>إجمالي ضغطات واتساب</p></div></div>`;
+}
+
+function renderCustomersAdmin(){
+  renderCustomerStats();
+  const box=document.getElementById("customersAdminList"); if(!box)return;
+  if(!adminCustomers.length){box.innerHTML='<div class="empty-admin">لا يوجد عملاء مسجّلين بعد.</div>';return}
+  box.innerHTML=adminCustomers.map(c=>{
+    const statusClass=c.status==='نشط'?'active':'inactive';
+    return `<div class="cust-admin-card" onclick="openCustomerDetailModal(${c.id})">
+      <div class="cust-admin-top">
+        <div><div class="cust-admin-name">${adminHtmlEscape(c.name)}</div><div class="cust-admin-phone">${adminHtmlEscape(c.phone)}</div></div>
+        <span class="cust-admin-status ${statusClass}">${adminHtmlEscape(c.status)}</span>
+      </div>
+      <div class="cust-admin-meta">
+        <span><i class="fa-regular fa-calendar"></i> سجّل: ${custDate(c.created_at)}</span>
+        <span><i class="fa-solid fa-clock"></i> آخر نشاط: ${c.last_active?custDate(c.last_active):"—"}</span>
+        <span><i class="fa-solid fa-eye"></i> <strong>${c.profile_views}</strong> مشاهدة</span>
+        <span><i class="fa-solid fa-phone"></i> <strong>${c.call_clicks}</strong> اتصال</span>
+        <span><i class="fa-brands fa-whatsapp"></i> <strong>${c.whatsapp_clicks}</strong> واتساب</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function openCustomerDetailModal(id){
+  const modal=document.getElementById("customerDetailModal");
+  const content=document.getElementById("customerDetailContent");
+  if(!modal||!content)return;
+  content.innerHTML='<div class="empty-admin">جاري التحميل...</div>';
+  modal.classList.add("show");
+  try{
+    const r=await fetch(`/api/admin/customers/${encodeURIComponent(id)}`,{credentials:"include"});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل بيانات العميل");
+    const c=d.customer||{};
+    const activityHtml=(d.activity||[]).length?(d.activity||[]).map(a=>{
+      const label=CUST_EVENT_LABELS[a.event_type]||a.event_type;
+      const icon=CUST_EVENT_ICONS[a.event_type]||"fa-circle-dot";
+      const workerLine=a.worker_name?`${adminHtmlEscape(a.worker_name)}${a.worker_trade?" - "+adminHtmlEscape(a.worker_trade):""}`:"";
+      const extraLine=a.category_id?`قسم: ${adminHtmlEscape(a.category_id)}`:(a.search_query?`بحث: "${adminHtmlEscape(a.search_query)}"`:"");
+      const sub=[workerLine,extraLine].filter(Boolean).join(" · ")||custDate(a.created_at);
+      return `<div class="cust-activity-item">
+        <div class="cust-activity-icon"><i class="fa-solid ${icon}"></i></div>
+        <div>
+          <div class="cust-activity-title">${adminHtmlEscape(label)}</div>
+          <div class="cust-activity-sub">${sub}${workerLine||extraLine?" · "+custDate(a.created_at):""}</div>
+        </div>
+      </div>`;
+    }).join(""):'<div class="empty-admin">لا يوجد نشاط مسجّل لهذا العميل بعد.</div>';
+
+    content.innerHTML=`
+      <h3 style="margin:0 0 4px;color:var(--primary);">${adminHtmlEscape(c.name)}</h3>
+      <p style="color:var(--muted);font-weight:700;margin:0 0 16px;">${adminHtmlEscape(c.phone)} · سجّل ${custDate(c.created_at)}</p>
+      <div>${activityHtml}</div>
+    `;
+  }catch(e){
+    content.innerHTML=`<div class="empty-admin">${adminHtmlEscape(e.message||"تعذر تحميل بيانات العميل")}</div>`;
+  }
+}
+
+function closeCustomerDetailModal(e){
+  if(e&&e.target&&e.target.id!=="customerDetailModal")return;
+  const modal=document.getElementById("customerDetailModal");
+  if(modal)modal.classList.remove("show");
+}
+
 function requireBackupPermission(){if(!can("backup:export")){toast("error","ليس لديك صلاحية النسخ الاحتياطي");return false}return true}
 function downloadFullBackup(){if(!requireBackupPermission())return;window.location.href="/api/admin/backups/full-json"}
 function exportWorkersReport(){if(!requireBackupPermission())return;window.location.href="/api/export-workers"}
@@ -1036,6 +1130,35 @@ async function loadAnalytics() {
     renderModernBars("analyticsTopPages", formattedPages, "fill-purple");
     renderDailyChart(d.daily || []);
     populateWorkerAnalyticsSelect();
+
+    // ===== حقول إضافية لنظام البوابة/حسابات العملاء =====
+    const customers = d.customers || {};
+    setText("analyticsCustomersTotal", customers.total);
+    setText("analyticsCustomersToday", customers.today);
+    setText("analyticsCustomersWeek", customers.week);
+    setText("analyticsCustomersMonth", customers.month);
+
+    renderModernBars("analyticsTopTradesByViews", d.top_trades_by_views, "fill-blue");
+
+    const renderTopWorkersByMetric = (containerId, rows) => {
+      const box = document.getElementById(containerId);
+      if (!box) return;
+      if (!rows || !rows.length) { box.innerHTML = '<div class="empty-admin" style="padding:16px;">لا توجد بيانات كافية.</div>'; return; }
+      box.innerHTML = rows.map((row, idx) => {
+        const w = row.worker || {};
+        const name = w.name || ("صنايعي رقم " + row.worker_id);
+        const trade = w.trade || "غير محدد";
+        return `<div class="top-worker-card" style="cursor:pointer" onclick="selectWorkerAnalytics('${adminActionsEscapeAttr(row.worker_id)}')">
+          <div class="top-worker-info">
+            <span style="font-size: 16px; font-weight: 900; color: #cbd5e1;">#${idx + 1}</span>
+            <div><h4 class="top-w-name">${adminHtmlEscape(name)}</h4><p class="top-w-trade">${adminHtmlEscape(trade)}</p></div>
+          </div>
+          <div class="top-w-score"><i class="fa-solid fa-fire"></i> ${analyticsNumber(row.count)}</div>
+        </div>`;
+      }).join("");
+    };
+    renderTopWorkersByMetric("analyticsTopWorkersByCall", d.top_workers_by_call_click);
+    renderTopWorkersByMetric("analyticsTopWorkersByWhatsapp", d.top_workers_by_whatsapp_click);
 
   } catch (e) {
     boxTopWorkers.innerHTML = "";

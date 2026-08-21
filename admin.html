@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/css/admin-modals.css" />
   <link rel="stylesheet" href="/css/admin-whatsapp-chat.css" />
   <link rel="stylesheet" href="/css/admin-service-requests.css" />
+  <link rel="stylesheet" href="/css/admin-customers.css" />
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -114,6 +115,7 @@
       <button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button>
       <button class="admin-tab" data-permission="reports:read" onclick="switchTab('reports',this)"><i class="fa-solid fa-triangle-exclamation"></i> البلاغات</button>
       <button class="admin-tab" data-permission="reports:read" onclick="switchTab('serviceRequests',this)"><i class="fa-solid fa-clipboard-list"></i> طلبات الخدمة</button>
+      <button class="admin-tab" data-permission="analytics:read" onclick="switchTab('customers',this)"><i class="fa-solid fa-user-group"></i> العملاء</button>
       <button class="admin-tab" data-permission="whatsapp:send" onclick="switchTab('whatsapp',this)"><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button>
       <button class="admin-tab" data-permission="workers:read" onclick="switchTab('chat',this);loadAdminChatThreads()"><i class="fa-solid fa-comments"></i> محادثات التطبيق <span id="adminChatTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button>
       <button class="admin-tab" data-permission="workers:read" onclick="switchTab('support',this);loadAdminSupportThreads()"><i class="fa-solid fa-headset"></i> خدمة العملاء <span id="adminSupportTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button>
@@ -431,6 +433,45 @@
           </div>
 
         </div>
+
+        <!-- نظام حسابات العملاء (البوابة البسيطة) - إضافة جديدة -->
+        <div class="chart-card" style="margin-top:20px;">
+          <h3><i class="fa-solid fa-user-group" style="color:#0f172a;"></i> حسابات العملاء</h3>
+          <div class="stats-hero-grid" style="margin-top:14px;">
+            <div class="stat-hero-card" style="--bg-color: #0f172a; --light-bg: #e2e8f0;">
+              <div class="stat-icon-bg"><i class="fa-solid fa-users"></i></div>
+              <h2 id="analyticsCustomersTotal">0</h2><p>إجمالي العملاء</p>
+            </div>
+            <div class="stat-hero-card" style="--bg-color: #2563eb; --light-bg: #dbeafe;">
+              <div class="stat-icon-bg"><i class="fa-solid fa-calendar-day"></i></div>
+              <h2 id="analyticsCustomersToday">0</h2><p>عملاء اليوم</p>
+            </div>
+            <div class="stat-hero-card" style="--bg-color: #10b981; --light-bg: #d1fae5;">
+              <div class="stat-icon-bg"><i class="fa-solid fa-calendar-week"></i></div>
+              <h2 id="analyticsCustomersWeek">0</h2><p>عملاء الأسبوع</p>
+            </div>
+            <div class="stat-hero-card" style="--bg-color: #f59e0b; --light-bg: #fef3c7;">
+              <div class="stat-icon-bg"><i class="fa-solid fa-calendar"></i></div>
+              <h2 id="analyticsCustomersMonth">0</h2><p>عملاء الشهر</p>
+            </div>
+          </div>
+          <p style="color:#94a3b8; font-size:12px; font-weight:700; margin-top:14px;"><i class="fa-solid fa-circle-info"></i> "ضغط للتواصل" (call_click/whatsapp_click) تعني ضغطة زر فقط، مش تأكيد لمكالمة أو رسالة فعلية.</p>
+        </div>
+
+        <div class="analytics-modern-grid" style="margin-top:20px;">
+          <div class="chart-card">
+            <h3><i class="fa-solid fa-eye" style="color:#f59e0b;"></i> أكثر المهن مشاهدة</h3>
+            <div id="analyticsTopTradesByViews"></div>
+          </div>
+          <div class="chart-card">
+            <h3><i class="fa-solid fa-phone" style="color:#8b5cf6;"></i> أكثر الصنايعية ضغط اتصال</h3>
+            <div id="analyticsTopWorkersByCall" style="display: grid; gap: 10px;"></div>
+          </div>
+          <div class="chart-card">
+            <h3><i class="fa-brands fa-whatsapp" style="color:#10b981;"></i> أكثر الصنايعية ضغط واتساب</h3>
+            <div id="analyticsTopWorkersByWhatsapp" style="display: grid; gap: 10px;"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -474,6 +515,27 @@
         <div id="srAdminList" class="items-list"><div class="empty-admin">اضغط تحديث لعرض طلبات الخدمة.</div></div>
       </div>
     </section>
+
+    <!-- Customers Section -->
+    <section class="admin-section" id="customersSection">
+      <div class="admin-panel">
+        <h3>العملاء</h3>
+        <p>حسابات العملاء اللي سجّلوا (اسم + رقم) قبل إظهار بيانات تواصل صنايعي، ونشاطهم في التطبيق.</p>
+        <div class="admin-stats-grid" id="customersStats" style="margin-top:14px"></div>
+        <div class="sr-admin-filters" style="margin-top:14px">
+          <button class="big-btn btn-dark" onclick="loadCustomersAdmin()"><i class="fa-solid fa-rotate"></i> تحديث</button>
+        </div>
+        <div id="customersAdminList" class="items-list"><div class="empty-admin">اضغط تحديث لعرض العملاء.</div></div>
+      </div>
+    </section>
+
+    <!-- Customer Detail Modal -->
+    <div id="customerDetailModal" class="cust-detail-overlay" onclick="closeCustomerDetailModal(event)">
+      <div class="cust-detail-box" onclick="event.stopPropagation()">
+        <button type="button" class="cust-detail-close" onclick="closeCustomerDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+        <div id="customerDetailContent"><div class="empty-admin">جاري التحميل...</div></div>
+      </div>
+    </div>
 
     <!-- WhatsApp Section -->
     <section class="admin-section" id="whatsappSection">

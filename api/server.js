@@ -65,6 +65,7 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 const { requirePermission, createWorkerToken, requireWorkerOwnership } = require("./middlewares/auth");
+const { verifyCustomerToken, extractCustomerToken } = require("./middlewares/customerAuth");
 const { isValidEmail, generateSecureToken, hashToken, extendSubscription } = require("./utils/helpers");
 const { logAdminActivity } = require("./utils/activityLogger");
 const mailer = require("./utils/mailer");
@@ -1612,20 +1613,33 @@ app.get('/api/export-workers', adminApiRateLimit, requirePermission("backup:expo
 app.post("/api/analytics/track", analyticsRateLimit, async (req, res) => {
   try {
     const body = req.body || {};
-    const eventType = String(body.event_type || body.type).trim().slice(0, 40);
-    const allowed = new Set(["profile_view", "call", "whatsapp", "share", "filter_trade", "filter_area", "search"]);
+    const eventType = String(body.event_type || body.type || "").trim().slice(0, 40);
+    // مجموعة الأحداث القديمة زي ما هي بالظبط (smartScore.js ولوحة التحليلات
+    // الحالية بيعتمدوا عليها) + أحداث نظام البوابة/التسجيل الجديدة بالإضافة ليها
+    const allowed = new Set([
+      "profile_view", "call", "whatsapp", "share", "filter_trade", "filter_area", "search",
+      "app_open", "category_view", "worker_profile_view", "phone_reveal", "call_click", "whatsapp_click"
+    ]);
     if (!allowed.has(eventType)) return res.status(400).json({ success: false });
 
+    // customer_id بيتحدد من التوكن لو موجود وصالح بس - العميل مش قادر يبعته
+    // أو يزوّره عن طريق الـ body
+    const customerId = verifyCustomerToken(extractCustomerToken(req));
+
     const row = {
-      worker_id: String(body.worker_id || body.workerId).trim().slice(0, 80),
+      worker_id: String(body.worker_id || body.workerId || "").trim().slice(0, 80) || null,
       event_type: eventType,
-      source: String(body.source).trim().slice(0, 160),
+      source: String(body.source || "").trim().slice(0, 160),
       page_path: String(body.page_path || body.page || req.headers.referer || "").trim().slice(0, 500),
-      user_agent: String(req.headers["user-agent"]).trim().slice(0, 500),
-      ip_hash: "hidden-for-privacy"
+      user_agent: String(req.headers["user-agent"] || "").trim().slice(0, 500),
+      ip_hash: "hidden-for-privacy",
+      customer_id: customerId || null,
+      category_id: body.category_id ? String(body.category_id).trim().slice(0, 100) : null,
+      search_query: body.search_query ? String(body.search_query).trim().slice(0, 200) : null
     };
-    await supabase.from("analytics_events").insert(row);
-    return res.json({ success: true, tracked: true });
+    const { error: insertErr } = await supabase.from("analytics_events").insert(row);
+    if (insertErr) console.error("Analytics Track Insert Error:", insertErr.message);
+    return res.json({ success: true, tracked: !insertErr });
   } catch (e) {
     return res.json({ success: true, tracked: false });
   }

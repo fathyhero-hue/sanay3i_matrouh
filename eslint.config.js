@@ -82,6 +82,13 @@ module.exports = [
     }
   },
   {
+    // ملفات بتستخدم window.CustomerGate من public/js/customerGate.js اللي بيتحمل قبلها في الصفحة
+    files: ["public/js/home.js"],
+    languageOptions: {
+      globals: { CustomerGate: "readonly" }
+    }
+  },
+  {
     // service-worker.js بيشتغل جوا Service Worker scope، مش المتصفح العادي
     files: ["service-worker.js"],
     languageOptions: {

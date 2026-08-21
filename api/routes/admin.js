@@ -229,9 +229,15 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
     if (error) throw error;
 
     const totals = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, total_events: events?.length || 0 };
+    // إحصائيات إضافية بتجمع الأسماء القديمة (call/whatsapp/profile_view) مع
+    // أسماء أحداث نظام البوابة الجديد (call_click/whatsapp_click/worker_profile_view)
+    // من غير ما تلمس totals/workerStats الأصليين فوق - عشان التوافق الكامل مع
+    // smartScore.js ونفس الحسابات القديمة يفضلوا زي ما هما بالظبط.
+    const totalsCombined = { call: 0, whatsapp: 0, profile_view: 0 };
     const workerStats = {};
     const tradeStats = {};
     const areaStats = {};
+    const tradeViewStats = {};
     const pageStats = {};
     const dailyMap = {};
 
@@ -244,6 +250,10 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
       if (type === 'whatsapp') { totals.whatsapp++; totals.total_contacts++; }
       if (type === 'profile_view') totals.profile_view++;
 
+      if (type === 'call' || type === 'call_click') totalsCombined.call++;
+      if (type === 'whatsapp' || type === 'whatsapp_click') totalsCombined.whatsapp++;
+      if (type === 'profile_view' || type === 'worker_profile_view') totalsCombined.profile_view++;
+
       if (ev.page_path) pageStats[ev.page_path] = (pageStats[ev.page_path] || 0) + 1;
 
       if (day) {
@@ -252,10 +262,13 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
       }
 
       if (wid && wid !== 'undefined' && wid !== 'null') {
-        if (!workerStats[wid]) workerStats[wid] = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0 };
+        if (!workerStats[wid]) workerStats[wid] = { call: 0, whatsapp: 0, profile_view: 0, total_contacts: 0, call_combined: 0, whatsapp_combined: 0, profile_view_combined: 0 };
         if (type === 'call') { workerStats[wid].call++; workerStats[wid].total_contacts++; }
         if (type === 'whatsapp') { workerStats[wid].whatsapp++; workerStats[wid].total_contacts++; }
         if (type === 'profile_view') workerStats[wid].profile_view++;
+        if (type === 'call' || type === 'call_click') workerStats[wid].call_combined++;
+        if (type === 'whatsapp' || type === 'whatsapp_click') workerStats[wid].whatsapp_combined++;
+        if (type === 'profile_view' || type === 'worker_profile_view') workerStats[wid].profile_view_combined++;
       }
     });
 
@@ -283,6 +296,7 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
         topWorkers.push({ worker_id: w.id, worker: w, ...stats });
         if (w.trade) tradeStats[w.trade] = (tradeStats[w.trade] || 0) + stats.total_contacts;
         if (w.area) areaStats[w.area] = (areaStats[w.area] || 0) + stats.total_contacts;
+        if (w.trade) tradeViewStats[w.trade] = (tradeViewStats[w.trade] || 0) + stats.profile_view_combined;
       }
     });
 
@@ -291,6 +305,28 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
 
     totals.conversion_rate = totals.profile_view > 0 ? ((totals.total_contacts / totals.profile_view) * 100).toFixed(1) : 0;
 
+    // ترتيب إضافي حسب ضغطات التواصل تحديدًا (مش إجمالي، لكل نوع لوحده) - مطلوب
+    // للوحة العملاء الجديدة. call_click/whatsapp_click هنا "ضغط للتواصل" فقط،
+    // مش تأكيد لمكالمة أو رسالة فعلية.
+    const topWorkersByCall = topWorkers.filter(w => w.call_combined > 0)
+      .map(w => ({ worker_id: w.worker_id, worker: w.worker, count: w.call_combined }))
+      .sort((a, b) => b.count - a.count).slice(0, 10);
+    const topWorkersByWhatsapp = topWorkers.filter(w => w.whatsapp_combined > 0)
+      .map(w => ({ worker_id: w.worker_id, worker: w.worker, count: w.whatsapp_combined }))
+      .sort((a, b) => b.count - a.count).slice(0, 10);
+
+    // إحصائيات العملاء (نظام البوابة الجديد) - استعلام خفيف منفصل
+    const { data: customersData } = await supabase.from('customers').select('id, created_at');
+    const custList = customersData || [];
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const customerTotals = {
+      total: custList.length,
+      today: custList.filter(c => now - new Date(c.created_at).getTime() < dayMs).length,
+      week: custList.filter(c => now - new Date(c.created_at).getTime() < 7 * dayMs).length,
+      month: custList.filter(c => now - new Date(c.created_at).getTime() < 30 * dayMs).length
+    };
+
     res.json({
       success: true,
       totals,
@@ -298,7 +334,13 @@ router.get('/analytics', requirePermission("analytics:read"), async (req, res) =
       top_workers: topWorkers.slice(0, 10),
       top_trades: formatTop(tradeStats),
       top_areas: formatTop(areaStats),
-      top_pages: formatTop(pageStats)
+      top_pages: formatTop(pageStats),
+      // ===== حقول إضافية لنظام البوابة/حسابات العملاء - إضافية بالكامل =====
+      totals_combined: totalsCombined,
+      top_trades_by_views: formatTop(tradeViewStats),
+      top_workers_by_call_click: topWorkersByCall,
+      top_workers_by_whatsapp_click: topWorkersByWhatsapp,
+      customers: customerTotals
     });
   } catch (err) {
     console.error('Analytics Error:', err);
@@ -349,6 +391,115 @@ router.get('/analytics/worker/:id', requirePermission("analytics:read"), async (
   } catch (err) {
     console.error('Worker Analytics Error:', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===============================
+// العملاء (حسابات نظام البوابة/طلب الخدمة) - عرض فقط، بدون أي تعديل من الإدارة
+// ===============================
+router.get('/customers', requirePermission("analytics:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const { data: customers, error } = await supabase
+      .from('customers')
+      .select('id, name, phone, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    const rows = customers || [];
+    const ids = rows.map(c => c.id);
+    const statsByCustomer = {};
+    if (ids.length) {
+      const { data: events } = await supabase
+        .from('analytics_events')
+        .select('customer_id, event_type, created_at')
+        .in('customer_id', ids);
+      (events || []).forEach(ev => {
+        const cid = ev.customer_id;
+        if (!statsByCustomer[cid]) statsByCustomer[cid] = { profile_view: 0, call: 0, whatsapp: 0, last_active: null };
+        const type = ev.event_type;
+        if (type === 'profile_view' || type === 'worker_profile_view') statsByCustomer[cid].profile_view++;
+        if (type === 'call' || type === 'call_click') statsByCustomer[cid].call++;
+        if (type === 'whatsapp' || type === 'whatsapp_click') statsByCustomer[cid].whatsapp++;
+        if (!statsByCustomer[cid].last_active || ev.created_at > statsByCustomer[cid].last_active) {
+          statsByCustomer[cid].last_active = ev.created_at;
+        }
+      });
+    }
+
+    const activeThresholdMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const items = rows.map(c => {
+      const stats = statsByCustomer[c.id] || { profile_view: 0, call: 0, whatsapp: 0, last_active: null };
+      const isActive = !!stats.last_active && new Date(stats.last_active).getTime() >= activeThresholdMs;
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        created_at: c.created_at,
+        last_active: stats.last_active,
+        status: isActive ? 'نشط' : 'غير نشط',
+        profile_views: stats.profile_view,
+        call_clicks: stats.call,
+        whatsapp_clicks: stats.whatsapp
+      };
+    });
+
+    res.json({ success: true, items });
+  } catch (err) {
+    console.error('Admin Customers List Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'تعذر تحميل العملاء' });
+  }
+});
+
+// سجل نشاط عميل واحد مرتب من الأحدث للأقدم
+router.get('/customers/:id', requirePermission("analytics:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const customerId = Number(req.params.id);
+    if (!customerId) return res.status(400).json({ success: false, error: 'معرف العميل غير صحيح' });
+
+    const { data: customer, error: custErr } = await supabase
+      .from('customers')
+      .select('id, name, phone, created_at')
+      .eq('id', customerId)
+      .maybeSingle();
+    if (custErr) throw custErr;
+    if (!customer) return res.status(404).json({ success: false, error: 'العميل غير موجود' });
+
+    const { data: events, error: evErr } = await supabase
+      .from('analytics_events')
+      .select('event_type, worker_id, category_id, search_query, created_at')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (evErr) throw evErr;
+
+    const rows = events || [];
+    const workerIds = Array.from(new Set(rows.map(e => e.worker_id).filter(Boolean)));
+    let workersById = {};
+    if (workerIds.length) {
+      const { data: workers } = await supabase.from('workers').select('id, name, trade, area').in('id', workerIds);
+      (workers || []).forEach(w => { workersById[String(w.id)] = w; });
+    }
+
+    const activity = rows.map(ev => {
+      const worker = ev.worker_id ? workersById[String(ev.worker_id)] : null;
+      return {
+        event_type: ev.event_type,
+        created_at: ev.created_at,
+        worker_id: ev.worker_id || null,
+        worker_name: worker?.name || null,
+        worker_trade: worker?.trade || null,
+        worker_area: worker?.area || null,
+        category_id: ev.category_id || null,
+        search_query: ev.search_query || null
+      };
+    });
+
+    res.json({ success: true, customer, activity });
+  } catch (err) {
+    console.error('Admin Customer Detail Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'تعذر تحميل بيانات العميل' });
   }
 });
 

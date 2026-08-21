@@ -9,6 +9,20 @@ let renderDebounceTimer = null;
 function scheduleTradeGroupsRender() {
   window.clearTimeout(renderDebounceTimer);
   renderDebounceTimer = window.setTimeout(renderTradeGroups, 180);
+  scheduleSearchTracking();
+}
+
+// تتبع البحث بعد ما المستخدم يوقف عن الكتابة شوية (مش مع كل حرف) عشان
+// منولدش حدث لكل ضغطة على لوحة المفاتيح
+let searchTrackDebounceTimer = null;
+function scheduleSearchTracking() {
+  window.clearTimeout(searchTrackDebounceTimer);
+  searchTrackDebounceTimer = window.setTimeout(() => {
+    const query = document.getElementById("searchInput")?.value.trim() || "";
+    if (query.length >= 2 && window.CustomerGate) {
+      CustomerGate.trackEvent("search", { search_query: query, source: "home_page" });
+    }
+  }, 800);
 }
 
 function toggleMobileMenu() {
@@ -499,11 +513,29 @@ function createWorkerCardElement(worker) {
       </div>
       <p class="worker-desc">${escapeHtml(desc)}</p>
       <div class="worker-actions">
-        <a href="tel:${callNum}" onclick="event.stopPropagation()" class="call-btn ${!callNum ? 'disabled' : ''}"><i class="fa-solid fa-phone"></i> اتصال</a>
-        <a href="https://wa.me/2${waNum}" target="_blank" onclick="event.stopPropagation()" class="whatsapp-btn ${!waNum ? 'disabled' : ''}"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
+        <a href="#" class="call-btn ${!callNum ? 'disabled' : ''}" data-gate-action="call"><i class="fa-solid fa-phone"></i> اتصال</a>
+        <a href="#" class="whatsapp-btn ${!waNum ? 'disabled' : ''}" data-gate-action="whatsapp"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
       </div>
     </div>
   `;
+
+  // الاتصال وواتساب من الكارت محتاجين نفس بوابة التسجيل البسيطة اللي في
+  // صفحة بروفايل الصنايعي - منعمل الفعل الحقيقي إلا بعد التسجيل
+  const callLink = card.querySelector('[data-gate-action="call"]');
+  const waLink = card.querySelector('[data-gate-action="whatsapp"]');
+  function gatedCardAction(e, hasNumber, eventType, url, external) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!hasNumber) return;
+    window.CustomerGate.ensureIdentified(function () {
+      window.CustomerGate.trackEvent(eventType, { worker_id: String(id), source: "home_card" });
+      if (external) window.open(url, "_blank");
+      else window.location.href = url;
+    });
+  }
+  if (callLink) callLink.addEventListener("click", (e) => gatedCardAction(e, !!callNum, "call_click", "tel:" + callNum, false));
+  if (waLink) waLink.addEventListener("click", (e) => gatedCardAction(e, !!waNum, "whatsapp_click", "https://wa.me/2" + waNum, true));
+
   return card;
 }
 
@@ -524,9 +556,11 @@ function createTradeGroupElement(trade, workers, isExpanded) {
   `;
   header.addEventListener("click", () => {
     const key = normalizeText(trade);
-    expandedTradeKey = (expandedTradeKey === key) ? "" : key;
+    const opening = expandedTradeKey !== key;
+    expandedTradeKey = opening ? key : "";
     renderTradeGroups();
     if (expandedTradeKey) wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (opening && window.CustomerGate) CustomerGate.trackEvent("category_view", { category_id: trade, source: "home_page" });
   });
   wrapper.appendChild(header);
 

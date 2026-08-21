@@ -579,17 +579,22 @@
 })();
 </script>
 
+  <script src="/js/customerGate.js"></script>
   <script>
     let currentReportWorker = { id: "", name: "" };
 
     function trackWorkerAction(workerId, eventType, source) {
       try {
         if (!workerId || !eventType) return;
+        // sendBeacon مش بيدعم headers مخصصة (Authorization)، فبنبعت توكن العميل
+        // (لو موجود) جوه الـ body نفسه - السيرفر بيقبله بديل عن الـ header
+        const customerToken = (window.CustomerGate && CustomerGate.getCustomerToken()) || "";
         const payload = JSON.stringify({
           worker_id: String(workerId),
           event_type: eventType,
           source: source || "worker_page",
-          page_path: location.pathname
+          page_path: location.pathname,
+          customer_token: customerToken || undefined
         });
 
         if (navigator.sendBeacon) {
@@ -1239,11 +1244,28 @@
         const shareBtn = document.getElementById("shareBtn");
         if (shareBtn) shareBtn.onclick = function () { shareCurrentWorker(name); };
 
+        // إظهار رقم الهاتف/الاتصال/واتساب محتاج تسجيل بسيط الأول (اسم + رقم) -
+        // البوابة المشتركة في customerGate.js
+        let contactRevealed = false;
+        function revealContactInfo() {
+          if (contactRevealed) return;
+          contactRevealed = true;
+          document.getElementById("workerPhone").textContent = phone || "غير متاح";
+          document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
+          trackWorkerAction(id, "phone_reveal", "worker_page");
+        }
+        document.getElementById("workerPhone").textContent = call ? "متاح بعد التسجيل" : "غير متاح";
+        document.getElementById("workerWhatsapp").textContent = wa ? "متاح بعد التسجيل" : "غير متاح";
+        if (window.CustomerGate && CustomerGate.isIdentified()) revealContactInfo();
+
         const copyPhoneBtn = document.getElementById("copyPhoneBtn");
         if (copyPhoneBtn) {
           copyPhoneBtn.onclick = function () {
-            copyText(call || phone, "تم نسخ رقم الصنايعي");
-            if (call) trackWorkerAction(id, "copy_phone", "worker_page");
+            CustomerGate.ensureIdentified(function () {
+              revealContactInfo();
+              copyText(call || phone, "تم نسخ رقم الصنايعي");
+              if (call) trackWorkerAction(id, "copy_phone", "worker_page");
+            });
           };
         }
 
@@ -1278,8 +1300,6 @@
         document.getElementById("workerArea").textContent = area;
         document.getElementById("workerDescription").textContent = desc;
 
-        document.getElementById("workerPhone").textContent = phone || "غير متاح";
-        document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
         document.getElementById("workerJoinDate").textContent = joinDate;
 
         if (featured(w)) document.getElementById("featuredBadge").classList.add("show");
@@ -1288,16 +1308,39 @@
         const callUrl = call ? "tel:" + call : "#";
         const whatsappUrl = wa ? "https://wa.me/" + wa + "?text=" + txt : "#";
 
-        setLinkState(document.getElementById("callBtn"), !!call, callUrl);
-        setLinkState(document.getElementById("whatsappBtn"), !!wa, whatsappUrl);
+        // href بيفضل "#" لحد ما العميل يسجّل - عشان منع فتح الرابط في تاب جديد
+        // (middle-click) قبل البوابة، مش بس اعتراض onclick العادي
+        setLinkState(document.getElementById("callBtn"), !!call, "#");
+        setLinkState(document.getElementById("whatsappBtn"), !!wa, "#");
+        if (contactRevealed) {
+          document.getElementById("callBtn").href = callUrl;
+          document.getElementById("whatsappBtn").href = whatsappUrl;
+        }
 
         trackWorkerAction(id, "profile_view", "worker_page");
+        trackWorkerAction(id, "worker_profile_view", "worker_page");
+
+        function proceedCall() {
+          revealContactInfo();
+          document.getElementById("callBtn").href = callUrl;
+          if (call) trackWorkerAction(id, "call", "worker_page");
+          if (call) trackWorkerAction(id, "call_click", "worker_page");
+          if (call) window.location.href = callUrl;
+        }
+        function proceedWhatsapp() {
+          revealContactInfo();
+          document.getElementById("whatsappBtn").href = whatsappUrl;
+          if (wa) trackWorkerAction(id, "whatsapp", "worker_page");
+          if (wa) trackWorkerAction(id, "whatsapp_click", "worker_page");
+          if (wa) window.open(whatsappUrl, "_blank");
+        }
 
         ["callBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
-            btn.addEventListener("click", function () {
-              if (call) trackWorkerAction(id, "call", "worker_page");
+            btn.addEventListener("click", function (e) {
+              e.preventDefault();
+              CustomerGate.ensureIdentified(proceedCall);
             });
           }
         });
@@ -1305,8 +1348,9 @@
         ["whatsappBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
-            btn.addEventListener("click", function () {
-              if (wa) trackWorkerAction(id, "whatsapp", "worker_page");
+            btn.addEventListener("click", function (e) {
+              e.preventDefault();
+              CustomerGate.ensureIdentified(proceedWhatsapp);
             });
           }
         });
