@@ -98,6 +98,16 @@
         <p>جاري تحميل بيانات الصنايعي...</p>
       </div>
 
+      <div class="details-error" id="gateRequiredBox" style="display:none;">
+        <i class="fa-solid fa-user-lock"></i>
+        <h2>محتاج تسجيل الأول</h2>
+        <p>سجّل اسمك ورقم هاتفك عشان تقدر تشوف تفاصيل الصنايعي.</p>
+        <button type="button" class="details-back" id="gateRequiredRetryBtn" style="cursor:pointer;border:none;font:inherit;">
+          <i class="fa-solid fa-arrow-left"></i>
+          سجّل الآن
+        </button>
+      </div>
+
       <div class="details-error" id="errorBox" style="display:none;">
         <i class="fa-solid fa-circle-exclamation"></i>
         <h2>الصنايعي غير موجود</h2>
@@ -827,7 +837,12 @@
         link.className = "similar-worker-link";
         link.href = "/worker/" + encodeURIComponent(w.id);
         link.innerHTML = '<i class="fa-solid fa-eye"></i> عرض التفاصيل';
-        link.addEventListener("click", () => trackWorkerAction(currentId, "similar_worker_click", "worker_page"));
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          trackWorkerAction(currentId, "similar_worker_click", "worker_page");
+          const targetUrl = "/worker/" + encodeURIComponent(w.id);
+          CustomerGate.ensureIdentified(function () { location.href = targetUrl; });
+        });
 
         body.appendChild(title);
         body.appendChild(meta);
@@ -1244,28 +1259,18 @@
         const shareBtn = document.getElementById("shareBtn");
         if (shareBtn) shareBtn.onclick = function () { shareCurrentWorker(name); };
 
-        // إظهار رقم الهاتف/الاتصال/واتساب محتاج تسجيل بسيط الأول (اسم + رقم) -
-        // البوابة المشتركة في customerGate.js
-        let contactRevealed = false;
-        function revealContactInfo() {
-          if (contactRevealed) return;
-          contactRevealed = true;
-          document.getElementById("workerPhone").textContent = phone || "غير متاح";
-          document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
-          trackWorkerAction(id, "phone_reveal", "worker_page");
-        }
-        document.getElementById("workerPhone").textContent = call ? "متاح بعد التسجيل" : "غير متاح";
-        document.getElementById("workerWhatsapp").textContent = wa ? "متاح بعد التسجيل" : "غير متاح";
-        if (window.CustomerGate && CustomerGate.isIdentified()) revealContactInfo();
+        // الوصول لصفحة البروفايل دي أصلًا محتاج تسجيل عميل (بوابة على مستوى
+        // الصفحة كلها - راجع startWorkerPageBootstrap تحت)، فبيانات التواصل
+        // تتعرض على طول من غير بوابة تانية جوه الصفحة
+        document.getElementById("workerPhone").textContent = phone || "غير متاح";
+        document.getElementById("workerWhatsapp").textContent = whatsappPhone || "غير متاح";
+        if (call || wa) trackWorkerAction(id, "phone_reveal", "worker_page");
 
         const copyPhoneBtn = document.getElementById("copyPhoneBtn");
         if (copyPhoneBtn) {
           copyPhoneBtn.onclick = function () {
-            CustomerGate.ensureIdentified(function () {
-              revealContactInfo();
-              copyText(call || phone, "تم نسخ رقم الصنايعي");
-              if (call) trackWorkerAction(id, "copy_phone", "worker_page");
-            });
+            copyText(call || phone, "تم نسخ رقم الصنايعي");
+            if (call) trackWorkerAction(id, "copy_phone", "worker_page");
           };
         }
 
@@ -1308,39 +1313,18 @@
         const callUrl = call ? "tel:" + call : "#";
         const whatsappUrl = wa ? "https://wa.me/" + wa + "?text=" + txt : "#";
 
-        // href بيفضل "#" لحد ما العميل يسجّل - عشان منع فتح الرابط في تاب جديد
-        // (middle-click) قبل البوابة، مش بس اعتراض onclick العادي
-        setLinkState(document.getElementById("callBtn"), !!call, "#");
-        setLinkState(document.getElementById("whatsappBtn"), !!wa, "#");
-        if (contactRevealed) {
-          document.getElementById("callBtn").href = callUrl;
-          document.getElementById("whatsappBtn").href = whatsappUrl;
-        }
+        setLinkState(document.getElementById("callBtn"), !!call, callUrl);
+        setLinkState(document.getElementById("whatsappBtn"), !!wa, whatsappUrl);
 
         trackWorkerAction(id, "profile_view", "worker_page");
         trackWorkerAction(id, "worker_profile_view", "worker_page");
 
-        function proceedCall() {
-          revealContactInfo();
-          document.getElementById("callBtn").href = callUrl;
-          if (call) trackWorkerAction(id, "call", "worker_page");
-          if (call) trackWorkerAction(id, "call_click", "worker_page");
-          if (call) window.location.href = callUrl;
-        }
-        function proceedWhatsapp() {
-          revealContactInfo();
-          document.getElementById("whatsappBtn").href = whatsappUrl;
-          if (wa) trackWorkerAction(id, "whatsapp", "worker_page");
-          if (wa) trackWorkerAction(id, "whatsapp_click", "worker_page");
-          if (wa) window.open(whatsappUrl, "_blank");
-        }
-
         ["callBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
-            btn.addEventListener("click", function (e) {
-              e.preventDefault();
-              CustomerGate.ensureIdentified(proceedCall);
+            btn.addEventListener("click", function () {
+              if (call) trackWorkerAction(id, "call", "worker_page");
+              if (call) trackWorkerAction(id, "call_click", "worker_page");
             });
           }
         });
@@ -1348,9 +1332,9 @@
         ["whatsappBtn"].forEach(function (btnId) {
           const btn = document.getElementById(btnId);
           if (btn) {
-            btn.addEventListener("click", function (e) {
-              e.preventDefault();
-              CustomerGate.ensureIdentified(proceedWhatsapp);
+            btn.addEventListener("click", function () {
+              if (wa) trackWorkerAction(id, "whatsapp", "worker_page");
+              if (wa) trackWorkerAction(id, "whatsapp_click", "worker_page");
             });
           }
         });
@@ -1386,7 +1370,44 @@
     const requestServiceForm = document.getElementById("requestServiceForm");
     if (requestServiceForm) requestServiceForm.addEventListener("submit", submitServiceRequest);
 
-    loadWorker();
+    // ===============================
+    // بوابة الوصول لصفحة البروفايل كلها: مفيش تحميل/عرض لأي بيانات صنايعي
+    // (حتى الاسم أو الصورة) قبل ما العميل يسجّل - ده بيغطي كل نقاط الدخول
+    // (كارت الرئيسية، "عرض التفاصيل"، رابط مباشر من برة) لأنها كلها بتوصل
+    // هنا في النهاية
+    // ===============================
+    function startWorkerPageBootstrap() {
+      const loadingBox = document.getElementById("loadingBox");
+      const gateRequiredBox = document.getElementById("gateRequiredBox");
+
+      function beginLoad() {
+        gateRequiredBox.style.display = "none";
+        loadingBox.style.display = "block";
+        loadWorker();
+      }
+
+      if (window.CustomerGate && CustomerGate.isIdentified()) {
+        beginLoad();
+        return;
+      }
+
+      loadingBox.style.display = "none";
+      gateRequiredBox.style.display = "block";
+      CustomerGate.ensureIdentified(beginLoad);
+    }
+
+    const gateRequiredRetryBtn = document.getElementById("gateRequiredRetryBtn");
+    if (gateRequiredRetryBtn) {
+      gateRequiredRetryBtn.addEventListener("click", function () {
+        CustomerGate.ensureIdentified(function () {
+          document.getElementById("gateRequiredBox").style.display = "none";
+          document.getElementById("loadingBox").style.display = "block";
+          loadWorker();
+        });
+      });
+    }
+
+    startWorkerPageBootstrap();
   </script>
 
   <script>

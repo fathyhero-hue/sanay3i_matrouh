@@ -298,7 +298,10 @@ function renderTopDemandWorkers() {
       <span class="demand-chip-name">${escapeHtml(getWorkerName(worker))}</span>
       <span class="demand-chip-score"><i class="fa-solid fa-fire"></i> ${entry.score}</span>
     `;
-    btn.addEventListener("click", () => { if (id) location.href = "/worker/" + id; });
+    btn.addEventListener("click", () => {
+      if (!id) return;
+      window.CustomerGate.ensureIdentified(() => { location.href = "/worker/" + id; });
+    });
     grid.appendChild(btn);
   });
 }
@@ -494,7 +497,12 @@ function createWorkerCardElement(worker) {
   const card = document.createElement("article");
   card.className = "worker-card" + (featured ? " featured-card" : "") + (verified ? " verified-card" : "");
   card.style.cursor = "pointer";
-  card.addEventListener("click", () => { if(id) location.href = "/worker/" + id; });
+  // فتح بروفايل الصنايعي الكامل محتاج تسجيل عميل الأول (اسم + رقم) - الكارت
+  // نفسه (اسم/صورة/منطقة/تقييم) يفضل ظاهر لأي زائر بدون حساب
+  card.addEventListener("click", () => {
+    if (!id) return;
+    window.CustomerGate.ensureIdentified(() => { location.href = "/worker/" + id; });
+  });
 
   card.innerHTML = `
     <div class="worker-image-wrap">
