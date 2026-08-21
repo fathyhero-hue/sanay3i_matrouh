@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sanay3i-matrouh-v3';
+const CACHE_NAME = 'sanay3i-matrouh-v4';
 
 const ASSETS_TO_CACHE = [
   '/',

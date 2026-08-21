@@ -593,6 +593,17 @@
   <script>
     let currentReportWorker = { id: "", name: "" };
 
+    // حماية احتياطية: لو customerGate.js لسه ما اتحملش (مثلاً كاش قديم لصفحة
+    // index.html من قبل ما السكريبت ده يتضاف)، منسيبش الاستدعاء يعمل TypeError
+    // صامت - ومانفتحش بيانات الصنايعي من غير بوابة برضه
+    function withCustomerGate(callback) {
+      if (window.CustomerGate && typeof window.CustomerGate.ensureIdentified === "function") {
+        callback(window.CustomerGate);
+      } else {
+        console.error("CustomerGate لم يتم تحميله - تم منع فتح بيانات الصنايعي احتياطيًا");
+      }
+    }
+
     function trackWorkerAction(workerId, eventType, source) {
       try {
         if (!workerId || !eventType) return;
@@ -841,7 +852,7 @@
           e.preventDefault();
           trackWorkerAction(currentId, "similar_worker_click", "worker_page");
           const targetUrl = "/worker/" + encodeURIComponent(w.id);
-          CustomerGate.ensureIdentified(function () { location.href = targetUrl; });
+          withCustomerGate(function (gate) { gate.ensureIdentified(function () { location.href = targetUrl; }); });
         });
 
         body.appendChild(title);
@@ -1393,16 +1404,18 @@
 
       loadingBox.style.display = "none";
       gateRequiredBox.style.display = "block";
-      CustomerGate.ensureIdentified(beginLoad);
+      withCustomerGate(function (gate) { gate.ensureIdentified(beginLoad); });
     }
 
     const gateRequiredRetryBtn = document.getElementById("gateRequiredRetryBtn");
     if (gateRequiredRetryBtn) {
       gateRequiredRetryBtn.addEventListener("click", function () {
-        CustomerGate.ensureIdentified(function () {
-          document.getElementById("gateRequiredBox").style.display = "none";
-          document.getElementById("loadingBox").style.display = "block";
-          loadWorker();
+        withCustomerGate(function (gate) {
+          gate.ensureIdentified(function () {
+            document.getElementById("gateRequiredBox").style.display = "none";
+            document.getElementById("loadingBox").style.display = "block";
+            loadWorker();
+          });
         });
       });
     }

@@ -5,6 +5,18 @@ let ratingsByWorker = {};
 let expandedTradeKey = "";
 let renderDebounceTimer = null;
 
+// حماية احتياطية: لو customerGate.js لسه ما اتحملش (مثلاً نسخة قديمة متخزنة
+// في كاش المتصفح/service worker من قبل ما نضيف السكريبت ده لـ index.html)،
+// منسيبش الضغطة تعمل TypeError صامت - وفي نفس الوقت مانفتحش بروفايل الصنايعي
+// من غير تسجيل عميل. نسجل الخطأ في الـ console عشان يبان بوضوح، مش يتبلع بصمت.
+function withCustomerGate(callback) {
+  if (window.CustomerGate && typeof window.CustomerGate.ensureIdentified === "function") {
+    callback(window.CustomerGate);
+  } else {
+    console.error("CustomerGate لم يتم تحميله - تم منع فتح بروفايل الصنايعي احتياطيًا");
+  }
+}
+
 // البحث كان يعيد بناء كل البطاقات مع كل حرف؛ تأخير صغير يجعل الكتابة سلسة.
 function scheduleTradeGroupsRender() {
   window.clearTimeout(renderDebounceTimer);
@@ -300,7 +312,7 @@ function renderTopDemandWorkers() {
     `;
     btn.addEventListener("click", () => {
       if (!id) return;
-      window.CustomerGate.ensureIdentified(() => { location.href = "/worker/" + id; });
+      withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = "/worker/" + id; }));
     });
     grid.appendChild(btn);
   });
@@ -501,7 +513,7 @@ function createWorkerCardElement(worker) {
   // نفسه (اسم/صورة/منطقة/تقييم) يفضل ظاهر لأي زائر بدون حساب
   card.addEventListener("click", () => {
     if (!id) return;
-    window.CustomerGate.ensureIdentified(() => { location.href = "/worker/" + id; });
+    withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = "/worker/" + id; }));
   });
 
   card.innerHTML = `
@@ -535,10 +547,12 @@ function createWorkerCardElement(worker) {
     e.preventDefault();
     e.stopPropagation();
     if (!hasNumber) return;
-    window.CustomerGate.ensureIdentified(function () {
-      window.CustomerGate.trackEvent(eventType, { worker_id: String(id), source: "home_card" });
-      if (external) window.open(url, "_blank");
-      else window.location.href = url;
+    withCustomerGate((gate) => {
+      gate.ensureIdentified(function () {
+        gate.trackEvent(eventType, { worker_id: String(id), source: "home_card" });
+        if (external) window.open(url, "_blank");
+        else window.location.href = url;
+      });
     });
   }
   if (callLink) callLink.addEventListener("click", (e) => gatedCardAction(e, !!callNum, "call_click", "tel:" + callNum, false));
