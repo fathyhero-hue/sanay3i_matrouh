@@ -90,7 +90,8 @@ module.exports = [
   },
   {
     // service-worker.js بيشتغل جوا Service Worker scope، مش المتصفح العادي
-    files: ["service-worker.js"],
+    // (الملف داخل public/ عشان Vercel يقدر يقدّمه كملف ثابت مباشرة)
+    files: ["public/service-worker.js"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "script",
@@ -100,6 +101,7 @@ module.exports = [
         fetch: "readonly",
         Response: "readonly",
         clients: "readonly",
+        URL: "readonly",
         console: "readonly"
       }
     },
