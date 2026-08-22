@@ -144,6 +144,16 @@ const customerLoginRateLimit = createDbRateLimiter({
   message: "محاولات دخول كثيرة جدًا. انتظر شوية وحاول تاني"
 });
 
+// حارس على تفعيل حساب صنايعي قديم (منع محاولات آلية لتخمين أرقام هواتف
+// صنايعية قدامى وتعيين كلمة مرور على حساباتهم)
+const workerActivationRateLimit = createDbRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.WORKER_ACTIVATION_RATE_LIMIT || 8),
+  keyFn: req => clientIp(req),
+  prefix: "worker-activation",
+  message: "محاولات كثيرة لتفعيل الحساب. انتظر شوية وحاول تاني"
+});
+
 module.exports = {
   analyticsRateLimit,
   reportsRateLimit,
@@ -153,6 +163,7 @@ module.exports = {
   workerLoginRateLimit,
   customerRegisterRateLimit,
   customerLoginRateLimit,
+  workerActivationRateLimit,
   createMemoryRateLimiter,
   createDbRateLimiter
 };

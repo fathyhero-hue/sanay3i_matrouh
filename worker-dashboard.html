@@ -177,6 +177,22 @@
       </div>
     </div>
 
+    <!-- مودال تأكيد حذف الحساب -->
+    <div id="deleteAccountModal" style="display:none; position:fixed; inset:0; background:rgba(6,26,61,.55); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+      <div style="background:#fff; border-radius:16px; max-width:420px; width:100%; padding:22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <strong style="font-size:17px; color:#991b1b;"><i class="fa-solid fa-triangle-exclamation"></i> حذف الحساب نهائيًا</strong>
+          <button type="button" onclick="closeDeleteAccountModal()" style="background:none; border:none; font-size:20px; color:#64748b; cursor:pointer;">&times;</button>
+        </div>
+        <p style="color:#334155; font-size:14px; line-height:1.7;">هتفقد بياناتك الشخصية وحسابك نهائيًا، وده إجراء <strong>لا يمكن التراجع عنه</strong>. متأكد إنك عايز تكمل؟</p>
+        <button type="button" id="deleteAccountConfirmBtn" onclick="confirmDeleteAccount()" style="width:100%; background:#dc2626; color:#fff; border:none; padding:13px; border-radius:999px; font-weight:900; font-size:15px; cursor:pointer;">
+          <i class="fa-solid fa-trash-can"></i> نعم، احذف حسابي نهائيًا
+        </button>
+        <button type="button" onclick="closeDeleteAccountModal()" style="width:100%; margin-top:10px; background:#f1f5f9; color:#061A3D; border:none; padding:12px; border-radius:999px; font-weight:800; font-size:14px; cursor:pointer;">إلغاء</button>
+        <div id="deleteAccountStatus" style="margin-top:10px; font-weight:bold; text-align:center;"></div>
+      </div>
+    </div>
+
     <div class="tabs">
       <div class="tab active" onclick="switchTab('info', event)"><i class="fa-solid fa-user-pen"></i> البيانات الشخصية</div>
       <div class="tab" onclick="switchTab('gallery', event)"><i class="fa-solid fa-images"></i> معرض الأعمال</div>
@@ -302,6 +318,25 @@
       </div>
       
       <button class="btn" style="width: 100%;" onclick="saveInfo(this)"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+
+      <!-- تغيير كلمة المرور -->
+      <div style="margin-top:25px; padding:16px; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc;">
+        <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-key"></i> تغيير كلمة المرور</h3>
+        <div class="form-group" style="margin-bottom:10px;">
+          <input type="password" id="w_newPassword" placeholder="كلمة المرور الجديدة (6 أحرف على الأقل)">
+        </div>
+        <button class="btn" onclick="changeWorkerPassword(this)"><i class="fa-solid fa-floppy-disk"></i> حفظ كلمة المرور الجديدة</button>
+        <div id="passwordChangeStatus" style="margin-top:10px; font-weight:bold;"></div>
+      </div>
+
+      <!-- منطقة الخطر: حذف الحساب -->
+      <div style="margin-top:30px; padding:16px; border-radius:12px; border:1px solid #fecaca; background:#fef2f2;">
+        <h3 style="margin-top:0; color:#991b1b;"><i class="fa-solid fa-triangle-exclamation"></i> حذف الحساب</h3>
+        <p style="color:#7f1d1d; font-size:13px; margin:0 0 12px;">حذف حسابك نهائيًا هيمسح بياناتك الشخصية ولن تقدر تسجّل دخولك تاني بعدها. الإجراء ده لا يمكن التراجع عنه.</p>
+        <button type="button" class="btn" style="background:#dc2626; width:100%;" onclick="openDeleteAccountModal()">
+          <i class="fa-solid fa-trash-can"></i> حذف الحساب نهائيًا
+        </button>
+      </div>
     </div>
 
     <!-- 2. تبويبة معرض الأعمال -->
@@ -385,7 +420,7 @@
 
     if (!workerId || !workerToken) {
       alert('يجب تسجيل الدخول أولاً');
-      window.location.href = '/worker-login';
+      window.location.href = '/account';
     }
 
     function authHeaders(extra) {
@@ -699,6 +734,42 @@
           status.innerText = d.error || 'حدث خطأ أثناء الحفظ';
         }
       } catch(e) {
+        status.style.color = '#dc2626';
+        status.innerText = 'تعذر الاتصال بالخادم';
+      }
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      setTimeout(() => { status.innerText = ''; }, 4000);
+    }
+
+    async function changeWorkerPassword(btn) {
+      const input = document.getElementById('w_newPassword');
+      const newPassword = input.value.trim();
+      const status = document.getElementById('passwordChangeStatus');
+      if (!newPassword || newPassword.length < 6) {
+        status.style.color = '#dc2626';
+        status.innerText = 'كلمة المرور يجب ألا تقل عن 6 أحرف';
+        return;
+      }
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/worker/profile/' + workerId + '/password', {
+          method: 'PUT',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ newPassword })
+        });
+        const d = await r.json();
+        if (d.success) {
+          status.style.color = '#16a34a';
+          status.innerText = 'تم تغيير كلمة المرور بنجاح!';
+          input.value = '';
+        } else {
+          status.style.color = '#dc2626';
+          status.innerText = d.error || 'حدث خطأ أثناء الحفظ';
+        }
+      } catch (e) {
         status.style.color = '#dc2626';
         status.innerText = 'تعذر الاتصال بالخادم';
       }
@@ -1165,7 +1236,50 @@
       localStorage.removeItem('sanay3i_current_worker_id');
       localStorage.removeItem('sanay3i_owner_chat_token_' + workerId);
       localStorage.removeItem('sanay3i_worker_token');
-      window.location.href = '/worker-login';
+      window.location.href = '/account';
+    }
+
+    // ==========================================
+    // حذف الحساب نهائيًا
+    // ==========================================
+    function openDeleteAccountModal() {
+      document.getElementById('deleteAccountStatus').textContent = '';
+      document.getElementById('deleteAccountModal').style.display = 'flex';
+    }
+
+    function closeDeleteAccountModal() {
+      document.getElementById('deleteAccountModal').style.display = 'none';
+    }
+
+    async function confirmDeleteAccount() {
+      const btn = document.getElementById('deleteAccountConfirmBtn');
+      const statusEl = document.getElementById('deleteAccountStatus');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحذف...';
+      statusEl.style.color = '#334155';
+      statusEl.textContent = '';
+
+      try {
+        const r = await fetch('/api/worker/profile/' + workerId, {
+          method: 'DELETE',
+          headers: authHeaders()
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر حذف الحساب');
+
+        localStorage.removeItem('sanay3i_current_worker_id');
+        localStorage.removeItem('sanay3i_owner_chat_token_' + workerId);
+        localStorage.removeItem('sanay3i_worker_token');
+
+        statusEl.style.color = '#16a34a';
+        statusEl.textContent = 'تم حذف حسابك بنجاح، جاري تحويلك...';
+        setTimeout(() => { window.location.href = '/'; }, 1200);
+      } catch (err) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = err.message || 'تعذر حذف الحساب';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> نعم، احذف حسابي نهائيًا';
+      }
     }
 
     // التشغيل المبدئي

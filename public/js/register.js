@@ -236,11 +236,6 @@ if (registerForm) {
       return;
     }
 
-    if (!idFrontFile || !idBackFile) {
-      showResult("error", "يجب رفع صورتي وجه وظهر البطاقة الشخصية لإتمام التسجيل.");
-      return;
-    }
-
     const formData = new FormData();
     formData.append("name", name);
     formData.append("phone", phone);
@@ -250,8 +245,9 @@ if (registerForm) {
     formData.append("trade", trade);
     formData.append("area", area);
     formData.append("description", description);
-    formData.append("idFront", idFrontFile, "id-front.jpg");
-    formData.append("idBack", idBackFile, "id-back.jpg");
+    // صور البطاقة اختيارية - تتبعت بس لو المستخدم رفعها فعلاً
+    if (idFrontFile) formData.append("idFront", idFrontFile, "id-front.jpg");
+    if (idBackFile) formData.append("idBack", idBackFile, "id-back.jpg");
 
     if (submitBtn) {
       submitBtn.disabled = true;

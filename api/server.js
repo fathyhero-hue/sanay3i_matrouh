@@ -30,7 +30,7 @@ app.use((req, res, next) => {
 // ===============================
 // 2. تفعيل حراس الأمان (Rate Limiters)
 // ===============================
-const { adminApiRateLimit, analyticsRateLimit, adminLoginRateLimit, workerLoginRateLimit, registrationUpdateRateLimit } = require("./middlewares/rateLimit");
+const { adminApiRateLimit, analyticsRateLimit, adminLoginRateLimit, workerLoginRateLimit, registrationUpdateRateLimit, customerLoginRateLimit, workerActivationRateLimit } = require("./middlewares/rateLimit");
 
 app.use("/api/admin", (req, res, next) => {
   if (req.path === "/login") return adminLoginRateLimit(req, res, next);
@@ -65,7 +65,7 @@ const upload = multer({
 
 const { supabase } = require("./config/supabase");
 const { requirePermission, createWorkerToken, requireWorkerOwnership } = require("./middlewares/auth");
-const { verifyCustomerToken, extractCustomerToken } = require("./middlewares/customerAuth");
+const { verifyCustomerToken, extractCustomerToken, verifyCustomerPassword, createCustomerToken } = require("./middlewares/customerAuth");
 const { isValidEmail, generateSecureToken, hashToken, extendSubscription } = require("./utils/helpers");
 const { logAdminActivity } = require("./utils/activityLogger");
 const mailer = require("./utils/mailer");
@@ -395,8 +395,8 @@ app.post('/api/register', upload.fields([
     const password = String(body.password || '').trim();
     const email = String(body.email || '').trim().toLowerCase();
 
-    if (!name || !phone || !trade || !area || !password || !email || !files.idFront || !files.idBack) {
-      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية، البريد الإلكتروني، كلمة المرور، وصور البطاقة' });
+    if (!name || !phone || !trade || !area || !password || !email) {
+      return res.status(400).json({ success: false, error: 'يرجى إكمال الحقول الأساسية، البريد الإلكتروني، وكلمة المرور' });
     }
 
     if (!isValidEmail(email)) {
@@ -436,9 +436,11 @@ app.post('/api/register', upload.fields([
       });
     }
 
-    const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
-    const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
-    
+    // صور البطاقة الشخصية بقت اختيارية (مش شرط لإتمام التسجيل) - بترفع بس لو
+    // المستخدم اختار يبعتها، وبيفضل id_submitted_at فاضي لو محدش اتبعت خالص
+    const idFrontImage = files.idFront ? await uploadToSupabase(files.idFront[0], "identity-docs") : "";
+    const idBackImage = files.idBack ? await uploadToSupabase(files.idBack[0], "identity-docs") : "";
+
     const { salt, hash } = hashAdminPassword(password);
 
     const now = new Date();
@@ -460,7 +462,7 @@ app.post('/api/register', upload.fields([
       id_back: idBackImage,
       id_front_path: idFrontImage,
       id_back_path: idBackImage,
-      id_submitted_at: now.toISOString(),
+      id_submitted_at: (idFrontImage || idBackImage) ? now.toISOString() : null,
       identity_status: 'pending',
       identity_verified: false,
       approved: false,
@@ -541,7 +543,7 @@ app.post('/api/worker/login', workerLoginRateLimit, async (req, res) => {
       }
     }
 
-    if (!worker) {
+    if (!worker || worker.deleted_at) {
       return res.status(401).json({ success: false, error: isEmailInput ? 'البريد الإلكتروني غير مسجل' : 'رقم التليفون غير مسجل' });
     }
 
@@ -573,6 +575,158 @@ app.post('/api/worker/login', workerLoginRateLimit, async (req, res) => {
   } catch (err) {
     console.error('Worker Login Error:', err);
     res.status(500).json({ success: false, error: 'حدث خطأ داخلي في الخادم: ' + (err.message || '') });
+  }
+});
+
+// تسجيل دخول موحّد لصفحة "حسابي" (account.html) - بيستقبل رقم هاتف وكلمة مرور
+// بس، ويجرّب حساب العميل ثم حساب الصنايعي بنفس منطق المصادقة والتوكن الحالي
+// لكل نوع تمامًا (customers/workers) من غير أي نظام Auth جديد، ويرجّع
+// accountType عشان الواجهة توجّه المستخدم صح من غير ما تعمل طلبين متتاليين
+// أو تسأله يختار نوع حسابه يدويًا. رسالة الفشل موحدة ومتعمدة الغموض (نفس
+// الرسالة سواء الرقم مش مسجل خالص أو مسجل بكلمة مرور غلط أو حتى صنايعي محذوف)
+// عشان محدش يقدر يكتشف نوع/وجود حساب برقم معيّن بالتجربة. الاستثناء الوحيد
+// المتعمد: صنايعي قديم بدون password_hash خالص بيرجّع status="activation_required"
+// بدل الرسالة الموحدة - ده سلوك مقصود ومطلوب (مش تسريب بيانات) عشان الواجهة
+// تقدر تعرضله مسار تفعيل حسابه بدل ما تعامله كخطأ دخول عادي.
+const ACCOUNT_LOGIN_GENERIC_ERROR = 'رقم الهاتف أو كلمة المرور غير صحيحة';
+
+app.post('/api/account/login', customerLoginRateLimit, workerLoginRateLimit, async (req, res) => {
+  try {
+    const phone = String((req.body || {}).phone || '').trim();
+    const password = String((req.body || {}).password || '').trim();
+    if (!phone || !password) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم الهاتف وكلمة المرور' });
+    }
+
+    // 1) نجرب حساب العميل الأول - نفس منطق POST /api/customers/login بالظبط
+    const { data: customer } = await supabase.from('customers').select('*').eq('phone', phone).maybeSingle();
+    if (customer && verifyCustomerPassword(customer, password)) {
+      return res.json({
+        success: true,
+        accountType: 'customer',
+        customer: { id: customer.id, name: customer.name, phone: customer.phone },
+        token: createCustomerToken(customer)
+      });
+    }
+
+    // 2) نجرب حساب الصنايعي - نفس منطق POST /api/worker/login بالظبط (فرع
+    // البحث برقم الهاتف بس، لأن حقل الإدخال هنا رقم هاتف موحّد مش identifier)
+    let worker = null;
+    {
+      const { data, error } = await supabase.from('workers').select('*').eq('phone', phone).maybeSingle();
+      worker = data || null;
+
+      if (error || !worker) {
+        const cleanPhoneDigits = phone.replace(/[^\d]/g, '').slice(-10);
+        const { data: workersList } = await supabase.from('workers').select('*');
+        worker = (workersList || []).find(w => {
+          const wPhone = String(w.phone || '').replace(/[^\d]/g, '').slice(-10);
+          const wWhats = String(w.whatsapp || '').replace(/[^\d]/g, '').slice(-10);
+          return wPhone === cleanPhoneDigits || wWhats === cleanPhoneDigits || String(w.phone).trim() === phone;
+        });
+      }
+    }
+
+    if (worker && !worker.deleted_at) {
+      // حساب صنايعي قديم اتعمل قبل وجود لوحة التحكم - معندوش password_hash
+      // خالص. مش هنعتبر أي حاجة اتكتبت في خانة كلمة المرور "غلط" هنا، لأننا
+      // أصلاً معندناش كلمة مرور نقارن بيها - بنرجّع حالة واضحة يحتاج معاها
+      // تفعيل الحساب (إنشاء كلمة مرور جديدة عبر /api/worker/activation/complete)
+      // بدل ما نرفضه كأنه بيانات خاطئة
+      if (!worker.password_hash) {
+        return res.json({ success: false, status: 'activation_required', phone: worker.phone });
+      }
+
+      if (verifyWorkerPassword(worker, password)) {
+        return res.json({
+          success: true,
+          accountType: 'worker',
+          worker: { id: worker.id, name: worker.name, phone: worker.phone, trade: worker.trade, area: worker.area },
+          token: createWorkerToken(worker.id)
+        });
+      }
+    }
+
+    // لا حساب عميل ولا حساب صنايعي (أو صنايعي محذوف) - رسالة موحدة بدون كشف السبب
+    return res.status(401).json({ success: false, error: ACCOUNT_LOGIN_GENERIC_ERROR });
+  } catch (err) {
+    console.error('Account Login Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ داخلي في الخادم: ' + (err.message || '') });
+  }
+});
+
+// ===============================
+// 5.1.2 تفعيل حساب صنايعي قديم (اتسجل قبل وجود لوحة التحكم ومعندوش
+// password_hash خالص) - مباشرة بإنشاء كلمة مرور جديدة من غير OTP/SMS/WhatsApp
+// (النسخة السابقة كانت بتعتمد على كود تحقق يتبعت للهاتف، لكن مفيش مزوّد
+// إرسال فعلي متاح على المشروع - راجع تقرير هذه المهمة). التفعيل بيتربط بنفس
+// worker.id القديم بالظبط (نفس الاسم/الصور/التقييمات/الطلبات/الاشتراك) -
+// مفيش صف Worker جديد بيتعمل خالص، وأي تعديل بيقتصر على عمودي
+// password_hash/password_salt بس على نفس السجل القديم.
+// ===============================
+
+// نفس منطق البحث المرن برقم الهاتف المستخدم فعليًا في /api/worker/login و
+// /api/account/login (تطابق مباشر ثم مطابقة بآخر أرقام الهاتف/الواتساب) -
+// دالة مستقلة هنا عشان مسار التفعيل يستخدمها من غير ما يلمس أي مسار قائم.
+async function findWorkerByPhoneLoose(phone) {
+  const { data, error } = await supabase.from('workers').select('*').eq('phone', phone).maybeSingle();
+  if (data) return data;
+  if (!error) return null;
+
+  const cleanPhoneDigits = phone.replace(/[^\d]/g, '').slice(-10);
+  const { data: workersList } = await supabase.from('workers').select('*');
+  return (workersList || []).find(w => {
+    const wPhone = String(w.phone || '').replace(/[^\d]/g, '').slice(-10);
+    const wWhats = String(w.whatsapp || '').replace(/[^\d]/g, '').slice(-10);
+    return wPhone === cleanPhoneDigits || wWhats === cleanPhoneDigits || String(w.phone).trim() === phone;
+  }) || null;
+}
+
+const ACTIVATION_GENERIC_ERROR = 'تعذر تفعيل الحساب. تأكد من رقم الهاتف أو تواصل مع الدعم';
+
+// إكمال التفعيل: تعيين كلمة مرور جديدة مباشرة على نفس سجل الصنايعي القديم
+// فقط - بدون أي كود تحقق. الحماية الوحيدة المتاحة حاليًا (بما إن معرفة رقم
+// الهاتف وحدها كافية) هي Rate Limit صارم + إن المسار ده بيتقفل نهائيًا بمجرد
+// ما password_hash يبقى موجود (مايتكررش استخدامه لنفس الحساب أبدًا).
+app.post('/api/worker/activation/complete', workerActivationRateLimit, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const phone = String(body.phone || '').trim();
+    const password = String(body.password || '').trim();
+    const confirmPassword = String(body.confirmPassword || body.password_confirm || '').trim();
+
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال رقم الهاتف' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, error: 'كلمتا المرور غير متطابقتين' });
+    }
+
+    const worker = await findWorkerByPhoneLoose(phone);
+    // نفس رسالة الفشل العامة سواء الحساب مش موجود، محذوف، أو مفعّل بالفعل -
+    // بدون كشف أي من الأسباب دي للمتصل
+    if (!worker || worker.deleted_at || worker.password_hash) {
+      return res.status(400).json({ success: false, error: ACTIVATION_GENERIC_ERROR });
+    }
+
+    const { salt, hash } = hashAdminPassword(password);
+    const { error: updateErr } = await supabase
+      .from('workers')
+      .update({ password_hash: hash, password_salt: salt })
+      .eq('id', worker.id);
+    if (updateErr) throw updateErr;
+
+    res.json({
+      success: true,
+      worker: { id: worker.id, name: worker.name, phone: worker.phone, trade: worker.trade, area: worker.area },
+      token: createWorkerToken(worker.id)
+    });
+  } catch (err) {
+    console.error('Worker Activation Complete Error:', err);
+    res.status(500).json({ success: false, error: 'حدث خطأ داخلي في الخادم' });
   }
 });
 
@@ -984,8 +1138,8 @@ app.get('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
       .eq('id', req.params.id)
       .single();
 
-    if (error || !worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
-    
+    if (error || !worker || worker.deleted_at) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+
     delete worker.password_hash;
     delete worker.password_salt;
     delete worker.password_reset_token_hash;
@@ -994,6 +1148,74 @@ app.get('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
     res.json({ success: true, worker });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// حذف حساب الصنايعي نهائيًا (Apple Guideline 5.1.1v) - requireWorkerOwnership
+// بيتأكد إن صاحب التوكن هو نفسه :id المستهدف، فمستحيل صنايعي يحذف حساب صنايعي
+// تاني. مش بنعمل DELETE حقيقي للصف لأن service_requests.worker_id مربوط
+// "on delete cascade" - حذف الصف هيمسح كل تاريخ طلبات الخدمة اللي العملاء
+// عملوها مع الصنايعي ده (بيانات تشغيلية بتخص العميل كمان). بدل كده: تدمير
+// فعلي لبيانات تسجيل الدخول (كلمة مرور عشوائية غير معروفة لحد + مسح
+// الإيميل/الهاتف) وتفريغ كل البيانات الشخصية (اسم/صورة/صور بطاقة/معرض
+// أعمال/تعديلات معلّقة)، مع تعليم الحساب بعمود deleted_at المخصص لده - العمود
+// ده بيمنع تسجيل الدخول (فوق) وبيخفي البروفايل نهائيًا (يرجع 404 زي صنايعي
+// مش موجود) بدون ما يلمس أعمدة active/approved اللي ليها معنى تاني (تحكم
+// الإدارة) أو يمسح سجل طلبات الخدمة اللي محتاجها العميل.
+app.delete('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
+  try {
+    const { data: worker, error: fetchErr } = await supabase
+      .from('workers')
+      .select('id, deleted_at')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+    if (!worker) return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+
+    if (!worker.deleted_at) {
+      const { salt, hash } = hashAdminPassword(crypto.randomBytes(32).toString('hex'));
+      const { error } = await supabase
+        .from('workers')
+        .update({
+          name: 'مستخدم محذوف',
+          phone: '',
+          whatsapp: null,
+          email: null,
+          username: null,
+          description: null,
+          image: null,
+          pending_image: null,
+          work_photos: [],
+          id_front: null,
+          id_back: null,
+          id_front_path: null,
+          id_back_path: null,
+          id_submitted_at: null,
+          identity_review_note: null,
+          identity_rejection_reason: null,
+          password_hash: hash,
+          password_salt: salt,
+          password_reset_token_hash: null,
+          password_reset_expires_at: null,
+          pending_changes: null,
+          pending_changes_summary: null,
+          pending_changes_at: null,
+          has_pending_changes: false,
+          approved: false,
+          active: false,
+          featured: false,
+          deleted_at: new Date().toISOString()
+        })
+        .eq('id', req.params.id);
+
+      if (error) throw error;
+    }
+
+    res.json({ success: true, message: 'تم حذف حسابك نهائيًا' });
+  } catch (err) {
+    console.error('Worker Delete Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'تعذر حذف الحساب' });
   }
 });
 
@@ -1750,6 +1972,7 @@ app.get("/reset-password", (req, res) => res.sendFile(path.join(STATIC_DIR, "res
 app.get("/worker-dashboard", (req, res) => res.sendFile(path.join(STATIC_DIR, "worker-dashboard.html")));
 app.get("/customer-auth", (req, res) => res.sendFile(path.join(STATIC_DIR, "customer-auth.html")));
 app.get("/my-requests", (req, res) => res.sendFile(path.join(STATIC_DIR, "my-requests.html")));
+app.get("/account", (req, res) => res.sendFile(path.join(STATIC_DIR, "account.html")));
 app.get("/status", (req, res) => res.sendFile(path.join(STATIC_DIR, "status.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin.html")));
 app.get("/admin/add-worker", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin-add-worker.html")));

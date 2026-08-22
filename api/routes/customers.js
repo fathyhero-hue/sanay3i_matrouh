@@ -187,10 +187,46 @@ async function getMe(req, res) {
   }
 }
 
+// 4. حذف حساب العميل نهائيًا (Apple Guideline 5.1.1v) - العميل بيحذف حسابه هو
+// بس (req.customerId جاي من التوكن الموقّع، مستحيل يبعت id عميل تاني). بنعمل
+// حذف حقيقي للصف (مش تعطيل) لأن service_requests.customer_id و
+// analytics_events.customer_id الاثنين "on delete set null" (مش cascade) -
+// يعني حذف صف العميل آمن ومبيمسحش أي بيانات تشغيلية بتخص الصنايعي، لكن قبل
+// الحذف بننضّف اسم/رقم العميل من طلباته القديمة وتقييماته (بيانات شخصية
+// متسجلة كنص مباشر جوه الجداول دي، مش مجرد رابط) عشان محدش يفضل شايف اسمه
+// أو رقمه بعد ما يحذف حسابه، مع الاحتفاظ بالطلب والتقييم نفسه كسجل تشغيلي
+// للصنايعي (الوصف/التقييم/الحالة/التاريخ).
+async function deleteMe(req, res) {
+  try {
+    if (!isSupabaseReady(res)) return;
+    const customerId = req.customerId;
+
+    const { data: requests } = await supabase
+      .from("service_requests")
+      .select("id")
+      .eq("customer_id", customerId);
+    const requestIds = (requests || []).map(r => r.id);
+
+    if (requestIds.length) {
+      await supabase.from("reviews").update({ customer_name: "مستخدم محذوف" }).in("service_request_id", requestIds);
+      await supabase.from("service_requests").update({ customer_name: "مستخدم محذوف", customer_phone: "" }).eq("customer_id", customerId);
+    }
+
+    const { error } = await supabase.from("customers").delete().eq("id", customerId);
+    if (error) throw error;
+
+    res.json({ success: true, message: "تم حذف حسابك نهائيًا" });
+  } catch (err) {
+    console.error("Customer Delete Error:", err);
+    res.status(500).json({ success: false, error: err.message || "تعذر حذف الحساب" });
+  }
+}
+
 router.post("/register", customerRegisterRateLimit, registerCustomer);
 router.post("/login", customerLoginRateLimit, loginCustomer);
 router.post("/identify", customerRegisterRateLimit, identifyCustomer);
 router.get("/me", requireCustomerAuth, getMe);
+router.delete("/me", requireCustomerAuth, deleteMe);
 
 module.exports = router;
 module.exports.publicCustomer = publicCustomer;
@@ -198,3 +234,4 @@ module.exports.registerCustomer = registerCustomer;
 module.exports.loginCustomer = loginCustomer;
 module.exports.identifyCustomer = identifyCustomer;
 module.exports.getMe = getMe;
+module.exports.deleteMe = deleteMe;

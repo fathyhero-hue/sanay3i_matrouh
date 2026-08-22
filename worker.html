@@ -67,7 +67,7 @@
       <nav class="main-nav">
         <a href="/" style="color:rgba(241, 245, 249, 0.88);">الرئيسية</a>
         <a href="/#workers" style="color:rgba(241, 245, 249, 0.88);">الصنايعية</a>
-        <a href="/my-requests" style="color:rgba(241, 245, 249, 0.88);">طلباتي</a>
+        <a href="/account" style="color:rgba(241, 245, 249, 0.88);">حسابي</a>
         <a href="/status" style="color:rgba(241, 245, 249, 0.88);">حالة الطلب</a>
       </nav>
 
@@ -84,7 +84,7 @@
     <div class="mobile-nav" id="mobileNav">
       <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
       <a href="/#workers" onclick="toggleMobileMenu()">الصنايعية</a>
-      <a href="/my-requests" onclick="toggleMobileMenu()">طلباتي</a>
+      <a href="/account" onclick="toggleMobileMenu()">حسابي</a>
       <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
@@ -306,11 +306,6 @@
                 <span>اتفق على السعر والتفاصيل قبل بداية الشغل. لو الرقم غير صحيح أو البيانات محتاجة مراجعة، استخدم زر البلاغ.</span>
               </div>
 
-
-              <a href="/worker-login" class="my-account-btn" id="myAccountBtn">
-                <i class="fa-solid fa-user-gear"></i>
-                حسابي
-              </a>
 
               <a href="/" class="details-back">
                 <i class="fa-solid fa-arrow-right"></i>
@@ -640,14 +635,6 @@
     (function setFooterYear() {
       const el = document.getElementById("footerYear");
       if (el) el.textContent = new Date().getFullYear();
-    })();
-
-    (function setMyAccountLink() {
-      const btn = document.getElementById("myAccountBtn");
-      if (!btn) return;
-      const savedWorkerId = localStorage.getItem("sanay3i_current_worker_id");
-      const savedToken = localStorage.getItem("sanay3i_worker_token");
-      btn.href = (savedWorkerId && savedToken) ? "/worker-dashboard?id=" + savedWorkerId : "/worker-login";
     })();
 
     function idFromUrl() {

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حسابي | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#061A3D">
+  <style>
+    :root {
+      --sanay3i-navy: #061A3D; --sanay3i-navy-2: #082052; --sanay3i-navy-3: #0B2A66;
+      --blue: #1d4ed8; --gold: #f59e0b; --danger: #dc2626; --green: #16a34a;
+      --muted: #64748b; --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Cairo', sans-serif; margin: 0; min-height: 100vh; color: #0f172a;
+      display: flex; flex-direction: column; align-items: center;
+      background:
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 35%),
+        radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 30%),
+        linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+    }
+
+    .site-header {
+      width: 100%; position: sticky; top: 0; z-index: 10;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2) 55%, var(--sanay3i-navy-3));
+      box-shadow: 0 18px 45px rgba(2,6,23,.20);
+    }
+    .header-content {
+      max-width: 1180px; margin: auto; width: calc(100% - 30px);
+      min-height: 78px; display: flex; align-items: center; justify-content: center; gap: 13px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-logo-frame {
+      width: 50px; height: 50px; border-radius: 17px; padding: 4px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.22); overflow: hidden;
+    }
+    .brand-logo-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 13px; display: block; }
+    .brand-text h1 { margin: 0; font-size: 19px; font-weight: 900; color: #fff; line-height: 1.2; }
+    .brand-text span { display: block; color: rgba(226,232,240,.8); font-size: 11.5px; font-weight: 800; margin-top: 3px; }
+
+    main {
+      flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+      padding: 36px 16px;
+    }
+
+    .login-card {
+      width: 100%; max-width: 420px; background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(226,232,240,0.9); border-radius: 28px;
+      padding: 34px 28px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    .login-icon {
+      width: 62px; height: 62px; margin: 0 auto 16px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--blue));
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; box-shadow: 0 14px 28px rgba(6, 26, 61, 0.28);
+    }
+
+    .login-title { text-align: center; margin: 0 0 6px; font-size: 22px; font-weight: 900; color: #0f172a; }
+    .login-subtitle { text-align: center; margin: 0 0 22px; font-size: 13.5px; color: var(--muted); font-weight: 700; line-height: 1.7; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 7px; font-weight: 800; font-size: 13.5px; color: #334155; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--blue); font-size: 15px; }
+    .input-wrap input {
+      width: 100%; padding: 13px 44px 13px 14px; border: 1px solid var(--border); border-radius: 14px;
+      font-family: inherit; font-size: 14.5px; background: #f8fafc; outline: none;
+      transition: 0.2s ease; box-sizing: border-box;
+    }
+    .input-wrap input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 4px rgba(29,78,216,0.10); }
+
+    .btn-main {
+      width: 100%; padding: 14px; margin-top: 6px;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2));
+      color: #fff; border: none; border-radius: 999px; font-weight: 900; font-size: 15px;
+      cursor: pointer; font-family: inherit; transition: 0.25s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 14px 26px rgba(6, 26, 61, 0.24);
+    }
+    .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 18px 30px rgba(6, 26, 61, 0.3); }
+    .btn-main:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .status-msg { margin-top: 16px; font-size: 13.5px; text-align: center; font-weight: 800; line-height: 1.7; min-height: 0; }
+    .status-msg.error { color: var(--danger); }
+    .status-msg.success { color: var(--green); }
+
+    .signup-hints { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); text-align: center; }
+    .signup-hints p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); font-weight: 800; }
+    .signup-hints .hint-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .signup-hints a {
+      font-size: 12.5px; font-weight: 800; text-decoration: none; color: var(--blue);
+      background: #eff6ff; padding: 8px 14px; border-radius: 999px; border: 1px solid #dbeafe;
+    }
+    .signup-hints a:hover { background: #dbeafe; }
+
+    .back-home { display: block; text-align: center; margin-top: 22px; color: var(--muted); font-size: 13px; font-weight: 800; text-decoration: none; }
+    .back-home:hover { color: var(--sanay3i-navy); }
+    .back-home i { margin-left: 5px; }
+
+    @media (max-width: 460px) {
+      .login-card { padding: 28px 20px; border-radius: 24px; }
+      main { padding: 24px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-content">
+      <a href="/" class="brand">
+        <div class="brand-logo-frame">
+          <img src="/icons/icon-192.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>دليل موثوق لصنايعية مرسى مطروح</span>
+        </div>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="login-card">
+      <div id="sessionCheckBox" style="text-align:center; padding: 18px 0;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:26px;color:var(--blue);margin-bottom:12px;display:block;"></i>
+        <p style="color:var(--muted);font-weight:800;margin:0;">جاري التحقق من حسابك...</p>
+      </div>
+
+      <div id="loginFormBox" style="display:none;">
+        <div class="login-icon"><i class="fa-solid fa-circle-user"></i></div>
+        <h2 class="login-title">حسابي</h2>
+        <p class="login-subtitle">سجّل دخولك برقم هاتفك وكلمة المرور، سواء كنت عميلًا أو صنايعي - هنوصلك لحسابك المناسب تلقائيًا.</p>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <label>رقم الهاتف</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-phone"></i>
+              <input type="text" id="loginPhone" required placeholder="01xxxxxxxxx">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>كلمة المرور</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="loginPassword" required placeholder="كلمة المرور">
+            </div>
+          </div>
+          <button type="submit" class="btn-main" id="loginBtn">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            دخول
+          </button>
+          <div id="loginStatusMsg" class="status-msg"></div>
+        </form>
+
+        <div class="signup-hints">
+          <p>لسه معندكش حساب؟</p>
+          <div class="hint-links">
+            <a href="/customer-auth"><i class="fa-solid fa-user-plus"></i> سجل كعميل</a>
+            <a href="/register"><i class="fa-solid fa-toolbox"></i> سجل كصنايعي</a>
+          </div>
+        </div>
+
+        <a href="/" class="back-home"><i class="fa-solid fa-arrow-right"></i>رجوع للرئيسية</a>
+      </div>
+
+      <div id="activationRequiredBox" style="display:none;">
+        <div class="login-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <h2 class="login-title">تفعيل الحساب</h2>
+        <p class="login-subtitle">لديك حساب صنايعي قديم، أنشئ كلمة مرور لتفعيل حسابك.</p>
+
+        <form id="activationForm">
+          <div class="form-group">
+            <label>كلمة المرور الجديدة</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="newPasswordInput" required placeholder="6 أحرف على الأقل">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>تأكيد كلمة المرور</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="confirmPasswordInput" required placeholder="أعد كتابة كلمة المرور">
+            </div>
+          </div>
+          <button type="submit" class="btn-main" id="activationBtn">
+            <i class="fa-solid fa-unlock-keyhole"></i>
+            تفعيل حسابي
+          </button>
+          <div id="activationStatusMsg" class="status-msg"></div>
+        </form>
+
+        <a href="#" id="backToLoginFromActivation" class="back-home"><i class="fa-solid fa-arrow-right"></i>رجوع لتسجيل الدخول</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ===============================
+    // حسابي - بوابة دخول موحدة للعميل والصنايعي معًا. بتحدد نوع الحساب تلقائيًا
+    // من نجاح تسجيل الدخول نفسه، من غير ما تخلي المستخدم يختار نوع حسابه يدويًا،
+    // وبتستخدم نفس نظامي المصادقة الحاليين (customers/workers) من غير ما تنشئ
+    // نظام دخول جديد أو تكرر منطق موجود بالفعل.
+    // ===============================
+    const sessionCheckBox = document.getElementById('sessionCheckBox');
+    const loginFormBox = document.getElementById('loginFormBox');
+    const activationRequiredBox = document.getElementById('activationRequiredBox');
+    let pendingActivationPhone = '';
+
+    function showLoginForm() {
+      loginFormBox.style.display = 'block';
+      activationRequiredBox.style.display = 'none';
+    }
+
+    function goToCustomerAccount() {
+      window.location.href = '/my-requests';
+    }
+
+    function goToWorkerAccount(workerId) {
+      window.location.href = '/worker-dashboard?id=' + encodeURIComponent(workerId);
+    }
+
+    // لو عنده جلسة صنايعي أو عميل شغالة بالفعل على نفس الجهاز، نوجهه على طول
+    // لحساب المناسب من غير ما نعرضله فورم الدخول تاني
+    (function checkExistingSession() {
+      const workerToken = localStorage.getItem('sanay3i_worker_token');
+      const workerId = localStorage.getItem('sanay3i_current_worker_id');
+      if (workerToken && workerId) { goToWorkerAccount(workerId); return; }
+
+      const customerToken = localStorage.getItem('sanay3i_customer_token');
+      if (customerToken) { goToCustomerAccount(); return; }
+
+      sessionCheckBox.style.display = 'none';
+      loginFormBox.style.display = 'block';
+    })();
+
+    function showStatus(el, type, msg) {
+      el.className = 'status-msg ' + type;
+      el.textContent = msg;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('loginStatusMsg');
+      const btn = document.getElementById('loginBtn');
+      const phone = document.getElementById('loginPhone').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if (!phone || !password) return showStatus(statusEl, 'error', 'يرجى إدخال رقم الهاتف وكلمة المرور');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
+      showStatus(statusEl, '', '');
+
+      try {
+        // طلب واحد فقط لـ /api/account/login - السيرفر هو اللي بيحدد نوع
+        // الحساب تلقائيًا (عميل أم صنايعي) ويرجّعه في accountType
+        const r = await fetch('/api/account/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+        const d = await r.json().catch(() => ({}));
+
+        // صنايعي قديم معندوش كلمة مرور صالحة - مش خطأ دخول، لازم يتفعّل الأول
+        if (d.status === 'activation_required') {
+          pendingActivationPhone = d.phone || phone;
+          loginFormBox.style.display = 'none';
+          activationRequiredBox.style.display = 'block';
+          document.getElementById('activationStatusMsg').className = 'status-msg';
+          document.getElementById('activationStatusMsg').textContent = '';
+          return;
+        }
+
+        if (!r.ok || !d.success) {
+          showStatus(statusEl, 'error', d.error || 'رقم الهاتف أو كلمة المرور غير صحيحة');
+          return;
+        }
+
+        if (d.accountType === 'customer') {
+          localStorage.setItem('sanay3i_customer_token', d.token);
+          localStorage.setItem('sanay3i_customer_id', d.customer.id);
+          localStorage.setItem('sanay3i_customer_name', d.customer.name);
+          showStatus(statusEl, 'success', 'تم تسجيل الدخول! جاري تحويلك لحسابك...');
+          setTimeout(goToCustomerAccount, 700);
+          return;
+        }
+
+        if (d.accountType === 'worker') {
+          localStorage.setItem('sanay3i_owner_chat_token_' + d.worker.id, d.worker.id);
+          localStorage.setItem('sanay3i_current_worker_id', d.worker.id);
+          localStorage.setItem('sanay3i_worker_token', d.token);
+          showStatus(statusEl, 'success', 'تم تسجيل الدخول! جاري تحويلك للوحة التحكم...');
+          setTimeout(() => goToWorkerAccount(d.worker.id), 700);
+          return;
+        }
+
+        showStatus(statusEl, 'error', 'رقم الهاتف أو كلمة المرور غير صحيحة');
+      } catch (err) {
+        showStatus(statusEl, 'error', 'تعذر تسجيل الدخول، حاول تاني');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
+      }
+    });
+
+    // ===============================
+    // تفعيل حساب صنايعي قديم: تعيين كلمة مرور جديدة مباشرة (بدون OTP/SMS/
+    // WhatsApp) -> دخول لوحة التحكم على نفس الحساب القديم فورًا
+    // ===============================
+    document.getElementById('backToLoginFromActivation').addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
+
+    document.getElementById('activationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusEl = document.getElementById('activationStatusMsg');
+      const btn = document.getElementById('activationBtn');
+      const password = document.getElementById('newPasswordInput').value.trim();
+      const confirmPassword = document.getElementById('confirmPasswordInput').value.trim();
+
+      if (!password || password.length < 6) return showStatus(statusEl, 'error', 'كلمة المرور يجب ألا تقل عن 6 أحرف');
+      if (password !== confirmPassword) return showStatus(statusEl, 'error', 'كلمتا المرور غير متطابقتين');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التفعيل...';
+      showStatus(statusEl, '', '');
+
+      try {
+        const r = await fetch('/api/worker/activation/complete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: pendingActivationPhone, password, confirmPassword })
+        });
+        const d = await r.json().catch(() => ({}));
+
+        if (!r.ok || !d.success) {
+          showStatus(statusEl, 'error', d.error || 'تعذر تفعيل الحساب، حاول تاني');
+          return;
+        }
+
+        localStorage.setItem('sanay3i_owner_chat_token_' + d.worker.id, d.worker.id);
+        localStorage.setItem('sanay3i_current_worker_id', d.worker.id);
+        localStorage.setItem('sanay3i_worker_token', d.token);
+
+        showStatus(statusEl, 'success', 'تم تفعيل حسابك بنجاح! جاري تحويلك للوحة التحكم...');
+        setTimeout(() => goToWorkerAccount(d.worker.id), 700);
+      } catch (err) {
+        showStatus(statusEl, 'error', 'تعذر تفعيل الحساب، حاول تاني');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-unlock-keyhole"></i> تفعيل حسابي';
+      }
+    });
+  </script>
+</body>
+</html>

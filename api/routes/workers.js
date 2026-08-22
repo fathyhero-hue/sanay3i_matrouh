@@ -74,11 +74,12 @@ router.get("/:id", async (req, res) => {
   // في قائمة البحث العامة (GET /) عن طريق فلتر identity_status أعلاه.
   const { data, error } = await supabase
     .from("workers")
-    .select(PUBLIC_WORKER_COLUMNS)
+    .select(PUBLIC_WORKER_COLUMNS + ",deleted_at")
     .eq("id", id)
     .single();
-  if (error || !data) return res.status(404).json({ success: false, error: "الصنايعي غير موجود" });
-  
+  if (error || !data || data.deleted_at) return res.status(404).json({ success: false, error: "الصنايعي غير موجود" });
+  delete data.deleted_at;
+
   const scored = await attachSmartScoresToWorkers([data]);
   res.json(scored[0] || data);
 });
@@ -102,19 +103,17 @@ router.post("/register", workerUpload, async (req, res) => {
       });
     }
 
+    // صور البطاقة الشخصية اختيارية - مش شرط لإتمام التسجيل
     const frontFile = idFrontFile(req);
     const backFile = idBackFile(req);
-    if (!frontFile || !backFile) {
-      return res.status(400).json({ success: false, error: "صورة البطاقة الشخصية وجه وظهر مطلوبة لإكمال التسجيل" });
-    }
 
     const image = mainFile(req) ? await uploadImage(mainFile(req), "profiles") : "";
-    const id_front_path = await uploadPrivateImage(frontFile, "id-cards");
-    const id_back_path = await uploadPrivateImage(backFile, "id-cards");
-    
+    const id_front_path = frontFile ? await uploadPrivateImage(frontFile, "id-cards") : "";
+    const id_back_path = backFile ? await uploadPrivateImage(backFile, "id-cards") : "";
+
     const start = today();
     const end = addMonths(start, 1); // إعطاء شهر مجاني للمسجل الجديد
-    
+
     const { data: worker, error } = await supabase.from("workers").insert({
       name: String(name).trim(),
       phone: String(phone).trim(),
@@ -125,7 +124,7 @@ router.post("/register", workerUpload, async (req, res) => {
       image,
       id_front_path,
       id_back_path,
-      id_submitted_at: new Date().toISOString(),
+      id_submitted_at: (id_front_path || id_back_path) ? new Date().toISOString() : null,
       identity_status: "pending",
       identity_verified: false,
       approved: false,

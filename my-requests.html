@@ -66,6 +66,19 @@
 
     .page-subtitle { text-align: center; font-size: 13.5px; color: var(--muted); font-weight: 700; margin: 0 0 24px; }
 
+    .profile-card {
+      display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--border);
+      border-radius: 20px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 14px 34px rgba(15,23,42,0.06);
+    }
+    .profile-card-icon {
+      width: 46px; height: 46px; border-radius: 50%; flex: none;
+      background: linear-gradient(135deg, var(--sanay3i-navy), var(--blue)); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 19px;
+    }
+    .profile-card-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .profile-card-info strong { font-size: 15px; color: #0f172a; }
+    .profile-card-info span { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+
     .login-required {
       background: #fff; border: 1px solid var(--border); border-radius: 22px; padding: 36px 24px;
       text-align: center; box-shadow: 0 20px 50px rgba(15,23,42,0.08);
@@ -166,11 +179,22 @@
         <button class="logout-btn" id="logoutBtn" style="display:none">
           <i class="fa-solid fa-right-from-bracket"></i> خروج
         </button>
+        <button class="logout-btn" id="deleteAccountBtn" style="display:none; background:rgba(220,38,38,0.25); border-color:rgba(220,38,38,0.4);">
+          <i class="fa-solid fa-trash-can"></i> حذف الحساب
+        </button>
       </div>
     </div>
   </header>
 
   <main>
+    <div class="profile-card" id="profileCard" style="display:none;">
+      <div class="profile-card-icon"><i class="fa-solid fa-circle-user"></i></div>
+      <div class="profile-card-info">
+        <strong id="profileCardName">-</strong>
+        <span id="profileCardPhone">-</span>
+      </div>
+    </div>
+
     <div class="page-title-row">
       <h2 class="page-title">طلباتي</h2>
       <button class="refresh-btn" id="refreshBtn" style="display:none">
@@ -207,6 +231,20 @@
     </div>
   </div>
 
+  <div class="review-modal-overlay" id="deleteAccountModal">
+    <div class="review-modal-box">
+      <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> حذف الحساب نهائيًا</h3>
+      <p>هتفقد بياناتك الشخصية وحسابك نهائيًا، وده إجراء <strong>لا يمكن التراجع عنه</strong>. متأكد إنك عايز تكمل؟</p>
+      <div class="review-modal-actions">
+        <button type="button" class="review-submit-btn" id="deleteAccountConfirmBtn" style="background:var(--danger);">
+          <i class="fa-solid fa-trash-can"></i> نعم، احذف حسابي نهائيًا
+        </button>
+        <button type="button" class="review-cancel-btn" id="deleteAccountCancelBtn">إلغاء</button>
+      </div>
+      <div class="review-modal-message" id="deleteAccountMessage"></div>
+    </div>
+  </div>
+
   <script>
     const STATUS_LABELS = {
       new: 'جديد', accepted: 'تم القبول', in_progress: 'جاري التنفيذ',
@@ -217,6 +255,7 @@
 
     const content = document.getElementById('content');
     const logoutBtn = document.getElementById('logoutBtn');
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     let pollTimer = null;
 
@@ -258,13 +297,15 @@
     function renderLoginRequired(reason) {
       stopPolling();
       logoutBtn.style.display = 'none';
+      deleteAccountBtn.style.display = 'none';
       refreshBtn.style.display = 'none';
+      document.getElementById('profileCard').style.display = 'none';
       content.innerHTML = `
         <div class="login-required">
           <i class="fa-solid fa-lock"></i>
           <h3>${reason === 'expired' ? 'انتهت جلستك' : 'سجّل دخولك الأول'}</h3>
           <p>${reason === 'expired' ? 'يرجى تسجيل الدخول تاني عشان تقدر تشوف طلباتك' : 'لازم تسجّل دخول كعميل عشان تقدر تشوف طلباتك'}</p>
-          <a href="/customer-auth?redirect=/my-requests"><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</a>
+          <a href="/account"><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</a>
         </div>`;
     }
 
@@ -313,14 +354,28 @@
       }).join('');
     }
 
+    // البيانات الشخصية (الاسم ورقم الهاتف) - جزء من "حسابي"، بيستخدم endpoint
+    // GET /api/customers/me الموجود بالفعل من غير ما يحتاج API جديد
+    async function loadProfileCard(token) {
+      try {
+        const r = await fetch('/api/customers/me', { headers: { Authorization: 'Bearer ' + token } });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) return;
+        document.getElementById('profileCardName').textContent = d.customer.name || 'عميل';
+        document.getElementById('profileCardPhone').textContent = d.customer.phone || '';
+        document.getElementById('profileCard').style.display = 'flex';
+      } catch (e) {}
+    }
+
     async function loadRequests(opts) {
       const silent = !!(opts && opts.silent);
       const token = getCustomerToken();
       if (!token) { renderLoginRequired(); return; }
 
       logoutBtn.style.display = 'flex';
+      deleteAccountBtn.style.display = 'flex';
       refreshBtn.style.display = 'flex';
-      if (!silent) refreshBtn.disabled = true;
+      if (!silent) { refreshBtn.disabled = true; loadProfileCard(token); }
 
       try {
         const r = await fetch('/api/service-requests/mine', {
@@ -354,10 +409,57 @@
     logoutBtn.addEventListener('click', () => {
       clearCustomerSession();
       stopPolling();
-      window.location.href = '/customer-auth';
+      window.location.href = '/account';
     });
 
     refreshBtn.addEventListener('click', () => loadRequests());
+
+    // ===============================
+    // حذف الحساب نهائيًا
+    // ===============================
+    const deleteAccountModal = document.getElementById('deleteAccountModal');
+    const deleteAccountConfirmBtn = document.getElementById('deleteAccountConfirmBtn');
+    const deleteAccountCancelBtn = document.getElementById('deleteAccountCancelBtn');
+    const deleteAccountMessage = document.getElementById('deleteAccountMessage');
+
+    function showDeleteAccountMessage(type, text) {
+      deleteAccountMessage.className = 'review-modal-message ' + (type || '');
+      deleteAccountMessage.textContent = text || '';
+    }
+
+    deleteAccountBtn.addEventListener('click', () => {
+      showDeleteAccountMessage('', '');
+      deleteAccountModal.classList.add('show');
+    });
+
+    deleteAccountCancelBtn.addEventListener('click', () => deleteAccountModal.classList.remove('show'));
+    deleteAccountModal.addEventListener('click', (e) => { if (e.target === deleteAccountModal) deleteAccountModal.classList.remove('show'); });
+
+    deleteAccountConfirmBtn.addEventListener('click', async () => {
+      const token = getCustomerToken();
+      if (!token) { deleteAccountModal.classList.remove('show'); renderLoginRequired('expired'); return; }
+
+      deleteAccountConfirmBtn.disabled = true;
+      deleteAccountConfirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحذف...';
+
+      try {
+        const r = await fetch('/api/customers/me', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر حذف الحساب');
+
+        clearCustomerSession();
+        stopPolling();
+        showDeleteAccountMessage('success', 'تم حذف حسابك بنجاح، جاري تحويلك...');
+        setTimeout(() => { window.location.href = '/'; }, 1200);
+      } catch (err) {
+        showDeleteAccountMessage('error', err.message || 'تعذر حذف الحساب');
+        deleteAccountConfirmBtn.disabled = false;
+        deleteAccountConfirmBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> نعم، احذف حسابي نهائيًا';
+      }
+    });
 
     window.addEventListener('pagehide', stopPolling);
     window.addEventListener('beforeunload', stopPolling);
