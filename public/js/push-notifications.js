@@ -95,6 +95,15 @@
       try {
         var newReg = await navigator.serviceWorker.register('/service-worker.js');
         diag('sw-register', 'تسجيل Service Worker', 'ok', 'scope=' + newReg.scope);
+        // statechange مؤقت - بيوضّح فعليًا لو الـWorker وصل لـinstalling/
+        // installed/activating/activated أو سقط في redundant (فشل التثبيت)
+        var trackedWorker = newReg.installing || newReg.waiting || newReg.active;
+        if (trackedWorker) {
+          diag('sw-statechange', 'حالة Worker', 'ok', trackedWorker.state);
+          trackedWorker.addEventListener('statechange', function () {
+            diag('sw-statechange', 'حالة Worker', trackedWorker.state === 'redundant' ? 'fail' : 'ok', trackedWorker.state);
+          });
+        }
       } catch (e) {
         diag('sw-register', 'تسجيل Service Worker', 'fail', (e && e.name) || 'register failed');
         throw new Error('تعذّر تسجيل Service Worker');

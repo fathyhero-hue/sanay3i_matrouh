@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sanay3i-matrouh-v10';
+const CACHE_NAME = 'sanay3i-matrouh-v11';
 
 // ملفات JS حرجة وظيفيًا لازم تتحدث فورًا مع أي نشر جديد (Network First) - لو
 // اتخزنت نسخة قديمة منها في كاش زائر قديم ماينفعش يفضل عالق عليها. باقي
@@ -24,21 +24,49 @@ const STATIC_ASSETS_TO_CACHE = [
 ];
 
 // تثبيت الـ Service Worker: تخزين الأصول الثابتة + تفعيل فوري بدون انتظار
-// إغلاق كل التابات القديمة
+// إغلاق كل التابات القديمة.
+//
+// مهم جدًا: cache.addAll() الأصلي كان Atomic - أي عنصر واحد يرجع non-2xx
+// (زي offline.html اللي بيرجع 404 فعليًا على Production بينما شغال محليًا -
+// مشكلة نشر/توجيه منفصلة عن الكود ده) كان بيخلي الـPromise كله يُرفض، وده
+// حسب Spec الـService Worker بيمنع الـWorker من الوصول لحالة installed/active
+// نهائيًا (بيروح مباشرة لـredundant) - يعني أي مشكلة في أصل واحد غير حرج
+// كانت بتوقف تفعيل الـService Worker بالكامل، ومعاه كل Push Notifications.
+//
+// الحل: تخزين كل أصل بشكل مستقل (Promise.allSettled بدل addAll)، فشل أصل
+// واحد بيتسجّل بوضوح في الـconsole لكن مايمنعش باقي الأصول من التخزين ولا
+// يمنع الـinstall نفسه من النجاح - عشان الـPrecache أصلًا تحسين أداء
+// اختياري (Optimization)، مش شرط لعمل التطبيق (الصفحات نفسها بترجع من
+// الشبكة مباشرة عبر Network First/SWR تحت بغض النظر عن الـPrecache).
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS_TO_CACHE))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(
+        STATIC_ASSETS_TO_CACHE.map((url) =>
+          cache.add(url).catch((err) => {
+            console.error('[SW install] فشل تخزين أصل غير حرج، تم تجاوزه:', url, err && err.message);
+            return null;
+          })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
 
 // تفعيل النسخة الجديدة: حذف أي كاش قديم غير النسخة الحالية + الاستيلاء على
-// التحكم في كل الصفحات المفتوحة فورًا (من غير ما تستنى إعادة تحميل يدوي)
+// التحكم في كل الصفحات المفتوحة فورًا (من غير ما تستنى إعادة تحميل يدوي).
+// حذف كاش واحد فاشل (حالة نادرة جدًا) ما ينفعش يمنع باقي التفعيل - نفس
+// منطق التسامح المستخدم في install فوق بالظبط.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.map((key) => {
-        if (key !== CACHE_NAME) return caches.delete(key);
+      .then((keys) => Promise.allSettled(keys.map((key) => {
+        if (key !== CACHE_NAME) {
+          return caches.delete(key).catch((err) => {
+            console.error('[SW activate] فشل حذف كاش قديم:', key, err && err.message);
+          });
+        }
       })))
       .then(() => self.clients.claim())
   );
