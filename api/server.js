@@ -2200,6 +2200,18 @@ app.get("/manifest.json", (req, res) => {
   });
 });
 
+// express.static بيتجاهل أي مسار فيه segment بيبدأ بنقطة (dotfiles:"ignore"
+// افتراضيًا) - ده كان بيخلي /.well-known/assetlinks.json يرجّع 404 فعليًا
+// في Production رغم إن الملف موجود فعلًا، فيفشل Digital Asset Links
+// verification الخاص بتطبيق TWA على Android ويرجع لعرض شريط عنوان المتصفح
+// بدل التشغيل كتطبيق مستقل. الحل مقصور على .well-known بس (dotfiles:"allow"
+// هنا فقط) - مش على STATIC_DIR كله، لأن STATIC_DIR هو جذر المشروع نفسه
+// وبيحتوي .env - تفعيل dotfiles على مستوى الجذر كان هيعرّض .env للعامة.
+app.use("/.well-known", express.static(path.join(STATIC_DIR, ".well-known"), {
+  dotfiles: "allow",
+  maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
+}));
+
 app.use(express.static(path.join(STATIC_DIR, "public"), {
   maxAge: process.env.NODE_ENV === "production" ? "7d" : 0
 }));
