@@ -63,14 +63,15 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-const { supabase } = require("./config/supabase");
+const { supabase, SUPABASE_ID_BUCKET } = require("./config/supabase");
 const { requirePermission, createWorkerToken, requireWorkerOwnership } = require("./middlewares/auth");
 const { verifyCustomerToken, extractCustomerToken, verifyCustomerPassword, createCustomerToken } = require("./middlewares/customerAuth");
 const { isValidEmail, generateSecureToken, hashToken, extendSubscription } = require("./utils/helpers");
 const { logAdminActivity } = require("./utils/activityLogger");
 const mailer = require("./utils/mailer");
+const { createNotification } = require("./utils/notifications");
 const paymob = require("./utils/paymob");
-const { getSubscriptionPricing, setSubscriptionPricing } = require("./utils/settings");
+const { getSubscriptionPricing, setSubscriptionPricing, getSupportChannels, setSupportChannels } = require("./utils/settings");
 
 async function uploadToSupabase(file, targetBucket = "uploads") {
   if (!file) return null;
@@ -146,11 +147,14 @@ async function handleIdentityReview(req, res) {
         }
 
         const isVerified = status === "verified";
+        const isRejected = status === "rejected";
+        const reviewedAt = new Date().toISOString();
         const updateData = {
           identity_status: status,
           identity_verified: isVerified,
           identity_rejection_reason: reason,
-          identity_review_note: note
+          identity_review_note: note,
+          identity_reviewed_at: reviewedAt
         };
 
         // نفس نمط setBool في core.js: التوثيق يفرض approved=true، وباقي الحالات ما بتلغيش approved تلقائيًا
@@ -160,6 +164,24 @@ async function handleIdentityReview(req, res) {
             updateData.image = before.pending_image;
             updateData.pending_image = null;
           }
+        }
+
+        // Workflow التوثيق الرسمي الجديد (not_submitted -> pending -> approved/
+        // rejected) - identity_verified هو المصدر النهائي لظهور Badge "هوية
+        // موثقة"، ولا يتحول true إلا من هنا (مسار الإدارة فقط، مفيش أي مسار
+        // للصنايعي بيقدر يوصله). needs_data/needs_id_reupload حالات خاصة
+        // باستكمال بيانات التسجيل العامة، مش جزء من هذا الـWorkflow، فمنسيبهاش
+        // تلمس identity_verification_status
+        if (isVerified) {
+          updateData.identity_verification_status = "approved";
+          updateData.identity_verification_reviewed_at = reviewedAt;
+          updateData.identity_verification_rejection_reason = null;
+        } else if (isRejected) {
+          updateData.identity_verification_status = "rejected";
+          updateData.identity_verification_reviewed_at = reviewedAt;
+          updateData.identity_verification_rejection_reason = reason || null;
+        } else if (status === "pending") {
+          updateData.identity_verification_status = "pending";
         }
 
         const { error } = await supabase
@@ -183,7 +205,11 @@ async function handleIdentityReview(req, res) {
 
         if (isVerified) {
           await mailer.sendIdentityVerifiedEmail(before).catch(err => console.error('Failed to send verified email:', err.message));
-        } else if (["rejected", "needs_data", "needs_id_reupload"].includes(status)) {
+          createNotification({ recipientType: "worker", recipientId: before.id, type: "identity_verified", title: "تم توثيق حسابك", body: "تم اعتماد بيانات التحقق الخاصة بك.", link: "/worker-dashboard?id=" + before.id });
+        } else if (isRejected) {
+          await mailer.sendIdentityActionEmail(before, status, reason, note).catch(err => console.error('Failed to send identity action email:', err.message));
+          createNotification({ recipientType: "worker", recipientId: before.id, type: "identity_rejected", title: "تم رفض طلب التوثيق", body: reason || "راجع لوحة التحكم لمعرفة السبب.", link: "/worker-dashboard?id=" + before.id });
+        } else if (["needs_data", "needs_id_reupload"].includes(status)) {
           await mailer.sendIdentityActionEmail(before, status, reason, note).catch(err => console.error('Failed to send identity action email:', err.message));
         }
 
@@ -1002,127 +1028,273 @@ app.get('/api/admin/worker-chat/unread-count', adminApiRateLimit, requirePermiss
 });
 
 // ===============================
-// مسارات جلب وإرسال رسائل خدمة العملاء (للإدارة)
+// مركز محادثات/دعم الإدارة (بند 22.8 - نسخة كاملة) - نفس جدولي
+// support_chat_conversations/support_chat_messages الموسّعين، مصدر حقيقة
+// واحد لكل محادثات العملاء والصنايعية مع الدعم. صلاحية workers:read
+// الحالية اتسيبت زي ما هي (بدون صلاحيات support:* جديدة) تجنبًا لأي تعديل
+// على نظام الأدوار الحالي.
 // ===============================
+const SUPPORT_STATUS_LABELS = { open: 'مفتوحة', new: 'مفتوحة', pending_customer: 'بانتظار العميل', pending_support: 'بانتظار الدعم', in_progress: 'بانتظار الدعم', resolved: 'تم الحل', closed: 'مغلقة' };
 
-// 1. جلب لستة محادثات خدمة العملاء
-app.get('/api/admin/support-chat/threads', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
+function supportConversationSummary(row) {
+  return {
+    id: row.id,
+    subject: row.title || '',
+    category: row.ticket_type || 'other',
+    priority: row.priority || 'normal',
+    status: row.status || 'new',
+    created_by_type: row.worker_id ? 'worker' : 'customer',
+    customer_name: row.customer_name || '',
+    phone: row.phone || '',
+    worker_id: row.worker_id || null,
+    admin_unread_count: row.admin_unread_count || 0,
+    has_attachment: !!row.attachment_url,
+    assigned_admin_id: row.assigned_admin_id || null,
+    last_message_at: row.last_message_at || row.created_at,
+    created_at: row.created_at
+  };
+}
+
+const SUPPORT_PRIORITY_ORDER = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+// 1. جلب قائمة المحادثات (بحث + فلترة status/category/priority/unread_only/assigned_to)
+app.get('/api/admin/support-chat/conversations', adminApiRateLimit, requirePermission("support:read"), async (req, res) => {
   try {
-    const { data: messages, error } = await supabase
-      .from('support_chat_messages')
-      .select('conversation_id, message_text, created_at, sender_name')
-      .order('created_at', { ascending: false });
+    let q = supabase.from('support_chat_conversations').select('*').order('last_message_at', { ascending: false });
+    const status = String(req.query.status || '').trim();
+    const category = String(req.query.category || '').trim();
+    const priority = String(req.query.priority || '').trim();
+    if (status) q = q.eq('status', status);
+    if (category) q = q.eq('ticket_type', category);
+    if (priority) q = q.eq('priority', priority);
+    if (String(req.query.unread_only || '') === 'true') q = q.gt('admin_unread_count', 0);
 
+    const assignedTo = String(req.query.assigned_to || '').trim();
+    if (assignedTo === 'me') q = q.eq('assigned_admin_id', req.admin?.id || 0);
+    else if (assignedTo === 'unassigned') q = q.is('assigned_admin_id', null);
+
+    const { data, error } = await q;
     if (error) throw error;
 
-    // جلب بيانات العملاء من جدول المحادثات
-    const { data: convos } = await supabase.from('support_chat_conversations').select('id, phone, customer_name');
-    const convosMap = {};
-    if (convos) {
-      convos.forEach(c => convosMap[c.id] = c);
+    let rows = data || [];
+    const search = String(req.query.search || '').trim().toLowerCase();
+    if (search) {
+      rows = rows.filter(r => String(r.customer_name || '').toLowerCase().includes(search) || String(r.phone || '').toLowerCase().includes(search) || String(r.title || '').toLowerCase().includes(search));
     }
 
-    const threadsMap = {};
-    if (messages) {
-       messages.forEach(msg => {
-          const cid = msg.conversation_id;
-          const convo = convosMap[cid] || {};
-          
-          if (!threadsMap[cid]) {
-             threadsMap[cid] = {
-                id: cid,
-                customer_name: convo.customer_name || msg.sender_name || 'عميل غير معروف',
-                phone: convo.phone || '',
-                message_text: msg.message_text,
-                created_at: msg.created_at
-             };
-          }
-       });
+    if (String(req.query.sort || '') === 'priority') {
+      rows = rows.slice().sort((a, b) => {
+        const diff = (SUPPORT_PRIORITY_ORDER[a.priority] ?? 2) - (SUPPORT_PRIORITY_ORDER[b.priority] ?? 2);
+        return diff !== 0 ? diff : new Date(b.last_message_at) - new Date(a.last_message_at);
+      });
     }
 
-    res.json({ success: true, threads: Object.values(threadsMap) });
+    // اسم الصنايعي لو المحادثة بتاعته (worker_id موجود)
+    const workerIds = [...new Set(rows.filter(r => r.worker_id).map(r => r.worker_id))];
+    let workersMap = {};
+    if (workerIds.length) {
+      const { data: workers } = await supabase.from('workers').select('id, name, phone').in('id', workerIds);
+      (workers || []).forEach(w => workersMap[w.id] = w);
+    }
+
+    // اسم موظف الدعم المسؤول
+    const adminIds = [...new Set(rows.filter(r => r.assigned_admin_id).map(r => r.assigned_admin_id))];
+    let adminsMap = {};
+    if (adminIds.length) {
+      const { data: admins } = await supabase.from('admin_users').select('id, display_name, username').in('id', adminIds);
+      (admins || []).forEach(a => adminsMap[a.id] = a);
+    }
+
+    const items = rows.map(r => {
+      const summary = supportConversationSummary(r);
+      if (r.worker_id && workersMap[r.worker_id]) {
+        summary.customer_name = workersMap[r.worker_id].name;
+        summary.phone = workersMap[r.worker_id].phone || summary.phone;
+      }
+      if (r.assigned_admin_id && adminsMap[r.assigned_admin_id]) {
+        summary.assigned_admin_name = adminsMap[r.assigned_admin_id].display_name || adminsMap[r.assigned_admin_id].username;
+      }
+      return summary;
+    });
+
+    res.json({ success: true, conversations: items });
   } catch (err) {
-    console.error('Support Threads Error:', err);
-    res.status(500).json({ success: false, error: 'حدث خطأ أثناء جلب محادثات خدمة العملاء' });
+    console.error('Support Conversations List Error:', err);
+    res.status(500).json({ success: false, error: 'تعذر تحميل المحادثات' });
   }
 });
 
-// 2. جلب رسائل محادثة خدمة عملاء معينة (وتحديثها كمقروءة)
-app.get('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
+// 1.5 قائمة موظفي الدعم القابلين للتعيين (super_admin/reviewer بس - نفس
+// أدوار صلاحية support:* في نظام الأدوار الحالي)
+app.get('/api/admin/support-chat/staff', adminApiRateLimit, requirePermission("support:read"), async (req, res) => {
   try {
-    const threadId = req.params.id;
-
-    // تحديث الرسائل غير المقروءة إلى مقروءة بمجرد فتح الإدارة لها
-    await supabase
-      .from('support_chat_messages')
-      .update({ is_read: true })
-      .eq('conversation_id', threadId)
-      .neq('sender_type', 'admin') // رسائل العميل فقط
-      .eq('is_read', false);
-
-    const { data: messages, error } = await supabase
-      .from('support_chat_messages')
-      .select('*')
-      .eq('conversation_id', threadId)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    const { data: thread } = await supabase
-      .from('support_chat_conversations')
-      .select('*')
-      .eq('id', threadId)
-      .maybeSingle();
-
-    res.json({ success: true, messages: messages || [], thread: thread || {} });
+    const { data, error } = await supabase.from('admin_users').select('id, username, display_name, role, active').in('role', ['super_admin', 'reviewer']).eq('active', true);
+    if (error) return res.json({ success: true, staff: [] });
+    res.json({ success: true, staff: (data || []).map(a => ({ id: a.id, name: a.display_name || a.username })) });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'حدث خطأ' });
+    res.json({ success: true, staff: [] });
   }
 });
 
-// 3. إرسال رد من الإدارة لخدمة العملاء
-app.post('/api/admin/support-chat/threads/:id/messages', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
+// 1.6 تعيين/إلغاء تعيين محادثة لموظف دعم
+app.patch('/api/admin/support-chat/conversations/:id/assign', adminApiRateLimit, requirePermission("support:manage"), async (req, res) => {
   try {
-    const threadId = req.params.id;
-    const { message } = req.body;
-    
+    let adminId = req.body?.admin_id;
+    adminId = adminId === null || adminId === '' || adminId === undefined ? null : Number(adminId);
+
+    if (adminId) {
+      const { data: staff } = await supabase.from('admin_users').select('id, role').eq('id', adminId).maybeSingle();
+      if (!staff || !['super_admin', 'reviewer'].includes(staff.role)) {
+        return res.status(400).json({ success: false, error: 'هذا الموظف لا يملك صلاحية الدعم' });
+      }
+    }
+
+    const { error } = await supabase.from('support_chat_conversations').update({ assigned_admin_id: adminId }).eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'تعذر تحديث التعيين' });
+  }
+});
+
+// 2. جلب رسائل محادثة معيّنة + تصفير عداد الإدارة غير المقروء
+app.get('/api/admin/support-chat/conversations/:id/messages', adminApiRateLimit, requirePermission("support:read"), async (req, res) => {
+  try {
+    const convId = req.params.id;
+
+    await supabase.from('support_chat_messages').update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('conversation_id', convId).neq('sender_type', 'admin').eq('is_read', false);
+    await supabase.from('support_chat_conversations').update({ admin_unread_count: 0 }).eq('id', convId);
+
+    const { data: messages, error } = await supabase.from('support_chat_messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true });
+    if (error) throw error;
+
+    const { data: conv } = await supabase.from('support_chat_conversations').select('*').eq('id', convId).maybeSingle();
+    let convOut = conv ? supportConversationSummary(conv) : {};
+    if (conv && conv.worker_id) {
+      const { data: w } = await supabase.from('workers').select('name, phone, trade').eq('id', conv.worker_id).maybeSingle();
+      if (w) { convOut.customer_name = w.name; convOut.phone = w.phone; convOut.worker_trade = w.trade; }
+    }
+    if (conv && conv.assigned_admin_id) {
+      const { data: a } = await supabase.from('admin_users').select('display_name, username').eq('id', conv.assigned_admin_id).maybeSingle();
+      if (a) convOut.assigned_admin_name = a.display_name || a.username;
+    }
+
+    res.json({ success: true, conversation: convOut, messages: messages || [] });
+  } catch (err) {
+    console.error('Support Conversation Messages Error:', err);
+    res.status(500).json({ success: false, error: 'تعذر تحميل الرسائل' });
+  }
+});
+
+// 3. رد الإدارة على محادثة
+app.post('/api/admin/support-chat/conversations/:id/messages', adminApiRateLimit, requirePermission("support:reply"), async (req, res) => {
+  try {
+    const convId = req.params.id;
+    const message = String(req.body?.message || '').trim().slice(0, 2000);
     if (!message) return res.status(400).json({ success: false, error: 'الرسالة فارغة' });
 
-    const newMessage = {
-      conversation_id: threadId,
-      sender_type: 'admin',
-      sender_name: 'الإدارة',
-      message_text: message,
-      is_read: true,
-      created_at: new Date().toISOString()
-    };
-
-    const { error } = await supabase.from('support_chat_messages').insert([newMessage]);
+    const admin = req.admin || null;
+    const { error } = await supabase.from('support_chat_messages').insert([{
+      conversation_id: convId, sender_type: 'admin', sender_id: admin?.id || null,
+      sender_name: admin?.display_name || admin?.username || 'الإدارة',
+      message_text: message, is_read: true, read_at: new Date().toISOString()
+    }]);
     if (error) throw error;
 
-    res.json({ success: true, message: 'تم إرسال الرد' });
+    const { data: convBefore } = await supabase.from('support_chat_conversations').select('customer_id, worker_id, title, customer_unread_count').eq('id', convId).maybeSingle();
+    const conv = convBefore;
+    await supabase.from('support_chat_conversations')
+      .update({ last_message_at: new Date().toISOString(), customer_unread_count: (convBefore?.customer_unread_count || 0) + 1 })
+      .eq('id', convId);
+
+    if (conv) {
+      const recipientType = conv.worker_id ? 'worker' : 'customer';
+      const recipientId = conv.worker_id || conv.customer_id;
+      if (recipientId) {
+        createNotification({
+          recipientType, recipientId, type: 'support_reply',
+          title: 'رد جديد من خدمة العملاء', body: message.slice(0, 120),
+          link: (recipientType === 'worker' ? '/worker-dashboard?id=' + recipientId + '&' : '/account?') + 'support_conversation=' + convId
+        });
+      }
+    }
+
+    res.json({ success: true });
   } catch (err) {
-    console.error('Send Support Message Error:', err);
-    res.status(500).json({ success: false, error: 'حدث خطأ أثناء إرسال الرسالة' });
+    console.error('Send Support Reply Error:', err);
+    res.status(500).json({ success: false, error: 'تعذر إرسال الرد' });
   }
 });
 
-// 4. جلب عدد رسائل خدمة العملاء غير المقروءة للإدارة (الـ Badge)
-app.get('/api/admin/support-chat/unread-count', adminApiRateLimit, requirePermission("workers:read"), async (req, res) => {
+// 3.5 تغيير حالة محادثة الدعم - بينشئ رسالة نظام + إشعار للطرف التاني
+app.patch('/api/admin/support-chat/conversations/:id/status', adminApiRateLimit, requirePermission("support:manage"), async (req, res) => {
   try {
-    const { count, error } = await supabase
-      .from('support_chat_messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_read', false)
-      .neq('sender_type', 'admin');
-
-    if (error) {
-      return res.json({ success: true, unread_count: 0 });
+    const convId = req.params.id;
+    const status = String(req.body?.status || '').trim();
+    if (!['new', 'in_progress', 'resolved', 'closed'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'حالة غير صحيحة' });
     }
+    const { data: updated, error } = await supabase.from('support_chat_conversations').update({ status }).eq('id', convId).select('customer_id, worker_id').maybeSingle();
+    if (error) throw error;
+    if (!updated) return res.status(404).json({ success: false, error: 'المحادثة غير موجودة' });
 
-    res.json({ success: true, unread_count: count || 0 });
+    await supabase.from('support_chat_messages').insert([{
+      conversation_id: convId, sender_type: 'system', message_text: 'تم تغيير حالة المحادثة إلى: ' + (SUPPORT_STATUS_LABELS[status] || status),
+      is_system: true, is_read: true, read_at: new Date().toISOString()
+    }]);
+
+    const recipientType = updated.worker_id ? 'worker' : 'customer';
+    const recipientId = updated.worker_id || updated.customer_id;
+    if (recipientId) {
+      createNotification({
+        recipientType, recipientId, type: 'support_status_' + status,
+        title: 'تحديث حالة محادثة الدعم', body: 'أصبحت الحالة: ' + (SUPPORT_STATUS_LABELS[status] || status),
+        link: (recipientType === 'worker' ? '/worker-dashboard?id=' + recipientId + '&' : '/account?') + 'support_conversation=' + convId
+      });
+    }
+    res.json({ success: true });
   } catch (err) {
-    console.error("Error fetching support unread count:", err);
+    console.error('Update Support Status Error:', err);
+    res.status(500).json({ success: false, error: 'تعذر تحديث الحالة' });
+  }
+});
+
+// 3.6 تغيير الأولوية
+app.patch('/api/admin/support-chat/conversations/:id/priority', adminApiRateLimit, requirePermission("support:manage"), async (req, res) => {
+  try {
+    const priority = String(req.body?.priority || '').trim();
+    if (!['low', 'normal', 'high', 'urgent'].includes(priority)) return res.status(400).json({ success: false, error: 'أولوية غير صحيحة' });
+    const { error } = await supabase.from('support_chat_conversations').update({ priority }).eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'تعذر تحديث الأولوية' });
+  }
+});
+
+// 3.7 رابط Signed URL قصير الصلاحية لمرفق المحادثة (نفس منطق صور بطاقات
+// التوثيق - مفيش رابط عام أبدًا)
+app.get('/api/admin/support-chat/conversations/:id/attachment', adminApiRateLimit, requirePermission("support:read"), async (req, res) => {
+  try {
+    const { data: conv } = await supabase.from('support_chat_conversations').select('attachment_url').eq('id', req.params.id).maybeSingle();
+    if (!conv || !conv.attachment_url) return res.status(404).json({ success: false, error: 'لا يوجد مرفق' });
+    const { data: signedData } = await supabase.storage.from(SUPABASE_ID_BUCKET).createSignedUrl(conv.attachment_url, 300);
+    if (!signedData?.signedUrl) return res.status(404).json({ success: false, error: 'تعذر إنشاء رابط المرفق' });
+    res.json({ success: true, url: signedData.signedUrl });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'تعذر جلب المرفق' });
+  }
+});
+
+// 4. عدد المحادثات غير المقروءة للإدارة (Badge)
+app.get('/api/admin/support-chat/unread-count', adminApiRateLimit, requirePermission("support:read"), async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('support_chat_conversations').select('admin_unread_count').gt('admin_unread_count', 0);
+    if (error) return res.json({ success: true, unread_count: 0 });
+    const total = (data || []).reduce((sum, r) => sum + (r.admin_unread_count || 0), 0);
+    res.json({ success: true, unread_count: total });
+  } catch (err) {
     res.json({ success: true, unread_count: 0 });
   }
 });
@@ -1146,6 +1318,26 @@ app.get('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
     delete worker.password_reset_expires_at;
 
     res.json({ success: true, worker });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// عدد مشاهدات بروفايل الصنايعي (آخر 30 يوم) - Endpoint صغير لتجميع بيانات
+// analytics_events الموجودة أصلًا (نفس الأحداث المستخدمة في smartScore.js)،
+// عشان الصنايعي يشوف رقم حقيقي في لوحته بدل ما نخترعه أو نسيبه فاضي
+app.get('/api/worker/profile/:id/views', requireWorkerOwnership, async (req, res) => {
+  try {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { count, error } = await supabase
+      .from('analytics_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('worker_id', req.params.id)
+      .in('event_type', ['profile_view', 'worker_profile_view'])
+      .gte('created_at', since);
+
+    if (error) throw error;
+    res.json({ success: true, views: count || 0 });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1228,6 +1420,47 @@ app.put('/api/worker/profile/:id', requireWorkerOwnership, async (req, res) => {
       'عدّل الصنايعي بياناته الأساسية'
     );
     res.json({ success: true, message: 'تم إرسال تعديلك بنجاح، وفي انتظار مراجعة الإدارة قبل ما يظهر للعملاء' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// حالة توفر الصنايعي (available/busy/offline) - تحديث فوري ومباشر (بعكس باقي
+// بيانات البروفايل اللي بتعدي على pending_changes لمراجعة الإدارة)، لأنها
+// حالة لحظية بيتحكم فيها الصنايعي بنفسه. requireWorkerOwnership يمنع أي
+// صنايعي من تعديل حالة صنايعي تاني غيره
+app.put('/api/worker/profile/:id/availability', requireWorkerOwnership, async (req, res) => {
+  try {
+    const status = String(req.body?.availability_status || "").trim();
+    if (!["available", "busy", "offline"].includes(status)) {
+      return res.status(400).json({ success: false, error: "حالة توفر غير صحيحة" });
+    }
+    const { error } = await supabase
+      .from('workers')
+      .update({ availability_status: status })
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true, availability_status: status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// موقع الصنايعي الجغرافي (بند 11) - تحديث فوري ومباشر بإذن المستخدم من
+// المتصفح نفسه، requireWorkerOwnership يمنع تعديل موقع صنايعي تاني
+app.put('/api/worker/profile/:id/location', requireWorkerOwnership, async (req, res) => {
+  try {
+    const lat = Number(req.body?.latitude);
+    const lng = Number(req.body?.longitude);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ success: false, error: "إحداثيات غير صحيحة" });
+    }
+    const { error } = await supabase
+      .from('workers')
+      .update({ latitude: lat, longitude: lng })
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true, latitude: lat, longitude: lng });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1376,7 +1609,11 @@ app.post('/api/worker/profile/:id/request-image', requireWorkerOwnership, upload
   }
 });
 
-// إعادة رفع صورة البطاقة الشخصية (وجه/ظهر) - غالبًا بعد ما الإدارة تطلب ذلك عبر identity_status=needs_id_reupload
+// طلب توثيق الهوية (تقديم أول مرة من not_submitted، أو إعادة تقديم بعد
+// rejected) - الصنايعي نفسه بس (requireWorkerOwnership) وممنوع عليه تمامًا
+// تعيين identity_verified/status=approved من هنا؛ النتيجة الوحيدة الممكنة
+// من هذا المسار هي identity_verification_status='pending' وخلاص، والاعتماد
+// النهائي حصريًا عبر مسار الإدارة (handleIdentityReview)
 app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.fields([
   { name: 'idFront', maxCount: 1 },
   { name: 'idBack', maxCount: 1 }
@@ -1387,8 +1624,22 @@ app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.f
       return res.status(400).json({ success: false, error: 'يرجى رفع صورتي وجه وظهر البطاقة الشخصية' });
     }
 
+    const { data: current, error: currentError } = await supabase
+      .from('workers')
+      .select('identity_verification_status')
+      .eq('id', req.params.id)
+      .maybeSingle();
+    if (currentError || !current) {
+      return res.status(404).json({ success: false, error: 'الصنايعي غير موجود' });
+    }
+    // منع إرسال طلب توثيق مكرر لحد ما الإدارة ترد على الطلب الحالي
+    if (current.identity_verification_status === 'pending') {
+      return res.status(409).json({ success: false, error: 'طلب توثيق حسابك قيد المراجعة بالفعل. برجاء انتظار رد الإدارة قبل إرسال طلب جديد.' });
+    }
+
     const idFrontImage = await uploadToSupabase(files.idFront[0], "identity-docs");
     const idBackImage = await uploadToSupabase(files.idBack[0], "identity-docs");
+    const now = new Date().toISOString();
 
     const { error } = await supabase
       .from('workers')
@@ -1397,10 +1648,14 @@ app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.f
         id_back: idBackImage,
         id_front_path: idFrontImage,
         id_back_path: idBackImage,
-        id_submitted_at: new Date().toISOString(),
+        id_submitted_at: now,
         identity_status: 'pending',
         identity_rejection_reason: null,
-        identity_review_note: null
+        identity_review_note: null,
+        identity_verification_status: 'pending',
+        identity_verification_requested_at: now,
+        identity_verification_reviewed_at: null,
+        identity_verification_rejection_reason: null
       })
       .eq('id', req.params.id);
 
@@ -1590,7 +1845,11 @@ app.post('/api/payments/paymob/webhook', express.json({ limit: '2mb' }), async (
 });
 
 // ===============================
-// 5.3. مسارات عرض صور البطاقات السرية
+// 5.3. مسارات عرض صور البطاقات السرية - للإدارة فقط (workers:review). كانت
+// المسارات دي متاحة من غير أي مصادقة قبل كده (أي حد يعرف اسم الملف كان يقدر
+// يشوف صورة البطاقة مباشرة) - تم إغلاقها هنا كجزء من تأمين صور البطاقات.
+// المسار الآمن الموصى به فعليًا هو GET /api/admin/workers/:id/id-card/:side
+// (بيرجع Signed URL قصير الصلاحية كـ JSON بدل Redirect مباشر)
 // ===============================
 async function serveIdentityImage(req, res) {
   try {
@@ -1599,12 +1858,8 @@ async function serveIdentityImage(req, res) {
       fileName = fileName.split('/').pop();
     }
     const { data, error } = await supabase.storage.from("identity-docs").createSignedUrl(fileName, 300);
-    if (data && data.signedUrl) {
+    if (!error && data && data.signedUrl) {
       return res.redirect(data.signedUrl);
-    }
-    const { data: pubData } = supabase.storage.from("identity-docs").getPublicUrl(fileName);
-    if (pubData && pubData.publicUrl) {
-      return res.redirect(pubData.publicUrl);
     }
     res.status(404).send("Image not found");
   } catch (err) {
@@ -1612,18 +1867,15 @@ async function serveIdentityImage(req, res) {
   }
 }
 
-app.get("/identity-docs/:fileName", serveIdentityImage);
-app.get("/api/identity-docs/:fileName", serveIdentityImage);
+app.get("/identity-docs/:fileName", requirePermission("workers:review"), serveIdentityImage);
+app.get("/api/identity-docs/:fileName", requirePermission("workers:review"), serveIdentityImage);
 
+// ملحوظة أمان: المسار ده لصور البروفايل/الأعمال العامة فقط - كان بيحاول
+// يفتح صور البطاقة الشخصية (identity-docs) الأول من غير أي مصادقة (نفس ثغرة
+// serveIdentityImage أعلاه، بس هنا كمان). تمت إزالة محاولة identity-docs
+// نهائيًا؛ صور البطاقة بتتعرض فقط عبر مسارات الإدارة المحمية
 app.get("/uploads/:fileName", async (req, res) => {
   const fileName = req.params.fileName;
-  try {
-    const { data, error } = await supabase.storage.from("identity-docs").createSignedUrl(fileName, 300);
-    if (!error && data && data.signedUrl) {
-      return res.redirect(data.signedUrl);
-    }
-  } catch (e) {}
-
   const bucket = process.env.SUPABASE_BUCKET || "uploads";
   const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
   if (data && data.publicUrl) {
@@ -1783,6 +2035,38 @@ app.put('/api/admin/settings/subscription-pricing', adminApiRateLimit, requirePe
     }
 });
 
+// قنوات التواصل مع خدمة العملاء (بند 22.8.1) - بدون Hardcode لأي رقم
+app.get('/api/admin/settings/support-channels', adminApiRateLimit, requirePermission("settings:manage"), async (req, res) => {
+    try {
+        const channels = await getSupportChannels();
+        res.json({ success: true, channels });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.put('/api/admin/settings/support-channels', adminApiRateLimit, requirePermission("settings:manage"), async (req, res) => {
+    try {
+        const { phone, whatsapp, working_hours } = req.body || {};
+        const channels = await setSupportChannels({ phone, whatsapp, working_hours });
+        logAdminActivity(req, "support_channels_updated", { details: channels }).catch(() => {});
+        res.json({ success: true, channels });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// نسخة عامة (بدون تسجيل دخول) عشان Bottom Sheet خدمة العملاء يقرر يعرض
+// زرار الاتصال/واتساب من عدمه
+app.get('/api/support-chat/channels', async (req, res) => {
+    try {
+        const channels = await getSupportChannels();
+        res.json({ success: true, channels });
+    } catch (err) {
+        res.json({ success: true, channels: { phone: '', whatsapp: '', working_hours: '' } });
+    }
+});
+
 // سجل مدفوعات الاشتراك (يدوي من الأدمن + إلكتروني عبر PayMob) - لمراجعة/تسوية الأدمن
 app.get('/api/admin/subscription-payments', adminApiRateLimit, requirePermission("settings:manage"), async (req, res) => {
     try {
@@ -1880,6 +2164,9 @@ const coreRoutes = require("./routes/core");
 const cronRoutes = require("./routes/cron");
 const serviceRequestsRoutes = require("./routes/serviceRequests");
 const customersRoutes = require("./routes/customers");
+const favoritesRoutes = require("./routes/favorites");
+const notificationsRoutes = require("./routes/notifications");
+const homepageSlidersRoutes = require("./routes/homepageSliders");
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/workers", workersRoutes);
@@ -1890,6 +2177,9 @@ app.use("/api", coreRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/service-requests", serviceRequestsRoutes);
 app.use("/api/customers", customersRoutes);
+app.use("/api/favorites", favoritesRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api", homepageSlidersRoutes);
 
 
 // ===============================
@@ -1972,6 +2262,8 @@ app.get("/reset-password", (req, res) => res.sendFile(path.join(STATIC_DIR, "res
 app.get("/worker-dashboard", (req, res) => res.sendFile(path.join(STATIC_DIR, "worker-dashboard.html")));
 app.get("/customer-auth", (req, res) => res.sendFile(path.join(STATIC_DIR, "customer-auth.html")));
 app.get("/my-requests", (req, res) => res.sendFile(path.join(STATIC_DIR, "my-requests.html")));
+app.get("/favorites", (req, res) => res.sendFile(path.join(STATIC_DIR, "favorites.html")));
+app.get("/top-workers", (req, res) => res.sendFile(path.join(STATIC_DIR, "top-workers.html")));
 app.get("/account", (req, res) => res.sendFile(path.join(STATIC_DIR, "account.html")));
 app.get("/status", (req, res) => res.sendFile(path.join(STATIC_DIR, "status.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(STATIC_DIR, "admin.html")));

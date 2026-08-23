@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme-app>
 <head>
+  <script>(function(){var t=localStorage.getItem('sanay3i_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
@@ -30,7 +31,6 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/landing.css" />
   <link rel="stylesheet" href="/css/cards.css" />
-  <link rel="stylesheet" href="/css/support.css" />
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -44,9 +44,9 @@
   <meta name="msapplication-TileColor" content="#061A3D">
 </head>
 
-<body>
+<body class="has-bottom-nav">
 
-  <header class="site-header">
+  <header class="site-header site-header-compact">
     <div class="container header-content">
       <a href="/" class="brand professional-brand" aria-label="صنايعي مطروح - الصفحة الرئيسية">
         <div class="brand-icon brand-logo-frame" aria-hidden="true">
@@ -62,8 +62,21 @@
         <a href="#home">الرئيسية</a>
         <a href="#workers">الصنايعية</a>
         <a href="/account">حسابي</a>
-        <a href="/status">حالة الطلب</a>
       </nav>
+
+      <div class="header-utility">
+        <div class="location-chip" title="الموقع الحالي">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>مرسى مطروح</span>
+        </div>
+        <button type="button" class="icon-btn" id="notificationBtn" aria-label="الإشعارات">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <div id="supportBellSlot" style="position:relative;"></div>
+        <a href="/account" class="avatar-btn" id="avatarBtn" aria-label="حسابي">
+          <span id="avatarInitial"><i class="fa-solid fa-user"></i></span>
+        </a>
+      </div>
 
       <a href="/register" class="header-btn">
         <i class="fa-solid fa-user-plus"></i> سجل كصنايعي
@@ -78,60 +91,43 @@
       <a href="#home" onclick="toggleMobileMenu()">الرئيسية</a>
       <a href="#workers" onclick="toggleMobileMenu()">الصنايعية</a>
       <a href="/account" onclick="toggleMobileMenu()">حسابي</a>
-      <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
   </header>
 
-  <section class="hero matrouh-hero" id="home">
-    <div class="container matrouh-hero-container">
-      <div class="matrouh-hero-card">
-        <div class="matrouh-hero-image-wrap">
-          <img src="/api/static/matrouh-hero-banner.jpg?v=serve-fixed-20260621" alt="ساحل مرسى مطروح" class="matrouh-hero-image" loading="eager" decoding="async">
-          <div class="matrouh-hero-overlay" aria-hidden="true"></div>
-          <div class="matrouh-location-badge">
-            <i class="fa-solid fa-location-dot"></i> متاح حاليًا داخل مرسى مطروح
-          </div>
-        </div>
+  <section class="hero-slider-section" id="home" aria-label="صور وعروض مطروح">
+    <div class="container">
+      <div class="hero-slider" id="heroSlider">
+        <!-- الشرائح بتتولّد ديناميكيًا من /api/hero-slides (لوحة الإدارة: محتوى الرئيسية) -->
+        <div class="hero-slide-track" id="heroSlideTrack"></div>
 
-        <div class="matrouh-hero-strip">
-          <div class="matrouh-hero-title-block">
-            <div class="matrouh-hero-icon" aria-hidden="true">
-              <i class="fa-solid fa-screwdriver-wrench"></i>
-            </div>
-            <div>
-              <h2>دليل الصنايعية في مطروح</h2>
-              <p>اختار الحرفة والمنطقة وتواصل فورًا مع صنايعي قريب منك بدون وسيط.</p>
-            </div>
-          </div>
+        <button type="button" class="hero-slider-arrow hero-slider-prev" id="heroSliderPrev" aria-label="الشريحة السابقة"><i class="fa-solid fa-chevron-right"></i></button>
+        <button type="button" class="hero-slider-arrow hero-slider-next" id="heroSliderNext" aria-label="الشريحة التالية"><i class="fa-solid fa-chevron-left"></i></button>
 
-          <div class="matrouh-hero-actions">
-            <a href="#workers" class="matrouh-main-action">
-              <i class="fa-solid fa-magnifying-glass"></i> استعرض الصنايعية
-            </a>
-            <a href="/register" class="matrouh-secondary-action">
-              <i class="fa-solid fa-user-plus"></i> سجل كصنايعي
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="matrouh-trust-row" aria-label="مميزات الخدمة">
-        <div><i class="fa-solid fa-circle-check"></i> بيانات واضحة</div>
-        <div><i class="fa-solid fa-phone-volume"></i> تواصل مباشر</div>
+        <div class="hero-slider-dots" id="heroSliderDots"></div>
       </div>
     </div>
   </section>
 
-  <section class="stats-section">
-    <div class="container stats-grid">
-      <div class="stat-box">
-        <div class="stat-icon"><i class="fa-solid fa-users-gear"></i></div>
-        <div><h3 id="workersCount">0</h3><p>صنايعي متاح</p></div>
+  <section class="search-strip-section">
+    <div class="container">
+      <div class="search-bar-only">
+        <div class="search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="محتاج صنايعي إيه؟" oninput="scheduleTradeGroupsRender()" />
+        </div>
       </div>
-      <div class="stat-box">
-        <div class="stat-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-        <div><h3 id="tradesCount">0</h3><p>حرفة مختلفة</p></div>
+
+      <div class="search-suggestions" id="searchSuggestions"></div>
+    </div>
+  </section>
+
+  <section class="stats-section">
+    <div class="container">
+      <!-- الشرائح بتتولّد ديناميكيًا من /api/stats-slider (لوحة الإدارة: محتوى الرئيسية) -->
+      <div class="stats-slider" id="statsSlider">
+        <div class="stats-slide-track" id="statsSlideTrack"></div>
+        <div class="hero-slider-dots stats-slider-dots" id="statsSliderDots"></div>
       </div>
     </div>
   </section>
@@ -147,6 +143,21 @@
       </div>
       <div class="area-chip-row" id="areaIconsGrid">
         <div class="area-icons-empty">جاري تحميل المناطق...</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trades-showcase-section" id="tradesShowcase">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="section-label">الأكثر طلبًا</span>
+          <h2>الخدمات الأكثر طلبًا</h2>
+          <p>اختار الخدمة وشوف الصنايعية المتاحين فيها فورًا.</p>
+        </div>
+      </div>
+      <div class="trades-showcase-grid" id="tradesShowcaseGrid">
+        <div class="trades-showcase-empty">جاري تحميل الحرف...</div>
       </div>
     </div>
   </section>
@@ -179,25 +190,51 @@
         <div class="demand-list" id="topDemandWorkersGrid">
           <div class="demand-empty">جاري حساب الصنايعية الأكثر طلبًا...</div>
         </div>
+        <a href="/top-workers" class="demand-highlight-link"><i class="fa-solid fa-trophy"></i> أفضل الصنايعية تقييمًا</a>
       </div>
+    </div>
+  </section>
+
+  <section class="nearby-section" id="nearbySection" style="display:none;">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="section-label">مقترح لك</span>
+          <h2>صنايعية بالقرب منك</h2>
+          <p id="nearbySectionSubtitle">أفضل الصنايعية المتاحين حاليًا.</p>
+        </div>
+      </div>
+
+      <div class="nearby-filters" id="nearbyFilters">
+        <button type="button" class="nearby-filter-chip active" data-nearby-filter="best">الأفضل</button>
+        <button type="button" class="nearby-filter-chip" data-nearby-filter="nearest"><i class="fa-solid fa-location-crosshairs"></i> الأقرب</button>
+        <button type="button" class="nearby-filter-chip" data-nearby-filter="rating">الأعلى تقييمًا</button>
+        <button type="button" class="nearby-filter-chip" data-nearby-filter="available">المتاح الآن</button>
+        <button type="button" class="nearby-map-toggle" id="nearbyMapToggle" style="display:none;"><i class="fa-solid fa-map-location-dot"></i> خريطة</button>
+      </div>
+      <p class="nearby-location-hint" id="nearbyLocationHint" style="display:none;"></p>
+
+      <div class="nearby-map-wrap" id="nearbyMapWrap" style="display:none;">
+        <iframe id="nearbyMapFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+
+      <div class="nearby-scroll-row" id="nearbyScrollRow"></div>
     </div>
   </section>
 
   <section class="workers-section" id="workers">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head workers-section-head">
         <div>
           <h2 id="workersSectionTitle">اختار الحرفة وشوف الصنايعية</h2>
           <p id="workersSectionSubtitle">دوس على الحرفة عشان تشوف الصنايعية المتاحين جواها، أو ابحث بالاسم مباشرة.</p>
         </div>
+        <button type="button" class="advanced-filters-toggle" id="advancedFiltersToggle" aria-expanded="false" aria-controls="advancedFiltersPanel">
+          <i class="fa-solid fa-sliders"></i> فلاتر متقدمة
+        </button>
       </div>
 
-      <div class="search-panel">
-        <div class="search-input-wrap">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="searchInput" placeholder="ابحث باسم الصنايعي أو الحرفة أو المنطقة..." oninput="scheduleTradeGroupsRender()" />
-        </div>
-
+      <div class="search-panel advanced-filters-panel" id="advancedFiltersPanel">
         <div class="select-wrap">
           <i class="fa-solid fa-filter"></i>
           <select id="tradeFilter" onchange="onTradeFilterChanged()"><option value="">كل الحرف</option></select>
@@ -231,7 +268,7 @@
         </label>
 
         <button class="clear-btn" onclick="clearFilters()">
-          <i class="fa-solid fa-rotate-right"></i> مسح البحث
+          <i class="fa-solid fa-rotate-right"></i> مسح الفلاتر
         </button>
       </div>
 
@@ -240,10 +277,11 @@
         <p>جاري تحميل الصنايعية...</p>
       </div>
 
-      <div class="empty-box" id="emptyBox" style="display: none;">
-        <div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div>
+      <div class="empty-state" id="emptyBox" style="display: none;">
+        <i class="fa-solid fa-user-slash"></i>
         <h3>لا يوجد صنايعية مطابقين للبحث</h3>
         <p>جرّب تغير كلمة البحث أو اختار حرفة مختلفة.</p>
+        <button type="button" class="empty-state-cta" onclick="clearFilters()"><i class="fa-solid fa-rotate-right"></i> مسح الفلاتر</button>
       </div>
 
       <div class="trade-groups-list" id="tradeGroupsContainer"></div>
@@ -263,7 +301,6 @@
         <a href="#home">الرئيسية</a>
         <a href="/register" class="footer-link-cta"><i class="fa-solid fa-star"></i> سجل كصنايعي</a>
         <a href="#workers">الصنايعية</a>
-        <a href="/status">حالة الطلب</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -278,10 +315,40 @@
     <i class="fa-solid fa-circle-check"></i> تم نسخ رابط الصنايعي
   </div>
 
+  <!-- تنقل سفلي ثابت (موبايل فقط، أقل من 768px) -->
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <a href="/" class="bottom-nav-item active">
+      <i class="fa-solid fa-house"></i>
+      <span>الرئيسية</span>
+    </a>
+    <a href="/#tradesShowcase" class="bottom-nav-item">
+      <i class="fa-solid fa-screwdriver-wrench"></i>
+      <span>الخدمات</span>
+    </a>
+    <a href="/my-requests" class="bottom-nav-item">
+      <i class="fa-solid fa-clipboard-list"></i>
+      <span>طلباتي</span>
+    </a>
+    <a href="/favorites" class="bottom-nav-item">
+      <i class="fa-regular fa-heart"></i>
+      <span>المفضلة</span>
+    </a>
+    <a href="/account" class="bottom-nav-item">
+      <i class="fa-solid fa-circle-user"></i>
+      <span>حسابي</span>
+    </a>
+    <a href="/#workers" class="bottom-nav-fab" aria-label="اطلب صنايعي">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+  </nav>
+
   <!-- استدعاء ملف الـ JS الخارجي للصفحة الرئيسية -->
   <script src="/js/common.js"></script>
   <script src="/js/customerGate.js"></script>
-  <script src="/js/home.js"></script>
+  <script src="/js/home.js?v=20260823"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/notifications-widget.js?v=20260823"></script>
+  <script src="/js/support-widget.js?v=20260823"></script>
 
   <!-- Service Worker -->
   <script>

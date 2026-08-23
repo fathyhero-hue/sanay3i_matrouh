@@ -15,12 +15,19 @@ const ADMIN_ROLES = {
 
 // تعريف ما يمكن لكل دور أن يفعله بالظبط
 const ADMIN_ROLE_PERMISSIONS = {
+  // بند 22.8.1 - صلاحيات دعم مستقلة (support:read/reply/manage) بدل الاعتماد
+  // على workers:read العامة. super_admin بياخد كل شيء تلقائيًا من
+  // adminHasPermission تحت (مفيش داعي يتكرر هنا). reviewer هو الدور المختص
+  // بالمراجعة/الدعم فعليًا فأخد الصلاحيات الثلاثة كاملة. subscription_manager
+  // وviewer اتشالت منهم صلاحية الدعم (كانوا بيوصلوا للـInbox قبل كده بالخطأ
+  // عن طريق workers:read العامة) - ده تضييق نطاق مقصود، مش كسر صلاحية أصلية.
   super_admin: [
     "workers:read", "workers:create", "workers:update", "workers:review", "workers:delete",
     "subscriptions:manage", "reviews:review", "settings:manage", "backup:export",
-    "analytics:read", "activity_log:read", "admin_users:manage", "whatsapp:send", "reports:read", "reports:manage"
+    "analytics:read", "activity_log:read", "admin_users:manage", "whatsapp:send", "reports:read", "reports:manage",
+    "support:read", "support:reply", "support:manage"
   ],
-  reviewer: ["workers:read", "workers:review", "reviews:review", "analytics:read", "activity_log:read", "whatsapp:send", "reports:read", "reports:manage"],
+  reviewer: ["workers:read", "workers:review", "reviews:review", "analytics:read", "activity_log:read", "whatsapp:send", "reports:read", "reports:manage", "support:read", "support:reply", "support:manage"],
   subscription_manager: ["workers:read", "subscriptions:manage", "analytics:read", "activity_log:read", "whatsapp:send", "reports:read"],
   viewer: ["workers:read", "analytics:read", "activity_log:read", "reports:read"]
 };

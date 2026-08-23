@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme-app>
+<head>
+  <script>(function(){var t=localStorage.getItem('sanay3i_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أفضل الصنايعية | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#061A3D">
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/account.css" />
+  <link rel="stylesheet" href="/css/cards.css" />
+  <link rel="stylesheet" href="/css/top-workers.css" />
+</head>
+<body class="auth-page-body has-bottom-nav">
+
+  <header class="site-header site-header-compact">
+    <div class="header-content account-header-content">
+      <a href="/" class="brand">
+        <div class="brand-logo-frame">
+          <img src="/icons/icon-192.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>دليل موثوق لصنايعية مرسى مطروح</span>
+        </div>
+      </a>
+      <div class="header-actions">
+        <a href="/" class="header-btn-ghost"><i class="fa-solid fa-house"></i> الرئيسية</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="account-main">
+    <div class="page-title-row">
+      <h2 class="page-title">🏆 أفضل الصنايعية</h2>
+    </div>
+    <p class="top-workers-intro">الترتيب مبني على متوسط التقييم، ثم عدد التقييمات، ثم عدد الطلبات المكتملة - بيانات حقيقية فقط بدون أي أرقام وهمية.</p>
+
+    <div id="tradeFilterRow" class="trade-filter-row" style="display:none;"></div>
+
+    <div id="content">
+      <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>
+    </div>
+  </main>
+
+  <!-- تنقل سفلي ثابت (موبايل فقط، أقل من 768px) - نفس مكوّن الرئيسية بالضبط، بدون تعديل -->
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <a href="/" class="bottom-nav-item">
+      <i class="fa-solid fa-house"></i>
+      <span>الرئيسية</span>
+    </a>
+    <a href="/#tradesShowcase" class="bottom-nav-item">
+      <i class="fa-solid fa-screwdriver-wrench"></i>
+      <span>الخدمات</span>
+    </a>
+    <a href="/my-requests" class="bottom-nav-item">
+      <i class="fa-solid fa-clipboard-list"></i>
+      <span>طلباتي</span>
+    </a>
+    <a href="/favorites" class="bottom-nav-item">
+      <i class="fa-solid fa-heart"></i>
+      <span>المفضلة</span>
+    </a>
+    <a href="/account" class="bottom-nav-item">
+      <i class="fa-solid fa-circle-user"></i>
+      <span>حسابي</span>
+    </a>
+    <a href="/#workers" class="bottom-nav-fab" aria-label="اطلب صنايعي">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+  </nav>
+
+  <script src="/js/customerGate.js"></script>
+  <script>
+    // ===============================
+    // صفحة أفضل الصنايعية (بند 16) - Ranking بمعايير بالترتيب: متوسط التقييم،
+    // عدد التقييمات، عدد الطلبات المكتملة (لو متاح). بيانات حقيقية فقط من
+    // /api/workers (اللي بيرجع smart_score_signals.rating_average/review_count
+    // جاهزة بالفعل) + /api/workers/completed-counts (تجميع بسيط جديد).
+    // أول 3 بتمييز واضح (ميداليات)، والباقي بالكارت الموحّد (.svc-card).
+    // ===============================
+    const content = document.getElementById('content');
+    const tradeFilterRow = document.getElementById('tradeFilterRow');
+    let allWorkers = [];
+    let activeTrade = '';
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    // وسم صغير (أيقونة بس) لمستوى الصنايعي (بند 17) - على كارت "بقية
+    // الصنايعية" بس (.svc-card)، مش على كروت Top3 عشان الميدالية أصلًا بتبين
+    // تميّزهم - تفاديًا لأي زحمة زيادة
+    function renderLevelTagHtml(w) {
+      const level = w.level;
+      const icon = w.level_icon;
+      if (!level || level === "new" || !icon) return "";
+      return `<span class="svc-level-tag svc-level-${level}" title="${escapeHtml(w.level_label || '')}"><i class="fa-solid ${icon}"></i></span>`;
+    }
+    function withCustomerGate(callback) {
+      if (window.CustomerGate && typeof window.CustomerGate.ensureIdentified === "function") {
+        callback(window.CustomerGate);
+      } else {
+        console.error("CustomerGate لم يتم تحميله");
+      }
+    }
+    function getWorkerImage(worker) {
+      const image = worker.image || worker.photo || worker.image_url || "";
+      if (!image) return "/icons/default-worker-avatar.png";
+      if (image.startsWith("http") || image.startsWith("/")) return image;
+      return "/uploads/" + image;
+    }
+    function isFeatured(w) {
+      const v = w.is_featured ?? w.featured ?? false;
+      return v === 1 || v === true || v === "1" || v === "true";
+    }
+    function isVerified(w) {
+      const v = w.identity_verified ?? w.identityVerified ?? w.is_verified ?? w.verified ?? false;
+      return v === 1 || v === true || v === "1" || v === "true";
+    }
+    const AVAILABILITY_INFO = {
+      available: { dotClass: "avail-dot-green", label: "متاح الآن" },
+      busy: { dotClass: "avail-dot-yellow", label: "مشغول" },
+      offline: { dotClass: "avail-dot-red", label: "غير متاح" }
+    };
+    function getAvailabilityInfo(w) { return AVAILABILITY_INFO[w.availability_status] || AVAILABILITY_INFO.available; }
+
+    function getWorkerBadges(w, ratingSummary) {
+      const badges = [];
+      if (isVerified(w)) badges.push({ type: "verified", icon: "fa-circle-check", text: "هوية موثقة", tooltip: "تم التحقق من هوية الصنايعي" });
+      if (isFeatured(w)) badges.push({ type: "featured", icon: "fa-star", text: "صنايعي مميز", tooltip: "من الصنايعية المميزين على المنصة" });
+      if (Number(ratingSummary.average) >= 4.5 && Number(ratingSummary.count) >= 5) {
+        badges.push({ type: "top-rated", icon: "fa-trophy", text: "الأعلى تقييمًا", tooltip: "من الصنايعية الأعلى تقييمًا على المنصة" });
+      }
+      return badges;
+    }
+    function renderBadgeRowHtml(badges, cap) {
+      const list = cap ? badges.slice(0, cap) : badges;
+      return list.map(b => `<span class="badge badge-${b.type}" title="${b.tooltip}"><i class="fa-solid ${b.icon}"></i> ${b.text}</span>`).join("");
+    }
+
+    function ratingOf(w) { return Number(w.smart_score_signals?.rating_average || 0); }
+    function reviewsOf(w) { return Number(w.smart_score_signals?.review_count || 0); }
+    function completedOf(w) { return Number(w.completed_count || 0); }
+
+    // ترتيب Ranking: متوسط التقييم -> عدد التقييمات -> عدد الطلبات المكتملة
+    // -> الاسم أبجديًا كفاصل أخير ثابت لما تتساوى كل المعايير الحقيقية
+    function sortByRanking(workers) {
+      return [...workers].sort((a, b) => {
+        const ra = ratingOf(a), rb = ratingOf(b);
+        if (rb !== ra) return rb - ra;
+        const cova = reviewsOf(a), covb = reviewsOf(b);
+        if (covb !== cova) return covb - cova;
+        const compa = completedOf(a), compb = completedOf(b);
+        if (compb !== compa) return compb - compa;
+        return String(a.name || "").localeCompare(String(b.name || ""), "ar");
+      });
+    }
+
+    function buildSvcCard(worker) {
+      const name = worker.name || 'صنايعي';
+      const trade = worker.trade || 'حرفة غير محددة';
+      const area = worker.area || 'منطقة غير محددة';
+      const phone = String(worker.phone || '');
+      const id = worker.id;
+      const callNumber = phone.replace(/[^\d]/g, '');
+      const availInfo = getAvailabilityInfo(worker);
+      const ratingSummary = { average: ratingOf(worker), count: reviewsOf(worker) };
+
+      const infoParts = [];
+      if (ratingSummary.count) infoParts.push(`<i class="fa-solid fa-star"></i> ${ratingSummary.average}`);
+      infoParts.push(`<i class="fa-solid fa-location-dot"></i> ${escapeHtml(area)}`);
+
+      const card = document.createElement('article');
+      card.className = 'svc-card' + (isFeatured(worker) ? ' featured-card' : '') + (isVerified(worker) ? ' verified-card' : '');
+      card.addEventListener('click', () => {
+        withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = '/worker/' + id; }));
+      });
+
+      card.innerHTML = `
+        <div class="svc-card-header">
+          <div class="svc-card-avatar">
+            <img loading="lazy" src="${escapeHtml(getWorkerImage(worker))}" alt="${escapeHtml(name)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+            <span class="svc-avail-dot ${availInfo.dotClass}" title="${escapeHtml(availInfo.label)}"></span>
+            ${renderLevelTagHtml(worker)}
+          </div>
+          <div class="svc-card-identity">
+            <h3 class="svc-card-name" title="${escapeHtml(name)}">${escapeHtml(name)}</h3>
+            <span class="svc-card-trade" title="${escapeHtml(trade)}">${escapeHtml(trade)}</span>
+            <div class="svc-card-info">${infoParts.join('<span class="svc-dot">·</span>')}</div>
+          </div>
+        </div>
+        ${(() => { const b = renderBadgeRowHtml(getWorkerBadges(worker, ratingSummary), 2); return b ? `<div class="svc-card-badges badge-row">${b}</div>` : ''; })()}
+        <div class="svc-card-footer">
+          <button type="button" class="svc-btn-primary">عرض الملف</button>
+          <a href="#" class="svc-btn-call ${!callNumber ? 'disabled' : ''}" data-gate-action="call" aria-label="اتصال"><i class="fa-solid fa-phone"></i></a>
+        </div>
+      `;
+
+      card.querySelector('.svc-btn-primary').addEventListener('click', (e) => {
+        e.stopPropagation();
+        withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = '/worker/' + id; }));
+      });
+      const callLink = card.querySelector('[data-gate-action="call"]');
+      if (callLink) {
+        callLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!callNumber) return;
+          withCustomerGate((gate) => {
+            gate.ensureIdentified(function () {
+              gate.trackEvent('call_click', { worker_id: String(id), source: 'top_workers_page' });
+              window.location.href = 'tel:' + callNumber;
+            });
+          });
+        });
+      }
+      return card;
+    }
+
+    const MEDALS = ['🥇', '🥈', '🥉'];
+    function buildTop3Card(worker, rankIndex) {
+      const name = worker.name || 'صنايعي';
+      const trade = worker.trade || 'حرفة غير محددة';
+      const id = worker.id;
+      const rating = ratingOf(worker);
+      const reviews = reviewsOf(worker);
+      const completed = completedOf(worker);
+
+      const metrics = [];
+      if (reviews) metrics.push(`<i class="fa-solid fa-star"></i> ${rating} (${reviews} تقييم)`);
+      else metrics.push(`لا توجد تقييمات بعد`);
+      if (completed) metrics.push(`<i class="fa-solid fa-circle-check"></i> ${completed} طلب مكتمل`);
+
+      const card = document.createElement('article');
+      card.className = 'top3-card top3-rank-' + (rankIndex + 1);
+      card.addEventListener('click', () => {
+        withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = '/worker/' + id; }));
+      });
+      card.innerHTML = `
+        <div class="top3-medal">${MEDALS[rankIndex]}</div>
+        <div class="top3-avatar"><img loading="lazy" src="${escapeHtml(getWorkerImage(worker))}" alt="${escapeHtml(name)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"></div>
+        <div class="top3-info">
+          <h3 class="top3-name" title="${escapeHtml(name)}">${escapeHtml(name)}</h3>
+          <span class="top3-trade">${escapeHtml(trade)}</span>
+          <div class="top3-metrics">${metrics.join('<span class="top3-dot">·</span>')}</div>
+        </div>
+        <button type="button" class="top3-view-btn">عرض الملف</button>
+      `;
+      card.querySelector('.top3-view-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = '/worker/' + id; }));
+      });
+      return card;
+    }
+
+    function renderTradeFilter(workers) {
+      const trades = Array.from(new Set(workers.map(w => w.trade).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ar'));
+      if (!trades.length) { tradeFilterRow.style.display = 'none'; return; }
+      tradeFilterRow.style.display = 'flex';
+      tradeFilterRow.innerHTML = `<button type="button" class="trade-filter-chip${activeTrade ? '' : ' active'}" data-trade="">الكل</button>` +
+        trades.map(t => `<button type="button" class="trade-filter-chip${activeTrade === t ? ' active' : ''}" data-trade="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('');
+      tradeFilterRow.querySelectorAll('.trade-filter-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeTrade = btn.getAttribute('data-trade') || '';
+          renderAll();
+        });
+      });
+    }
+
+    function renderAll() {
+      const filtered = activeTrade ? allWorkers.filter(w => w.trade === activeTrade) : allWorkers;
+      const ranked = sortByRanking(filtered);
+
+      content.innerHTML = '';
+      if (!ranked.length) {
+        content.innerHTML = `<div class="empty-state"><i class="fa-solid fa-user-slash"></i><h3>مفيش صنايعية مطابقين</h3><p>جرّب اختيار حرفة أخرى أو مسح الفلاتر.</p><button type="button" class="empty-state-cta" onclick="activeTrade = ''; renderTradeFilter(allWorkers); renderAll();"><i class="fa-solid fa-rotate-right"></i> مسح الفلتر</button></div>`;
+        return;
+      }
+
+      const top3 = ranked.slice(0, 3);
+      const rest = ranked.slice(3);
+
+      const top3Section = document.createElement('div');
+      top3Section.className = 'top3-section';
+      const top3Grid = document.createElement('div');
+      top3Grid.className = 'top3-grid';
+      top3.forEach((w, i) => top3Grid.appendChild(buildTop3Card(w, i)));
+      top3Section.appendChild(top3Grid);
+      content.appendChild(top3Section);
+
+      if (rest.length) {
+        const head = document.createElement('h3');
+        head.className = 'top-workers-rest-head';
+        head.textContent = 'بقية الصنايعية';
+        content.appendChild(head);
+
+        const grid = document.createElement('div');
+        grid.className = 'workers-grid';
+        rest.forEach(w => grid.appendChild(buildSvcCard(w)));
+        content.appendChild(grid);
+      }
+    }
+
+    function showLoadingSkeleton() {
+      content.innerHTML = '<div class="workers-grid">' + Array.from({length:6}, () =>
+        '<div class="svc-card-skeleton"><div class="svc-card-header"><div class="svc-card-avatar"></div><div class="svc-card-identity"><h3 class="svc-card-name"></h3><p class="svc-card-trade"></p><div class="svc-card-info"></div></div><button class="svc-fav-btn" disabled></button></div><div class="svc-card-badges badge-row"><div class="badge"></div><div class="badge"></div></div><div class="svc-card-footer"><button class="svc-btn-primary" disabled></button><button class="svc-btn-call" disabled></button></div></div>'
+      ).join('') + '</div>';
+    }
+
+    async function loadTopWorkers() {
+      showLoadingSkeleton();
+      try {
+        const [workersRes, completedRes] = await Promise.all([
+          fetch('/api/workers?limit=1200'),
+          fetch('/api/workers/completed-counts')
+        ]);
+        const workers = await workersRes.json();
+        const completedData = await completedRes.json().catch(() => ({ counts: {} }));
+        const counts = (completedData && completedData.counts) || {};
+
+        allWorkers = (Array.isArray(workers) ? workers : []).map(w => ({ ...w, completed_count: counts[String(w.id)] || 0 }));
+        renderTradeFilter(allWorkers);
+        renderAll();
+      } catch (e) {
+        content.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i> تعذر تحميل البيانات</div>`;
+      }
+    }
+
+    loadTopWorkers();
+  </script>
+  <script src="/js/theme.js"></script>
+</body>
+</html>

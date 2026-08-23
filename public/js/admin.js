@@ -18,7 +18,25 @@ async function loginAdmin(e) {
 
 function roleLabel(role){return {super_admin:"مدير كامل",reviewer:"موظف مراجعة",subscription_manager:"موظف اشتراكات",viewer:"مشاهد"}[role]||role||"الإدارة"}
 function can(permission){return !!(currentAdmin&&Array.isArray(currentAdmin.permissions)&&currentAdmin.permissions.includes(permission))}
-function applyPermissionUI(){document.querySelectorAll("[data-permission]").forEach(el=>{el.style.display=can(el.dataset.permission)?"":"none"});const badge=document.getElementById("adminRoleBadge");if(badge&&currentAdmin){badge.innerHTML=`<i class="fa-solid fa-user-shield"></i> ${currentAdmin.display_name||currentAdmin.username||"الإدارة"} - ${roleLabel(currentAdmin.role)}`}}
+function applyPermissionUI(){document.querySelectorAll("[data-permission]").forEach(el=>{el.style.display=can(el.dataset.permission)?"":"none"});const badge=document.getElementById("adminRoleBadge");if(badge&&currentAdmin){badge.innerHTML=`<i class="fa-solid fa-user-shield"></i> ${currentAdmin.display_name||currentAdmin.username||"الإدارة"} - ${roleLabel(currentAdmin.role)}`}const sideName=document.getElementById("adminSidebarName");if(sideName&&currentAdmin){sideName.textContent=currentAdmin.display_name||currentAdmin.username||"الإدارة"}}
+
+// Sidebar/Drawer التنقل (بند 22.2) - فتح/إغلاق بصري بس، بدون أي تعديل على
+// switchTab أو صلاحيات data-permission. بيتقفل تلقائيًا لما تختار قسم على
+// الموبايل، وبالـEsc، وبالضغط على الـOverlay
+function openAdminDrawer(){document.getElementById("adminSidebar")?.classList.add("open");document.getElementById("adminDrawerOverlay")?.classList.add("show");document.getElementById("adminMenuToggle")?.setAttribute("aria-expanded","true")}
+function closeAdminDrawer(){document.getElementById("adminSidebar")?.classList.remove("open");document.getElementById("adminDrawerOverlay")?.classList.remove("show");document.getElementById("adminMenuToggle")?.setAttribute("aria-expanded","false")}
+function toggleAdminDrawer(){const sb=document.getElementById("adminSidebar");if(!sb)return;sb.classList.contains("open")?closeAdminDrawer():openAdminDrawer()}
+
+// قائمة "⋮" لإجراءات الهيدر على الموبايل (تحديث/نسخ احتياطي/تصدير/تجديد/الرئيسية/خروج)
+// - مجرد فتح/إغلاق بصري، بدون أي تعديل على الأزرار أو صلاحياتها data-permission
+function openAdminMoreMenu(){document.getElementById("adminMoreMenu")?.classList.add("open");document.getElementById("adminMoreToggle")?.setAttribute("aria-expanded","true")}
+function closeAdminMoreMenu(){document.getElementById("adminMoreMenu")?.classList.remove("open");document.getElementById("adminMoreToggle")?.setAttribute("aria-expanded","false")}
+function toggleAdminMoreMenu(){const m=document.getElementById("adminMoreMenu");if(!m)return;m.classList.contains("open")?closeAdminMoreMenu():openAdminMoreMenu()}
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("adminTabsNav")?.addEventListener("click",(e)=>{if(e.target.closest(".admin-tab"))closeAdminDrawer()});
+  document.addEventListener("keydown",(e)=>{if(e.key==="Escape"){closeAdminDrawer();closeAdminMoreMenu()}});
+  document.addEventListener("click",(e)=>{if(!e.target.closest(".admin-actions-mobile"))closeAdminMoreMenu()});
+});
 function showDashboard(){document.getElementById("loginScreen").style.display="none";document.getElementById("dashboard").classList.add("show");applyPermissionUI();loadAllData()}
 function showLogin(){document.getElementById("dashboard").classList.remove("show");document.getElementById("loginScreen").style.display="flex"}
 async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST",credentials:"include"})}catch(e){} location.reload()}
@@ -32,10 +50,14 @@ function switchTab(t,b){
   if(t==="customers"&&!can("analytics:read")){toast("error","ليس لديك صلاحية عرض العملاء");return}
   if(t==="whatsapp"&&!can("whatsapp:send")){toast("error","ليس لديك صلاحية رسائل واتساب");return}
   if(t==="activityLog"&&!can("activity_log:read")){toast("error","ليس لديك صلاحية عرض سجل النشاط");return}
+  if(t==="support"&&!can("support:read")){toast("error","ليس لديك صلاحية خدمة العملاء");return}
+  if(t==="homepageContent"&&!can("settings:manage")){toast("error","ليس لديك صلاحية إدارة محتوى الرئيسية");return}
+  if(t!=="support"){stopAdminSupportListPolling();stopAdminSupportConvPolling();}
 
   document.querySelectorAll(".admin-tab").forEach(x=>x.classList.remove("active")); b.classList.add("active");
   document.querySelectorAll(".admin-section").forEach(s=>s.classList.remove("active")); document.getElementById(t+"Section").classList.add("active");
 
+  if(t==='identityRequests') renderIdentityRequestsAdmin();
   if(t==='reviews'){loadReviewsAdmin().then(()=>{__adminLoaded.reviews=true;renderReviews()})}
   if(t==='reports') loadReports();
   if(t==='serviceRequests') loadServiceRequestsAdmin();
@@ -46,6 +68,7 @@ function switchTab(t,b){
   if(t==='subscriptions') loadSubscriptionsAdmin();
   if(t==='activityLog') loadActivityLog();
   if(t==='whatsapp'){renderWaSingleWorkerOptions();previewWhatsappSingle();previewWhatsappBulk();loadWhatsappInbox();loadWhatsappLogs();}
+  if(t==='homepageContent'){loadHeroSlidesAdmin();loadStatsSliderAdmin();}
 }
 
 function toast(type,text){const el=document.getElementById("toast");el.className="message-toast show "+type;el.innerHTML=text;setTimeout(()=>{el.className="message-toast";el.innerHTML=""},3500)}
@@ -150,13 +173,101 @@ function setQuickFilter(f){
 
 function getValidImageUrl(path) { if (!path) return ''; if (path.startsWith('http')) return path; if (path.startsWith('/')) return path; return '/uploads/' + path; }
 function hasIdentityDocs(w){return !!((w.id_front_url||w.id_front_path)&&(w.id_back_url||w.id_back_path))}
-function identityStatusValue(w){return String(w.identity_status||w.verification_status||(ok(w.identity_verified)?"verified":"pending")).trim()||"pending"}
-function identityStatusLabel(v){return {pending:"بانتظار المراجعة",verified:"تم التحقق",rejected:"مرفوض",needs_data:"يحتاج تعديل بيانات",needs_id_reupload:"إعادة رفع البطاقة"}[v]||"بانتظار المراجعة"}
-function identityStatusClass(v){return {pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-purple"}[v]||"status-yellow"}
+// identity_verification_status (الجديد، مصدره الرسمي لـBadge "هوية موثقة")
+// له الأولوية بس لما يكون "not_submitted" - حالة الصنايعي اللي معندوش بطاقة
+// خالص ومفيش للـidentity_status القديم مكافئ ليها، فلازم تتغلّب على أي قيمة
+// قديمة تانية (زي "verified" القديمة اللي ممكن تكون فاضلة من قبل الـMigration
+// على حسابات معندهاش بطاقة فعلية). أي حالة تانية (pending/verified/rejected/
+// needs_data/needs_id_reupload) بتفضل معتمدة على identity_status القديم عشان
+// ميضيعش تفاصيل زي needs_data المش موجودة أصلًا في النظام الجديد
+function identityStatusValue(w){
+  if(w.identity_verification_status==='not_submitted') return 'not_submitted';
+  return String(w.identity_status||w.verification_status||(ok(w.identity_verified)?"verified":"pending")).trim()||"pending"
+}
+function identityStatusLabel(v){return {not_submitted:"لم يقدّم طلب توثيق",pending:"بانتظار المراجعة",verified:"تم التحقق",rejected:"مرفوض",needs_data:"يحتاج تعديل بيانات",needs_id_reupload:"إعادة رفع البطاقة"}[v]||"بانتظار المراجعة"}
+function identityStatusClass(v){return {not_submitted:"status-gray",pending:"status-yellow",verified:"status-green",rejected:"status-red",needs_data:"status-blue",needs_id_reupload:"status-purple"}[v]||"status-yellow"}
 function identityStatusIcon(v){return {pending:"fa-clock",verified:"fa-circle-check",rejected:"fa-circle-xmark",needs_data:"fa-pen-to-square",needs_id_reupload:"fa-id-card"}[v]||"fa-clock"}
 function identityReason(w){return w.identity_rejection_reason||w.identity_reason||w.rejection_reason||""}
 function identityNote(w){return w.identity_review_note||w.identity_admin_note||""}
 function hasPendingChanges(w){return ok(w.has_pending_changes)||!!w.pending_image}
+
+// طلبات التوثيق (بند 22.4) - تبويب مستقل من نفس allWorkers، بيبدأ بالمعلّق
+// أولًا، وبيستخدم نفس openIdentityDoc (وصول آمن Signed URL موجود بالفعل)
+// ونفس openIdentity/openIdentityReviewModal (اعتماد/رفض بنفس الـAPI الحالي)
+// من غير أي تغيير لمنطق identity_verified
+const IDENTITY_SORT_ORDER={pending:0,needs_data:1,needs_id_reupload:1,rejected:2,verified:3,not_submitted:4};
+function identityReqActions(w){
+  const id=adminActionsEscapeAttr(wid(w));
+  const hasFront=!!(w.id_front_url||w.id_front_path), hasBack=!!(w.id_back_url||w.id_back_path);
+  const docBtns=(hasFront?`<button type="button" class="icon-action-btn btn-blue" onclick="openIdentityDoc('${id}','front')" title="وجه البطاقة"><i class="fa-solid fa-id-card"></i></button>`:"")+
+                (hasBack?`<button type="button" class="icon-action-btn btn-blue" onclick="openIdentityDoc('${id}','back')" title="ظهر البطاقة"><i class="fa-solid fa-id-card-clip"></i></button>`:"");
+  return `<div class="admin-row-actions">${docBtns}<button type="button" class="icon-action-btn btn-dark" onclick="openIdentityReviewModal('${id}')" title="مراجعة / اعتماد / رفض"><i class="fa-solid fa-shield-halved"></i></button></div>`;
+}
+
+function renderIdentityRequestsAdmin(){
+  const box=document.getElementById("identityReqList"); if(!box)return;
+  const statsBox=document.getElementById("identityReqStats");
+  const counts={pending:0,verified:0,needs_data:0,needs_id_reupload:0,rejected:0};
+  allWorkers.forEach(w=>{ const s=identityStatusValue(w); if(counts[s]!==undefined) counts[s]++; });
+  if(statsBox) statsBox.innerHTML=[
+    ["fa-users",allWorkers.length,"الكل"],
+    ["fa-clock",counts.pending,"بانتظار المراجعة"],
+    ["fa-circle-check",counts.verified,"موثّق"],
+    ["fa-pen-to-square",counts.needs_data+counts.needs_id_reupload,"يحتاج إجراء"],
+    ["fa-circle-xmark",counts.rejected,"مرفوض"]
+  ].map(([icon,val,label])=>`<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid ${icon}"></i></div><div><h3>${val}</h3><p>${label}</p></div></div>`).join("");
+
+  const q=(document.getElementById("identityReqSearch")?.value||"").trim().toLowerCase();
+  const sf=document.getElementById("identityReqStatusFilter")?.value||"";
+  let rows=allWorkers.filter(w=>{
+    const matchSearch=!q||wname(w).toLowerCase().includes(q)||wphone(w).toLowerCase().includes(q);
+    const matchStatus=!sf||identityStatusValue(w)===sf;
+    return matchSearch&&matchStatus;
+  });
+  rows=rows.slice().sort((a,b)=>(IDENTITY_SORT_ORDER[identityStatusValue(a)]??9)-(IDENTITY_SORT_ORDER[identityStatusValue(b)]??9));
+
+  if(!rows.length){box.innerHTML='<div class="empty-admin">لا يوجد طلبات توثيق مطابقة.</div>';return}
+
+  const rowsHtml=rows.map(w=>{
+    const id=String(wid(w)); const status=identityStatusValue(w); const reason=identityReason(w);
+    return `<tr>
+      <td class="admin-td-worker"><img class="admin-table-avatar" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div><strong>${esc(wname(w))}</strong><span class="admin-td-sub">${esc(wtrade(w))}</span></div></td>
+      <td>${esc(wphone(w)||"—")}</td>
+      <td>${formatDate(w.created_at)}</td>
+      <td><span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span>${reason?`<div class="admin-td-sub" style="margin-top:4px;color:#991b1b;">${esc(reason)}</div>`:""}</td>
+      <td>${identityReqActions(w)}</td>
+    </tr>`;
+  }).join("");
+
+  const cardsHtml=rows.map(w=>{
+    const id=String(wid(w)); const status=identityStatusValue(w); const reason=identityReason(w);
+    return `<article class="admin-worker-compact-card">
+      <div class="admin-worker-compact-head">
+        <img class="admin-table-avatar" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+        <div class="admin-worker-compact-info">
+          <h4>${esc(wname(w))}</h4>
+          <span class="admin-td-sub"><i class="fa-solid fa-screwdriver-wrench"></i> ${esc(wtrade(w))} · <i class="fa-solid fa-phone"></i> ${esc(wphone(w)||"—")}</span>
+          <span class="admin-td-sub">تاريخ التسجيل: ${formatDate(w.created_at)}</span>
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="status-badge ${identityStatusClass(status)}"><i class="fa-solid ${identityStatusIcon(status)}"></i>${identityStatusLabel(status)}</span>
+      </div>
+      ${reason?`<div class="admin-td-sub" style="color:#991b1b;margin-bottom:8px;"><i class="fa-solid fa-circle-exclamation"></i> ${esc(reason)}</div>`:""}
+      ${identityReqActions(w)}
+    </article>`;
+  }).join("");
+
+  box.innerHTML=`
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>الصنايعي</th><th>الهاتف</th><th>تاريخ التسجيل</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="admin-worker-compact-list">${cardsHtml}</div>
+  `;
+}
 
 function renderIdentityDocsAdmin(w){
   const id=wid(w), docsOk=hasIdentityDocs(w), status=identityStatusValue(w), reason=identityReason(w), note=identityNote(w);
@@ -383,24 +494,115 @@ function adminWorkerQuickButton(w){
   return `<div class="admin-worker-actions-direct-v7"><div class="admin-worker-actions-direct-v7-head"><span><i class="fa-solid fa-screwdriver-wrench"></i> إجراءات الصنايعي</span></div><div class="admin-worker-actions-direct-v7-grid" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));"><button type="button" class="action-btn btn-dark" data-worker-action="edit" ${common}><i class="fa-solid fa-pen-to-square"></i> تعديل</button><button type="button" class="action-btn btn-blue" data-worker-action="identity" ${common}><i class="fa-solid fa-shield-halved"></i> مراجعة</button><button type="button" class="action-btn btn-yellow" data-worker-action="renew" ${common}><i class="fa-solid fa-credit-card"></i> تجديد</button><button type="button" class="action-btn ${activeClass}" data-worker-action="active" ${common}><i class="fa-solid ${activeIcon}"></i> ${activeText}</button><button type="button" class="action-btn btn-red" data-worker-action="delete" ${common}><i class="fa-solid fa-trash"></i> حذف نهائي</button></div></div>`;
 }
 
+// إجراءات مضغوطة (نفس data-worker-action/الدوال الأصلية بالضبط، بس أيقونات
+// بدل أزرار بعناوين كبيرة) - مستخدمة في الجدول والكارت المختصر الجديدين
+function adminWorkerCompactActions(w){
+  const id=adminActionsEscapeAttr(wid(w)); const reg=adminActionsEscapeAttr(registrationCodeText(w));
+  const phone=adminActionsEscapeAttr(wphone(w)||""); const wa=adminActionsEscapeAttr(wwhatsapp(w)||wphone(w)||"");
+  const common=`data-worker-id="${id}" data-worker-reg="${reg}" data-worker-phone="${phone}" data-worker-whatsapp="${wa}"`;
+  const activeOn=isActive(w); const activeIcon=activeOn?"fa-power-off":"fa-play"; const activeTitle=activeOn?"إيقاف":"تفعيل"; const activeClass=activeOn?"btn-yellow":"btn-green";
+  return `<div class="admin-row-actions">
+    <button type="button" class="icon-action-btn btn-dark" data-worker-action="edit" ${common} title="تعديل"><i class="fa-solid fa-pen-to-square"></i></button>
+    <button type="button" class="icon-action-btn btn-blue" data-worker-action="identity" ${common} title="مراجعة التوثيق"><i class="fa-solid fa-shield-halved"></i></button>
+    <button type="button" class="icon-action-btn btn-yellow" data-worker-action="renew" ${common} title="تجديد الاشتراك"><i class="fa-solid fa-credit-card"></i></button>
+    <button type="button" class="icon-action-btn ${activeClass}" data-worker-action="active" ${common} title="${activeTitle}"><i class="fa-solid ${activeIcon}"></i></button>
+    <button type="button" class="icon-action-btn btn-red" data-worker-action="delete" ${common} title="حذف نهائي"><i class="fa-solid fa-trash"></i></button>
+  </div>`;
+}
+
+// إجراءات الكارت المضغوط على الموبايل: زر أساسي واحد ("تعديل") + زر "⋮"
+// يفتح قائمة صغيرة فيها باقي نفس الإجراءات الأصلية بالضبط (نفس
+// data-worker-action/data attributes) بدل عرض 5 أزرار ملونة جنب بعض
+function adminWorkerCardActionsMenu(w){
+  const id=adminActionsEscapeAttr(wid(w)); const reg=adminActionsEscapeAttr(registrationCodeText(w));
+  const phone=adminActionsEscapeAttr(wphone(w)||""); const wa=adminActionsEscapeAttr(wwhatsapp(w)||wphone(w)||"");
+  const common=`data-worker-id="${id}" data-worker-reg="${reg}" data-worker-phone="${phone}" data-worker-whatsapp="${wa}"`;
+  const activeOn=isActive(w); const activeIcon=activeOn?"fa-power-off":"fa-play"; const activeTitle=activeOn?"إيقاف":"تفعيل"; const activeClass=activeOn?"btn-yellow":"btn-green";
+  return `<div class="admin-card-actions-row">
+    <button type="button" class="card-primary-btn" data-worker-action="edit" ${common}><i class="fa-solid fa-pen-to-square"></i> تعديل</button>
+    <button type="button" class="card-more-btn" onclick="event.stopPropagation();toggleWorkerCardMenu(this);return false;" aria-label="مزيد من الإجراءات"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+  </div>
+  <div class="admin-card-actions-menu">
+    <button type="button" class="action-btn btn-blue" data-worker-action="identity" ${common} title="مراجعة التوثيق"><i class="fa-solid fa-shield-halved"></i> مراجعة التوثيق</button>
+    <button type="button" class="action-btn btn-yellow" data-worker-action="renew" ${common} title="تجديد الاشتراك"><i class="fa-solid fa-credit-card"></i> تجديد الاشتراك</button>
+    <button type="button" class="action-btn ${activeClass}" data-worker-action="active" ${common} title="${activeTitle}"><i class="fa-solid ${activeIcon}"></i> ${activeTitle}</button>
+    <button type="button" class="action-btn btn-red" data-worker-action="delete" ${common} title="حذف نهائي"><i class="fa-solid fa-trash"></i> حذف نهائي</button>
+  </div>`;
+}
+
+function closeAllWorkerCardMenus(except){
+  document.querySelectorAll(".admin-worker-compact-card.menu-open").forEach(c=>{ if(c!==except) c.classList.remove("menu-open"); });
+}
+window.toggleWorkerCardMenu = function(btn){
+  const card = btn.closest(".admin-worker-compact-card");
+  if(!card) return false;
+  const willOpen = !card.classList.contains("menu-open");
+  closeAllWorkerCardMenus();
+  if(willOpen) card.classList.add("menu-open");
+  return false;
+};
+document.addEventListener("click", function(ev){
+  const insideMenu = ev.target && ev.target.closest ? ev.target.closest(".admin-card-actions-menu, .card-more-btn") : null;
+  if(!insideMenu) closeAllWorkerCardMenus();
+}, true);
+
+// شارة تعديل معلّق - نفس openPendingChangesModal() الأصلية، بس كشارة صغيرة
+// بدل الصندوق الكبير القديم (التفاصيل الكاملة لسه موجودة جوه المودال نفسه)
+function adminWorkerPendingBadge(w){
+  const id=adminActionsEscapeAttr(String(wid(w)));
+  if(!ok(w.has_pending_changes)) return "";
+  return `<button type="button" class="status-badge status-blue" style="border:0;cursor:pointer;" onclick="openPendingChangesModal('${id}')" title="${esc(w.pending_changes_summary||'تعديل جديد من الصنايعي')}"><i class="fa-solid fa-bell fa-shake"></i> تعديل معلّق</button>`;
+}
+
 function renderWorkers(workers){
   const grid=document.getElementById("adminWorkersGrid"); grid.innerHTML="";
-  if(!workers.length){grid.innerHTML='<div class="empty-admin" style="grid-column:1/-1">لا يوجد صنايعية للعرض حاليًا</div>';return}
-  workers.forEach(w=>{
-    const id=String(wid(w)); const sub=subInfo(w),approved=isApproved(w),active=isActive(w),featured=isFeatured(w);
-    let pendingChangesAlert = '';
-    if (ok(w.has_pending_changes)) {
-        pendingChangesAlert = `<div style="background-color: #dbeafe; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px dashed #2563eb;"><strong style="color: #1d4ed8;"><i class="fa-solid fa-bell fa-shake"></i> ${esc(w.pending_changes_summary||"تعديل جديد من الصنايعي")}</strong>${w.pending_changes_at?`<div style="margin-top:6px;color:#475569;font-size:12px;">${formatDate(w.pending_changes_at)}</div>`:""}<button onclick="openPendingChangesModal('${id}')" style="margin-top: 10px; width: 100%; background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-magnifying-glass"></i> مراجعة التعديل</button></div>`;
-    }
-    let workPhotosGallery = '';
-    if (w.work_photos && Array.isArray(w.work_photos) && w.work_photos.length > 0) {
-        let imagesHtml = w.work_photos.map(img => `<a href="${getValidImageUrl(img)}" target="_blank"><img src="${getValidImageUrl(img)}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; transition: 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"></a>`).join('');
-        workPhotosGallery = `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;"><strong style="color: #0f172a; font-size: 14px;"><i class="fa-solid fa-images"></i> معرض الأعمال المرفوعة (${w.work_photos.length}):</strong><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">${imagesHtml}</div></div>`;
-    }
-    const card=document.createElement("article"); card.className="admin-worker-card"; card.dataset.workerCardId=id;
-    card.innerHTML=`<img class="admin-worker-img" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div class="admin-worker-main"><h3>${wname(w)}</h3><div class="registration-code-badge"><i class="fa-solid fa-hashtag"></i>رقم الطلب: ${registrationCodeText(w)}</div>${renderAdminRating(id)}<div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-phone"></i>${wphone(w)||"لا يوجد اتصال"}</span><span class="worker-tag"><i class="fa-brands fa-whatsapp"></i>${wwhatsapp(w)||"نفس رقم الاتصال"}</span><span class="worker-tag"><i class="fa-solid fa-screwdriver-wrench"></i>${wtrade(w)}</span><span class="worker-tag"><i class="fa-solid fa-location-dot"></i>${warea(w)}</span></div>${renderDuplicateWarning(w)}<div class="status-row"><span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق عليه":"بانتظار الموافقة"}</span><span class="status-badge ${identityStatusClass(identityStatusValue(w))}"><i class="fa-solid ${identityStatusIcon(identityStatusValue(w))}"></i>${identityStatusLabel(identityStatusValue(w))}</span><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span><span class="status-badge ${featured?'status-yellow':'status-blue'}">${featured?"مميز":"عادي"}</span></div><div class="subscription-box"><strong>بيانات الاشتراك</strong><div class="subscription-dates"><div class="subscription-date"><small>البداية</small><strong>${formatDate(sub.start)}</strong></div><div class="subscription-date"><small>النهاية</small><strong>${formatDate(sub.end)}</strong></div></div><span class="subscription-status ${sub.cls}"><i class="fa-solid ${sub.icon}"></i>${sub.text}</span></div><p>${wdesc(w)||"لا يوجد وصف."}</p>${renderIdentityDocsAdmin(w)}${pendingChangesAlert}${workPhotosGallery}${adminWorkerQuickButton(w)}</div>`;
-    grid.appendChild(card);
-  });
+  if(!workers.length){grid.innerHTML='<div class="empty-admin">لا يوجد صنايعية للعرض حاليًا</div>';return}
+
+  const rowsHtml = workers.map(w=>{
+    const id=String(wid(w)); const approved=isApproved(w), active=isActive(w);
+    const identity=identityStatusValue(w);
+    return `<tr data-worker-card-id="${id}">
+      <td class="admin-td-worker"><img class="admin-table-avatar" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'"><div><strong>${esc(wname(w))}</strong><span class="admin-td-sub">${esc(wphone(w)||"لا يوجد اتصال")}</span></div></td>
+      <td>${esc(wtrade(w))}</td>
+      <td>${esc(warea(w))}</td>
+      <td><span class="status-badge ${identityStatusClass(identity)}"><i class="fa-solid ${identityStatusIcon(identity)}"></i>${identityStatusLabel(identity)}</span>${adminWorkerPendingBadge(w)}</td>
+      <td><span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span> <span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق":"بانتظار"}</span></td>
+      <td>${renderAdminRating(id)}</td>
+      <td>${adminWorkerCompactActions(w)}</td>
+    </tr>`;
+  }).join("");
+
+  const cardsHtml = workers.map(w=>{
+    const id=String(wid(w)); const approved=isApproved(w), active=isActive(w);
+    const identity=identityStatusValue(w);
+    return `<article class="admin-worker-compact-card" data-worker-card-id="${id}">
+      <div class="admin-worker-compact-head">
+        <img class="admin-table-avatar" loading="lazy" decoding="async" src="${wimg(w)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+        <div class="admin-worker-compact-info">
+          <h4>${esc(wname(w))}</h4>
+          <span class="admin-td-sub"><i class="fa-solid fa-screwdriver-wrench"></i> ${esc(wtrade(w))} · <i class="fa-solid fa-location-dot"></i> ${esc(warea(w))}</span>
+          ${renderAdminRating(id)}
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="status-badge ${identityStatusClass(identity)}"><i class="fa-solid ${identityStatusIcon(identity)}"></i>${identityStatusLabel(identity)}</span>
+        <span class="status-badge ${active?'status-green':'status-red'}">${active?"نشط":"متوقف"}</span>
+        <span class="status-badge ${approved?'status-green':'status-yellow'}">${approved?"موافق":"بانتظار"}</span>
+        ${adminWorkerPendingBadge(w)}
+      </div>
+      ${adminWorkerCardActionsMenu(w)}
+    </article>`;
+  }).join("");
+
+  grid.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>الصنايعي</th><th>الحرفة</th><th>المنطقة</th><th>التوثيق</th><th>الحالة</th><th>التقييم</th><th>إجراءات</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="admin-worker-compact-list">${cardsHtml}</div>
+  `;
 }
 
 let adminSearchDebounceTimer=null;
@@ -526,6 +728,354 @@ function renderAreas(){const list=document.getElementById("areasList");list.inne
 async function addArea(e){e.preventDefault();const input=document.getElementById("newAreaInput"),name=input.value.trim();if(!name)return toast("error","اكتب اسم المنطقة");const ok=await reqs([{url:"/api/areas",method:"POST",body:{name}}]);if(ok){input.value="";await loadAreas();toast("success","تمت إضافة المنطقة")}else toast("error",lastReqError||"لم تتم الإضافة")}
 async function deleteArea(id){if(!confirm("حذف المنطقة؟"))return;const ok=await reqs([{url:`/api/areas/${id}`,method:"DELETE"}]);if(ok){await loadAreas();toast("success","تم حذف المنطقة")}else toast("error",lastReqError||"لم يتم الحذف")}
 
+// ==========================================
+// محتوى الرئيسية: Hero Slides
+// كل الإنشاء/التعديل بقى داخل Modal منظم (نفس نمط .modal-backdrop/.modal-card
+// المستخدم في باقي لوحة الإدارة - راجع openForceModal) بدل فورم طويل غير
+// منظم Inline. الحذف بيستخدم نفس confirm() المستخدم في كل لوحة الإدارة.
+// ==========================================
+let allHeroSlides = [];
+let heroSlidePreviewUrl = null; // Object URL لمعاينة الصورة الجديدة قبل الحفظ - بيتنضف عند إغلاق/حفظ الـModal
+
+async function loadHeroSlidesAdmin(){
+  const d = await fetchJson(["/api/admin/hero-slides"]);
+  allHeroSlides = (d && d.success) ? (d.data||[]) : [];
+  renderHeroSlidesAdmin();
+}
+
+// حالة الشريحة الفعلية (نشطة/غير نشطة/مجدولة/منتهية) محسوبة من is_active +
+// start_at/end_at مقابل الوقت الحالي - نفس منطق الفلترة في GET /api/hero-slides
+// بالباك إند، بس هنا للعرض فقط في لوحة الإدارة
+function heroSlideStatus(s){
+  const now = new Date();
+  if(!s.is_active) return { key: "inactive", label: "غير نشطة" };
+  if(s.start_at && new Date(s.start_at) > now) return { key: "scheduled", label: "مجدولة" };
+  if(s.end_at && new Date(s.end_at) < now) return { key: "expired", label: "منتهية" };
+  return { key: "active", label: "نشطة" };
+}
+
+function renderHeroSlidesAdmin(){
+  const list = document.getElementById("heroSlidesList");
+  if(!list) return;
+  list.innerHTML = allHeroSlides.length ? allHeroSlides.map(s => {
+    const status = heroSlideStatus(s);
+    return `
+    <div class="hp-content-card">
+      <img class="hp-content-thumb" src="${esc(s.image)}" alt="" onerror="this.style.visibility='hidden'" />
+      <div class="hp-content-info">
+        <strong>${esc(s.title)}</strong>
+        <div class="hp-content-meta">
+          <span class="hp-status-badge hp-status-${status.key}">${status.label}</span>
+          <span>ترتيب ${esc(s.sort_order)}</span>
+        </div>
+      </div>
+      <div class="hp-content-actions">
+        <button class="action-btn" onclick="openHeroSlideModal('${s.id}')"><i class="fa-solid fa-pen"></i> تعديل</button>
+        <button class="action-btn btn-red" onclick="deleteHeroSlide(${s.id})"><i class="fa-solid fa-trash"></i> حذف</button>
+      </div>
+    </div>`;
+  }).join("") : '<div class="empty-admin">لا توجد شرائح</div>';
+}
+
+function closeHeroSlideModal(){
+  const old = document.getElementById("heroSlideModalV1");
+  if(old) old.remove();
+  if(heroSlidePreviewUrl){ URL.revokeObjectURL(heroSlidePreviewUrl); heroSlidePreviewUrl = null; }
+  document.body.style.overflow = "";
+}
+
+function openHeroSlideModal(id){
+  const s = id ? allHeroSlides.find(x => String(x.id) === String(id)) : null;
+  closeHeroSlideModal();
+  const wrap = document.createElement("div");
+  wrap.id = "heroSlideModalV1"; wrap.dir = "rtl"; wrap.className = "modal-backdrop show";
+  wrap.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 style="margin:0;font-size:20px;color:var(--primary);font-weight:900;">${s ? "تعديل شريحة" : "إضافة شريحة جديدة"}</h2>
+        <button type="button" class="close-modal" onclick="closeHeroSlideModal()">×</button>
+      </div>
+      <form id="heroSlideForm" onsubmit="saveHeroSlide(event)">
+        <input type="hidden" id="heroSlideId" value="${s ? esc(s.id) : ""}" />
+        <div class="edit-grid">
+          <div class="edit-field full">
+            <label>الصورة (JPG/PNG/WEBP، حتى 6 ميجا)</label>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <img id="heroSlideImgPreview" src="${s && s.image ? esc(s.image) : ""}" alt="" style="width:110px;height:70px;object-fit:cover;border-radius:10px;background:#e2e8f0;${s && s.image ? "" : "display:none"}" />
+              <input id="heroSlideImageFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewHeroSlideImage(this)" style="flex:1 1 200px" />
+            </div>
+            <input id="heroSlideImageUrl" type="text" placeholder="أو رابط صورة جاهز" value="${s ? esc(s.image||"") : ""}" style="margin-top:8px" />
+          </div>
+          <div class="edit-field full">
+            <label>العنوان</label>
+            <input id="heroSlideTitle" type="text" required value="${s ? esc(s.title||"") : ""}" />
+          </div>
+          <div class="edit-field full">
+            <label>الوصف (اختياري)</label>
+            <textarea id="heroSlideDescription">${s ? esc(s.description||"") : ""}</textarea>
+          </div>
+          <div class="edit-field">
+            <label>نص الزر (اختياري)</label>
+            <input id="heroSlideButtonText" type="text" value="${s ? esc(s.button_text||"") : ""}" />
+          </div>
+          <div class="edit-field">
+            <label>رابط الزر</label>
+            <input id="heroSlideButtonLink" type="text" placeholder="# أو URL" value="${s ? esc(s.button_link||"") : ""}" />
+          </div>
+          <div class="edit-field">
+            <label>ترتيب العرض</label>
+            <input id="heroSlideSortOrder" type="number" value="${s ? esc(s.sort_order||0) : 0}" />
+          </div>
+          <div class="edit-field">
+            <label>الحالة</label>
+            <label style="display:flex;align-items:center;gap:8px;height:44px"><input id="heroSlideActive" type="checkbox" ${!s || s.is_active ? "checked" : ""} /> نشطة</label>
+          </div>
+          <div class="edit-field">
+            <label>يبدأ العرض من (اختياري)</label>
+            <input id="heroSlideStartAt" type="datetime-local" value="${s && s.start_at ? s.start_at.slice(0,16) : ""}" />
+          </div>
+          <div class="edit-field">
+            <label>ينتهي العرض في (اختياري)</label>
+            <input id="heroSlideEndAt" type="datetime-local" value="${s && s.end_at ? s.end_at.slice(0,16) : ""}" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-muted" onclick="closeHeroSlideModal()">إلغاء</button>
+          <button type="submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الشريحة</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.appendChild(wrap);
+  document.body.style.overflow = "hidden";
+}
+
+// معاينة فورية للصورة الجديدة المرفوعة قبل الحفظ (Object URL محلي - مش بيتبعت
+// للسيرفر إلا لما يضغط "حفظ الشريحة")
+function previewHeroSlideImage(input){
+  const img = document.getElementById("heroSlideImgPreview");
+  if(!img) return;
+  if(heroSlidePreviewUrl){ URL.revokeObjectURL(heroSlidePreviewUrl); heroSlidePreviewUrl = null; }
+  const file = input.files && input.files[0];
+  if(!file) return;
+  heroSlidePreviewUrl = URL.createObjectURL(file);
+  img.src = heroSlidePreviewUrl;
+  img.style.display = "";
+}
+
+async function saveHeroSlide(e){
+  e.preventDefault();
+  const id = document.getElementById("heroSlideId").value;
+  const fd = new FormData();
+  fd.append("title", document.getElementById("heroSlideTitle").value.trim());
+  fd.append("description", document.getElementById("heroSlideDescription").value.trim());
+  fd.append("button_text", document.getElementById("heroSlideButtonText").value.trim());
+  fd.append("button_link", document.getElementById("heroSlideButtonLink").value.trim());
+  fd.append("sort_order", document.getElementById("heroSlideSortOrder").value || 0);
+  fd.append("is_active", document.getElementById("heroSlideActive").checked ? "true" : "false");
+  const startAt = document.getElementById("heroSlideStartAt").value;
+  const endAt = document.getElementById("heroSlideEndAt").value;
+  if(startAt) fd.append("start_at", startAt);
+  if(endAt) fd.append("end_at", endAt);
+  const imageUrl = document.getElementById("heroSlideImageUrl").value.trim();
+  if(imageUrl) fd.append("image", imageUrl);
+  const file = document.getElementById("heroSlideImageFile").files[0];
+  if(file) fd.append("image", file);
+
+  try{
+    const res = await fetch(id ? `/api/admin/hero-slides/${id}` : "/api/admin/hero-slides", {
+      method: id ? "PUT" : "POST",
+      credentials: "include",
+      body: fd
+    });
+    if(res.status===401){showLogin();return}
+    const d = await res.json().catch(()=>({}));
+    if(res.ok && d.success){
+      closeHeroSlideModal();
+      await loadHeroSlidesAdmin();
+      toast("success", id ? "تم تعديل الشريحة" : "تمت إضافة الشريحة");
+    } else {
+      toast("error", d.error || "فشل الحفظ");
+    }
+  }catch(err){ toast("error","تعذر الاتصال بالسيرفر") }
+}
+
+async function deleteHeroSlide(id){
+  if(!confirm("حذف الشريحة؟")) return;
+  const ok = await reqs([{url:`/api/admin/hero-slides/${id}`, method:"DELETE"}]);
+  if(ok){ await loadHeroSlidesAdmin(); toast("success","تم حذف الشريحة") }
+  else toast("error", lastReqError || "لم يتم الحذف");
+}
+
+// ==========================================
+// محتوى الرئيسية: Stats Slider
+// نفس نمط الـModal، مع فورم يتغير حسب النوع (metric/custom) - metric_key مش
+// بيظهر أبدًا في النوع المخصص، والقيمة تفضل للقراءة فقط في نوع "مقياس" لأنها
+// بتتحسب لحظيًا من الباك إند
+// ==========================================
+let allStatsSliderItems = [];
+let statsSliderMetricLabels = {};
+const STATS_COLOR_THEMES = [
+  { key: "navy", label: "كحلي" },
+  { key: "blue", label: "أزرق" },
+  { key: "green", label: "أخضر" },
+  { key: "amber", label: "ذهبي" },
+  { key: "purple", label: "بنفسجي" }
+];
+
+async function loadStatsSliderAdmin(){
+  const d = await fetchJson(["/api/admin/stats-slider"]);
+  allStatsSliderItems = (d && d.success) ? (d.data||[]) : [];
+  statsSliderMetricLabels = (d && d.metric_labels) || {};
+  renderStatsSliderAdmin();
+}
+
+function renderStatsSliderAdmin(){
+  const list = document.getElementById("statsSliderItemsList");
+  if(!list) return;
+  list.innerHTML = allStatsSliderItems.length ? allStatsSliderItems.map(s => `
+    <div class="hp-content-card">
+      <div class="hp-content-icon stat-theme-${esc(s.color_theme||'blue')}"><i class="fa-solid ${esc(s.icon||'fa-chart-simple')}"></i></div>
+      <div class="hp-content-info">
+        <strong>${esc(s.type==='metric' ? (s.title || statsSliderMetricLabels[s.metric_key] || s.metric_key) : s.title)}</strong>
+        <div class="hp-content-meta">
+          <span class="hp-status-badge ${s.is_active ? 'hp-status-active' : 'hp-status-inactive'}">${s.is_active ? "نشط" : "متوقف"}</span>
+          <span>${s.type==='metric' ? "مقياس تلقائي" : "مخصص: " + esc(s.value||"")}</span>
+          <span>ترتيب ${esc(s.sort_order)}</span>
+        </div>
+      </div>
+      <div class="hp-content-actions">
+        <button class="action-btn" onclick="openStatsItemModal('${s.id}')"><i class="fa-solid fa-pen"></i> تعديل</button>
+        <button class="action-btn btn-red" onclick="deleteStatsItem(${s.id})"><i class="fa-solid fa-trash"></i> حذف</button>
+      </div>
+    </div>
+  `).join("") : '<div class="empty-admin">لا توجد عناصر</div>';
+}
+
+function closeStatsItemModal(){
+  const old = document.getElementById("statsItemModalV1");
+  if(old) old.remove();
+  document.body.style.overflow = "";
+}
+
+function statsThemeOptionsHtml(selected){
+  return STATS_COLOR_THEMES.map(t => `<option value="${t.key}" ${t.key===selected?"selected":""}>${t.label}</option>`).join("");
+}
+
+function statsMetricOptionsHtml(selected){
+  return Object.entries(statsSliderMetricLabels).map(([k,v]) => `<option value="${esc(k)}" ${k===selected?"selected":""}>${esc(v)}</option>`).join("");
+}
+
+function openStatsItemModal(id){
+  const s = id ? allStatsSliderItems.find(x => String(x.id) === String(id)) : null;
+  const type = s ? s.type : "metric";
+  closeStatsItemModal();
+  const wrap = document.createElement("div");
+  wrap.id = "statsItemModalV1"; wrap.dir = "rtl"; wrap.className = "modal-backdrop show";
+  wrap.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 style="margin:0;font-size:20px;color:var(--primary);font-weight:900;">${s ? "تعديل عنصر إحصائية" : "إضافة عنصر إحصائية"}</h2>
+        <button type="button" class="close-modal" onclick="closeStatsItemModal()">×</button>
+      </div>
+      <form id="statsItemForm" onsubmit="saveStatsItem(event)">
+        <input type="hidden" id="statsItemId" value="${s ? esc(s.id) : ""}" />
+        <div class="edit-grid">
+          <div class="edit-field full">
+            <label>النوع</label>
+            <select id="statsItemType" onchange="onStatsItemTypeChange()">
+              <option value="metric" ${type==='metric'?'selected':''}>مقياس (قيمة تلقائية من قاعدة البيانات)</option>
+              <option value="custom" ${type==='custom'?'selected':''}>مخصص (نص حر بالكامل)</option>
+            </select>
+          </div>
+          <div class="edit-field" id="statsItemMetricKeyWrap">
+            <label>المقياس</label>
+            <select id="statsItemMetricKey">${statsMetricOptionsHtml(s ? s.metric_key : "")}</select>
+            <span class="verification-small">القيمة تُحسب تلقائيًا ولا يمكن تعديلها يدويًا</span>
+          </div>
+          <div class="edit-field">
+            <label>العنوان ${type==='metric' ? "(اختياري - له عنوان افتراضي)" : ""}</label>
+            <input id="statsItemTitle" type="text" value="${s ? esc(s.title||"") : ""}" />
+          </div>
+          <div class="edit-field" id="statsItemValueWrap">
+            <label>القيمة</label>
+            <input id="statsItemValue" type="text" value="${s ? esc(s.value||"") : ""}" placeholder="مثال: +500" />
+          </div>
+          <div class="edit-field">
+            <label>نص فرعي (اختياري)</label>
+            <input id="statsItemSubtitle" type="text" value="${s ? esc(s.subtitle||"") : ""}" />
+          </div>
+          <div class="edit-field">
+            <label>أيقونة Font Awesome</label>
+            <input id="statsItemIcon" type="text" placeholder="مثال: fa-users-gear" value="${s ? esc(s.icon||"") : ""}" />
+          </div>
+          <div class="edit-field">
+            <label>اللون</label>
+            <select id="statsItemColorTheme">${statsThemeOptionsHtml(s ? s.color_theme : "blue")}</select>
+          </div>
+          <div class="edit-field">
+            <label>ترتيب العرض</label>
+            <input id="statsItemSortOrder" type="number" value="${s ? esc(s.sort_order||0) : 0}" />
+          </div>
+          <div class="edit-field">
+            <label>الحالة</label>
+            <label style="display:flex;align-items:center;gap:8px;height:44px"><input id="statsItemActive" type="checkbox" ${!s || s.is_active ? "checked" : ""} /> نشط</label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-muted" onclick="closeStatsItemModal()">إلغاء</button>
+          <button type="submit" class="modal-btn modal-btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ العنصر</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.appendChild(wrap);
+  document.body.style.overflow = "hidden";
+  onStatsItemTypeChange();
+}
+
+// يبدّل ظهور الحقول حسب النوع: metric_key يظهر بس في "مقياس" ومش موجود
+// أصلاً في نموذج "مخصص"، والقيمة تبقى للقراءة فقط في "مقياس" لأنها محسوبة
+function onStatsItemTypeChange(){
+  const type = document.getElementById("statsItemType")?.value;
+  const metricWrap = document.getElementById("statsItemMetricKeyWrap");
+  const valueInput = document.getElementById("statsItemValue");
+  if(!type || !metricWrap || !valueInput) return;
+  metricWrap.style.display = type === "metric" ? "" : "none";
+  valueInput.readOnly = type === "metric";
+  valueInput.placeholder = type === "metric" ? "القيمة تُحسب تلقائيًا" : "مثال: +500";
+  if(type === "metric") valueInput.value = "";
+}
+
+async function saveStatsItem(e){
+  e.preventDefault();
+  const id = document.getElementById("statsItemId").value;
+  const body = {
+    type: document.getElementById("statsItemType").value,
+    metric_key: document.getElementById("statsItemMetricKey").value,
+    title: document.getElementById("statsItemTitle").value.trim(),
+    value: document.getElementById("statsItemValue").value.trim(),
+    subtitle: document.getElementById("statsItemSubtitle").value.trim(),
+    icon: document.getElementById("statsItemIcon").value.trim(),
+    color_theme: document.getElementById("statsItemColorTheme").value,
+    sort_order: document.getElementById("statsItemSortOrder").value || 0,
+    is_active: document.getElementById("statsItemActive").checked
+  };
+  const ok = await reqs([{url: id ? `/api/admin/stats-slider/${id}` : "/api/admin/stats-slider", method: id ? "PUT" : "POST", body}]);
+  if(ok){
+    closeStatsItemModal();
+    await loadStatsSliderAdmin();
+    toast("success", id ? "تم تعديل العنصر" : "تمت إضافة العنصر");
+  } else {
+    toast("error", lastReqError || "فشل الحفظ");
+  }
+}
+
+async function deleteStatsItem(id){
+  if(!confirm("حذف العنصر؟")) return;
+  const ok = await reqs([{url:`/api/admin/stats-slider/${id}`, method:"DELETE"}]);
+  if(ok){ await loadStatsSliderAdmin(); toast("success","تم حذف العنصر") }
+  else toast("error", lastReqError || "لم يتم الحذف");
+}
+
 async function loadReviewsAdmin(){allReviews = arr(await fetchJson(["/api/admin/reviews"]));buildRatingMaps();}
 function renderReviewStars(value){const rating = Math.round(Number(value) || 0);return "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating);}
 function buildRatingMaps(){
@@ -574,35 +1124,36 @@ function downloadBackup(){return downloadFullBackup()}
 function adminHtmlEscape(v){return String(v??"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function reportTypeLabel(t){return {wrong_phone:"رقم غير صحيح",wrong_data:"بيانات خاطئة",bad_service:"سوء خدمة",inappropriate_photos:"صور غير مناسبة",other:"أخرى"}[t]||t||"غير محدد"}
 function reportStatusLabel(s){return {new:"جديد",reviewing:"قيد المراجعة",resolved:"تم الحل",rejected:"مرفوض"}[s]||s||"غير محدد"}
-function reportStatusClass(s){return {new:"report-new",reviewing:"report-reviewing",resolved:"report-resolved",rejected:"report-rejected"}[s]||"report-new"}
+function reportStatusClass(s){return {new:"status-blue",reviewing:"status-yellow",resolved:"status-green",rejected:"status-red"}[s]||"status-blue"}
 function reportDate(v){try{return v?new Date(v).toLocaleString("ar-EG"):"—"}catch(e){return v||"—"}}
 async function loadReports(){
   if(!can("reports:read"))return;
-  const box=document.getElementById("reportsList"); if(box)box.innerHTML='<div class="empty-state">جاري تحميل البلاغات...</div>';
+  const box=document.getElementById("reportsList"); if(box)box.innerHTML='<div class="empty-admin">جاري تحميل البلاغات...</div>';
   try{
     const r=await fetch("/api/admin/reports",{credentials:"include"});
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل البلاغات");
     adminReports=d.items||[]; renderReports(d.stats||{});
-  }catch(e){if(box)box.innerHTML=`<div class="empty-state">${adminHtmlEscape(e.message||"تعذر تحميل البلاغات")}</div>`;}
+  }catch(e){if(box)box.innerHTML=`<div class="empty-admin">${adminHtmlEscape(e.message||"تعذر تحميل البلاغات")}</div>`;}
 }
 function renderReportStats(stats){
   const s=stats||{}; const total=s.total ?? adminReports.length; const n=s.new ?? adminReports.filter(r=>r.status==='new').length; const rev=s.reviewing ?? adminReports.filter(r=>r.status==='reviewing').length; const res=s.resolved ?? adminReports.filter(r=>r.status==='resolved').length;
   const box=document.getElementById("reportsStats"); if(!box)return;
-  box.innerHTML=`<div class="stat-card"><strong>${total}</strong><span>إجمالي البلاغات</span></div><div class="stat-card"><strong>${n}</strong><span>جديد</span></div><div class="stat-card"><strong>${rev}</strong><span>قيد المراجعة</span></div><div class="stat-card"><strong>${res}</strong><span>تم الحل</span></div>`;
+  box.innerHTML=[["fa-flag",total,"إجمالي البلاغات"],["fa-circle-exclamation",n,"جديد"],["fa-magnifying-glass",rev,"قيد المراجعة"],["fa-circle-check",res,"تم الحل"]]
+    .map(([icon,val,label])=>`<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid ${icon}"></i></div><div><h3>${val}</h3><p>${label}</p></div></div>`).join("");
 }
 function renderReports(stats){
   renderReportStats(stats); const box=document.getElementById("reportsList"); if(!box)return;
   const filter=document.getElementById("reportsStatusFilter")?.value||"all";
   const rows=(adminReports||[]).filter(r=>filter==='all'||r.status===filter);
-  if(!rows.length){box.innerHTML='<div class="empty-state">لا توجد بلاغات بهذه الحالة.</div>';return}
-  box.innerHTML=rows.map(r=>{
+  if(!rows.length){box.innerHTML='<div class="empty-admin">لا توجد بلاغات بهذه الحالة.</div>';return}
+  box.innerHTML='<div class="admin-workers-grid">'+rows.map(r=>{
     const w=r.worker||{}; const workerName=adminHtmlEscape(w.name||r.worker_snapshot?.name||`صنايعي رقم ${r.worker_id||""}`);
     const tradeArea=[w.trade||r.worker_snapshot?.trade,w.area||r.worker_snapshot?.area].filter(Boolean).map(adminHtmlEscape).join(" - ");
     const reporter=[r.reporter_name,r.reporter_phone].filter(Boolean).map(adminHtmlEscape).join(" - ")||"غير مذكور";
     const canManage=can("reports:manage");
-    return `<div class="report-card"><div class="report-card-header"><div><div class="report-title">${workerName}</div><div style="color:var(--muted);font-weight:800;margin-top:4px">${tradeArea||"بيانات الصنايعي غير متاحة"}</div></div><span class="report-status ${reportStatusClass(r.status)}"><i class="fa-solid fa-circle"></i> ${reportStatusLabel(r.status)}</span></div><div class="report-meta"><span class="small-badge"><i class="fa-solid fa-triangle-exclamation"></i> ${reportTypeLabel(r.report_type)}</span><span class="small-badge"><i class="fa-solid fa-clock"></i> ${reportDate(r.created_at)}</span><span class="small-badge"><i class="fa-solid fa-user"></i> ${reporter}</span></div><div class="report-message">${adminHtmlEscape(r.message||"")}</div>${r.admin_note?`<div class="report-message"><strong>ملاحظة الإدارة:</strong><br>${adminHtmlEscape(r.admin_note)}</div>`:""}<div class="report-actions">${r.worker_id?`<a class="action-btn btn-dark" href="/worker/${encodeURIComponent(r.worker_id)}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح صفحة الصنايعي</a>`:""}${canManage?`<button class="action-btn btn-blue" onclick="updateReportStatus('${r.id}','reviewing')">قيد المراجعة</button><button class="action-btn btn-green" onclick="updateReportStatus('${r.id}','resolved')">تم الحل</button><button class="action-btn btn-yellow" onclick="updateReportStatus('${r.id}','rejected')">رفض البلاغ</button>`:""}</div>`;
-  }).join("");
+    return `<div class="review-admin-card"><div class="review-admin-head"><div><h3>${workerName}</h3><div style="color:var(--muted);font-weight:800;margin-top:4px;font-size:12.5px;">${tradeArea||"بيانات الصنايعي غير متاحة"}</div></div><span class="status-badge ${reportStatusClass(r.status)}">${reportStatusLabel(r.status)}</span></div><div class="worker-tags"><span class="worker-tag"><i class="fa-solid fa-triangle-exclamation"></i>${reportTypeLabel(r.report_type)}</span><span class="worker-tag"><i class="fa-solid fa-clock"></i>${reportDate(r.created_at)}</span><span class="worker-tag"><i class="fa-solid fa-user"></i>${reporter}</span></div><div class="review-comment">${adminHtmlEscape(r.message||"")}</div>${r.admin_note?`<div class="review-comment"><strong>ملاحظة الإدارة:</strong><br>${adminHtmlEscape(r.admin_note)}</div>`:""}<div class="card-actions">${r.worker_id?`<a class="action-btn btn-dark" href="/worker/${encodeURIComponent(r.worker_id)}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح صفحة الصنايعي</a>`:""}${canManage?`<button class="action-btn btn-blue" onclick="updateReportStatus('${r.id}','reviewing')">قيد المراجعة</button><button class="action-btn btn-green" onclick="updateReportStatus('${r.id}','resolved')">تم الحل</button><button class="action-btn btn-yellow" onclick="updateReportStatus('${r.id}','rejected')">رفض البلاغ</button>`:""}</div></div>`;
+  }).join("")+'</div>';
 }
 async function updateReportStatus(reportId,status){
   if(!can("reports:manage")){toast("error","ليس لديك صلاحية تعديل البلاغات");return}
@@ -640,41 +1191,111 @@ async function loadServiceRequestsAdmin(){
   }catch(e){if(box)box.innerHTML=`<div class="empty-admin">${adminHtmlEscape(e.message||"تعذر تحميل طلبات الخدمة")}</div>`;}
 }
 
+function srScheduleText(r){
+  if(r.scheduled_at) return srDate(r.scheduled_at);
+  return r.scheduling_type==='now'?"في أقرب وقت":"لم يُحدَّد";
+}
+
+function renderServiceRequestsStats(){
+  const box=document.getElementById("srAdminStats"); if(!box)return;
+  const rows=adminServiceRequests||[];
+  const counts={new:0,accepted:0,in_progress:0,completed:0,rejected:0,cancelled:0};
+  rows.forEach(r=>{ if(counts[r.status]!==undefined) counts[r.status]++; });
+  box.innerHTML=[
+    ["fa-inbox",counts.new,"جديد"],
+    ["fa-check",counts.accepted,"مقبول"],
+    ["fa-spinner",counts.in_progress,"قيد التنفيذ"],
+    ["fa-flag-checkered",counts.completed,"مكتمل"],
+    ["fa-ban",counts.rejected+counts.cancelled,"ملغي/مرفوض"]
+  ].map(([icon,val,label])=>`<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid ${icon}"></i></div><div><h3>${val}</h3><p>${label}</p></div></div>`).join("");
+}
+
 function renderServiceRequestsAdmin(){
+  renderServiceRequestsStats();
   const box=document.getElementById("srAdminList"); if(!box)return;
   const rows=adminServiceRequests||[];
   if(!rows.length){box.innerHTML='<div class="empty-admin">لا توجد طلبات خدمة مطابقة.</div>';return}
-  const canManage=can("reports:manage");
-  box.innerHTML=rows.map(r=>{
+
+  const rowsHtml=rows.map(r=>{
     const statusLabel=SR_STATUS_LABELS[r.status]||r.status;
-    const statusClass=SR_STATUS_BTN_CLASS[r.status]||"btn-blue";
-    const reasonBlock=r.rejected_reason?`<div class="sr-admin-reason"><i class="fa-solid fa-circle-exclamation"></i> ${adminHtmlEscape(r.rejected_reason)}</div>`:"";
-    let actions="";
-    if(canManage){
-      if(r.status==='new')actions=`<button class="action-btn btn-green" onclick="updateServiceRequestAdminStatus(${r.id},'accepted')">قبول</button><button class="action-btn btn-red" onclick="updateServiceRequestAdminStatus(${r.id},'rejected')">رفض</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled')">إلغاء</button>`;
-      else if(r.status==='accepted')actions=`<button class="action-btn btn-yellow" onclick="updateServiceRequestAdminStatus(${r.id},'in_progress')">بدء التنفيذ</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled')">إلغاء</button>`;
-      else if(r.status==='in_progress')actions=`<button class="action-btn btn-purple" onclick="updateServiceRequestAdminStatus(${r.id},'completed')">إتمام</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled')">إلغاء</button>`;
-    }
-    return `<div class="sr-admin-card">
-      <div class="sr-admin-top">
-        <div class="sr-admin-id">طلب رقم #${adminHtmlEscape(r.id)}</div>
-        <span class="action-btn ${statusClass}">${adminHtmlEscape(statusLabel)}</span>
-      </div>
-      <div class="sr-admin-parties">
-        <div class="sr-admin-party"><small>العميل</small><strong>${adminHtmlEscape(r.customer_name||"—")}</strong><div style="color:var(--muted);font-size:12px;margin-top:2px">${adminHtmlEscape(r.customer_phone||"")}</div></div>
-        <div class="sr-admin-party"><small>الصنايعي</small><strong>${adminHtmlEscape(r.worker_name||("صنايعي رقم "+(r.worker_id||"")))}</strong><div style="color:var(--muted);font-size:12px;margin-top:2px">${[r.worker_trade,r.worker_area].filter(Boolean).map(adminHtmlEscape).join(" - ")}</div></div>
-      </div>
-      <div class="sr-admin-desc">${adminHtmlEscape(r.description||"")}</div>
-      ${reasonBlock}
-      <div class="sr-admin-meta">
-        <span><i class="fa-regular fa-calendar"></i> ${srDate(r.created_at)}</span>
-        ${r.accepted_at?`<span><i class="fa-solid fa-check"></i> قُبل: ${srDate(r.accepted_at)}</span>`:""}
-        ${r.completed_at?`<span><i class="fa-solid fa-flag-checkered"></i> اكتمل: ${srDate(r.completed_at)}</span>`:""}
-        <span class="sr-admin-review-flag" style="color:${r.has_review?"#166534":"var(--muted)"}"><i class="fa-solid ${r.has_review?"fa-star":"fa-star-half-stroke"}"></i> ${r.has_review?"تم تقييم الطلب":"لم يُقيَّم بعد"}</span>
-      </div>
-      ${actions?`<div class="sr-admin-actions">${actions}</div>`:""}
-    </div>`;
+    return `<tr onclick="openServiceRequestDetail(${r.id})" style="cursor:pointer;">
+      <td>#${adminHtmlEscape(r.id)}</td>
+      <td><strong>${adminHtmlEscape(r.customer_name||"—")}</strong><div class="admin-td-sub">${adminHtmlEscape(r.customer_phone||"")}</div></td>
+      <td>${adminHtmlEscape(r.worker_name||("صنايعي رقم "+(r.worker_id||"")))}</td>
+      <td>${adminHtmlEscape(r.worker_trade||"—")}</td>
+      <td>${adminHtmlEscape(srScheduleText(r))}</td>
+      <td><span class="action-btn ${SR_STATUS_BTN_CLASS[r.status]||'btn-blue'}" style="cursor:default;">${adminHtmlEscape(statusLabel)}</span></td>
+    </tr>`;
   }).join("");
+
+  const cardsHtml=rows.map(r=>{
+    const statusLabel=SR_STATUS_LABELS[r.status]||r.status;
+    return `<article class="admin-worker-compact-card" onclick="openServiceRequestDetail(${r.id})" style="cursor:pointer;">
+      <div class="sr-admin-top">
+        <div class="sr-admin-id">طلب #${adminHtmlEscape(r.id)}</div>
+        <span class="action-btn ${SR_STATUS_BTN_CLASS[r.status]||'btn-blue'}">${adminHtmlEscape(statusLabel)}</span>
+      </div>
+      <div class="admin-td-sub" style="margin-top:8px;"><i class="fa-solid fa-user"></i> ${adminHtmlEscape(r.customer_name||"—")} · ${adminHtmlEscape(r.customer_phone||"")}</div>
+      <div class="admin-td-sub" style="margin-top:4px;"><i class="fa-solid fa-screwdriver-wrench"></i> ${adminHtmlEscape(r.worker_name||("صنايعي رقم "+(r.worker_id||"")))} - ${adminHtmlEscape(r.worker_trade||"—")}</div>
+      <div class="admin-td-sub" style="margin-top:4px;"><i class="fa-regular fa-calendar"></i> ${adminHtmlEscape(srScheduleText(r))}</div>
+    </article>`;
+  }).join("");
+
+  box.innerHTML=`
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>رقم الطلب</th><th>العميل</th><th>الصنايعي</th><th>الحرفة</th><th>الموعد</th><th>الحالة</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="admin-worker-compact-list">${cardsHtml}</div>
+  `;
+}
+
+function srTimelineHtml(r){
+  const steps=[{label:"تم إنشاء الطلب",done:true,at:r.created_at}];
+  if(r.status==='rejected'){ steps.push({label:"مرفوض"+(r.rejected_reason?": "+r.rejected_reason:""),done:true,at:null}); }
+  else if(r.status==='cancelled'){ steps.push({label:"ملغي"+(r.rejected_reason?": "+r.rejected_reason:""),done:true,at:null}); }
+  else{
+    steps.push({label:"تم القبول",done:!!r.accepted_at,at:r.accepted_at});
+    steps.push({label:"جاري التنفيذ",done:r.status==='in_progress'||r.status==='completed',at:null});
+    steps.push({label:"مكتمل",done:!!r.completed_at,at:r.completed_at});
+  }
+  return `<div style="display:grid;gap:8px;margin:14px 0;">${steps.map(s=>`<div style="display:flex;align-items:center;gap:8px;color:${s.done?'var(--primary)':'var(--muted)'};font-weight:800;font-size:13px;"><i class="fa-solid ${s.done?'fa-circle-check':'fa-circle'}" style="color:${s.done?'#16a34a':'#cbd5e1'};"></i> ${esc(s.label)}${s.at?` - ${srDate(s.at)}`:""}</div>`).join("")}</div>`;
+}
+
+async function openServiceRequestDetail(id){
+  const r=(adminServiceRequests||[]).find(x=>String(x.id)===String(id));
+  if(!r){toast("error","تعذر إيجاد الطلب");return}
+  const canManage=can("reports:manage");
+  let actions="";
+  if(canManage){
+    if(r.status==='new')actions=`<button class="action-btn btn-green" onclick="updateServiceRequestAdminStatus(${r.id},'accepted').then(closeForceModal)">قبول</button><button class="action-btn btn-red" onclick="updateServiceRequestAdminStatus(${r.id},'rejected').then(closeForceModal)">رفض</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled').then(closeForceModal)">إلغاء</button>`;
+    else if(r.status==='accepted')actions=`<button class="action-btn btn-yellow" onclick="updateServiceRequestAdminStatus(${r.id},'in_progress').then(closeForceModal)">بدء التنفيذ</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled').then(closeForceModal)">إلغاء</button>`;
+    else if(r.status==='in_progress')actions=`<button class="action-btn btn-purple" onclick="updateServiceRequestAdminStatus(${r.id},'completed').then(closeForceModal)">إتمام</button><button class="action-btn btn-dark" onclick="updateServiceRequestAdminStatus(${r.id},'cancelled').then(closeForceModal)">إلغاء</button>`;
+  }
+  openForceModal("تفاصيل طلب #"+r.id, `
+    <div class="sr-admin-parties">
+      <div class="sr-admin-party"><small>العميل</small><strong>${esc(r.customer_name||"—")}</strong><div style="color:var(--muted);font-size:12px;margin-top:2px">${esc(r.customer_phone||"")}</div></div>
+      <div class="sr-admin-party"><small>الصنايعي</small><strong>${esc(r.worker_name||("صنايعي رقم "+(r.worker_id||"")))}</strong><div style="color:var(--muted);font-size:12px;margin-top:2px">${[r.worker_trade,r.worker_area].filter(Boolean).map(esc).join(" - ")}</div></div>
+    </div>
+    <div class="sr-admin-desc" style="margin-top:10px;">${esc(r.description||"لا يوجد وصف")}</div>
+    <div style="margin-top:10px;font-weight:800;font-size:13px;color:var(--muted);"><i class="fa-regular fa-calendar"></i> الموعد: ${esc(srScheduleText(r))}</div>
+    <div id="srDetailAttachments" style="margin-top:10px;"><div class="empty-admin" style="padding:12px;">جاري تحميل المرفقات...</div></div>
+    ${srTimelineHtml(r)}
+    ${actions?`<div class="modal-actions">${actions}</div>`:""}
+  `);
+  try{
+    const res=await fetch(`/api/admin/service-requests/${id}/attachments`,{credentials:"include"});
+    const d=await res.json().catch(()=>({}));
+    const abox=document.getElementById("srDetailAttachments");
+    if(!abox)return;
+    if(d.success && d.attachments && d.attachments.length){
+      abox.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;">'+d.attachments.map(a=>`<a href="${esc(a.url)}" target="_blank" style="display:block;width:72px;height:72px;border-radius:12px;overflow:hidden;border:1px solid var(--border);"><img src="${esc(a.url)}" style="width:100%;height:100%;object-fit:cover;"></a>`).join("")+'</div>';
+    }else{
+      abox.innerHTML='<div class="empty-admin" style="padding:12px;">لا توجد مرفقات لهذا الطلب.</div>';
+    }
+  }catch(e){ const abox=document.getElementById("srDetailAttachments"); if(abox) abox.innerHTML='<div class="empty-admin" style="padding:12px;">تعذر تحميل المرفقات.</div>'; }
 }
 
 async function updateServiceRequestAdminStatus(id,status){
@@ -724,7 +1345,23 @@ function renderCustomersAdmin(){
   renderCustomerStats();
   const box=document.getElementById("customersAdminList"); if(!box)return;
   if(!adminCustomers.length){box.innerHTML='<div class="empty-admin">لا يوجد عملاء مسجّلين بعد.</div>';return}
-  box.innerHTML=adminCustomers.map(c=>{
+
+  const q=(document.getElementById("adminCustomerSearch")?.value||"").trim().toLowerCase();
+  const rows=q?adminCustomers.filter(c=>String(c.name||"").toLowerCase().includes(q)||String(c.phone||"").toLowerCase().includes(q)):adminCustomers;
+  if(!rows.length){box.innerHTML='<div class="empty-admin">لا يوجد عملاء مطابقين للبحث.</div>';return}
+
+  const rowsHtml=rows.map(c=>{
+    const statusClass=c.status==='نشط'?'active':'inactive';
+    return `<tr onclick="openCustomerDetailModal(${c.id})" style="cursor:pointer;">
+      <td><strong>${adminHtmlEscape(c.name)}</strong></td>
+      <td>${adminHtmlEscape(c.phone)}</td>
+      <td>${custDate(c.created_at)}</td>
+      <td><span class="cust-admin-status ${statusClass}">${adminHtmlEscape(c.status)}</span></td>
+      <td><button type="button" class="icon-action-btn btn-dark" onclick="event.stopPropagation();openCustomerDetailModal(${c.id})" title="عرض التفاصيل"><i class="fa-solid fa-eye"></i></button></td>
+    </tr>`;
+  }).join("");
+
+  const cardsHtml=rows.map(c=>{
     const statusClass=c.status==='نشط'?'active':'inactive';
     return `<div class="cust-admin-card" onclick="openCustomerDetailModal(${c.id})">
       <div class="cust-admin-top">
@@ -740,6 +1377,16 @@ function renderCustomersAdmin(){
       </div>
     </div>`;
   }).join("");
+
+  box.innerHTML=`
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>الاسم</th><th>الهاتف</th><th>تاريخ التسجيل</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="admin-worker-compact-list">${cardsHtml}</div>
+  `;
 }
 
 async function openCustomerDetailModal(id){
@@ -790,13 +1437,13 @@ function exportWorkersReport(){if(!requireBackupPermission())return;window.locat
 
 async function loadBackupSummary(){
   if(!requireBackupPermission())return;
-  const box=document.getElementById("backupSummary"); if(box)box.innerHTML='<div class="empty-state">جاري تحميل ملخص النسخ الاحتياطي...</div>';
+  const box=document.getElementById("backupSummary"); if(box)box.innerHTML='<div class="empty-admin">جاري تحميل ملخص النسخ الاحتياطي...</div>';
   try{
     const r=await fetch("/api/admin/backups/summary",{credentials:"include"});
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل ملخص النسخ الاحتياطي");
-    if(box){ box.innerHTML=(d.items||[]).map(item=>`<div class="backup-summary-item"><strong>${item.count===null?"—":item.count}</strong><span>${item.label||item.table}</span>${item.error?`<small style="display:block;color:#991b1b;margin-top:5px">غير جاهز</small>`:""}</div>`).join("") || '<div class="empty-state">لا توجد بيانات</div>'; }
-  }catch(e){ if(box)box.innerHTML='<div class="empty-state">تعذر تحميل الملخص</div>'; }
+    if(box){ box.innerHTML=(d.items||[]).map(item=>`<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid fa-table"></i></div><div><h3>${item.count===null?"—":item.count}</h3><p>${item.label||item.table}${item.error?' - غير جاهز':''}</p></div></div>`).join("") || '<div class="empty-admin">لا توجد بيانات</div>'; }
+  }catch(e){ if(box)box.innerHTML='<div class="empty-admin">تعذر تحميل الملخص</div>'; }
 }
 
 let __subPricingCache=null;
@@ -927,7 +1574,7 @@ async function loadAdminUsers(){
 function renderAdminUsers(){
   const box=document.getElementById("adminUsersList"); if(!box)return;
   if(!adminUsers.length){box.innerHTML='<div class="empty-admin">لا يوجد مستخدمون بعد. يمكنك الاعتماد مؤقتًا على كلمة سر المدير الرئيسية.</div>';return}
-  box.innerHTML=adminUsers.map(u=>`<div class="admin-user-card"><h4>${u.display_name||u.username}</h4><p>اسم المستخدم: ${u.username}</p><span class="role-pill ${u.active?'':'off'}">${roleLabel(u.role)} - ${u.active?'نشط':'متوقف'}</span><div class="card-actions" style="margin-top:12px"><select onchange="updateAdminUser('${u.id}',{role:this.value})"><option value="super_admin" ${u.role==='super_admin'?'selected':''}>مدير كامل</option><option value="reviewer" ${u.role==='reviewer'?'selected':''}>موظف مراجعة</option><option value="subscription_manager" ${u.role==='subscription_manager'?'selected':''}>موظف اشتراكات</option><option value="viewer" ${u.role==='viewer'?'selected':''}>مشاهد</option></select><button class="action-btn ${u.active?'btn-yellow':'btn-green'}" onclick="updateAdminUser('${u.id}',{active:${u.active?0:1}})">${u.active?'إيقاف':'تفعيل'}</button><button class="action-btn btn-blue" onclick="changeAdminPassword('${u.id}')">تغيير كلمة السر</button><button class="action-btn btn-red" onclick="deleteAdminUser('${u.id}')">حذف</button></div></div>`).join("");
+  box.innerHTML=adminUsers.map(u=>`<div class="review-admin-card"><div class="review-admin-head"><div><h3>${esc(u.display_name||u.username)}</h3><div style="color:var(--muted);font-weight:800;margin-top:4px;font-size:12.5px;">اسم المستخدم: ${esc(u.username)}</div></div><span class="status-badge ${u.active?'status-green':'status-red'}">${roleLabel(u.role)} - ${u.active?'نشط':'متوقف'}</span></div><div class="card-actions" style="margin-top:12px"><select onchange="updateAdminUser('${u.id}',{role:this.value})"><option value="super_admin" ${u.role==='super_admin'?'selected':''}>مدير كامل</option><option value="reviewer" ${u.role==='reviewer'?'selected':''}>موظف مراجعة</option><option value="subscription_manager" ${u.role==='subscription_manager'?'selected':''}>موظف اشتراكات</option><option value="viewer" ${u.role==='viewer'?'selected':''}>مشاهد</option></select><button class="action-btn ${u.active?'btn-yellow':'btn-green'}" onclick="updateAdminUser('${u.id}',{active:${u.active?0:1}})">${u.active?'إيقاف':'تفعيل'}</button><button class="action-btn btn-blue" onclick="changeAdminPassword('${u.id}')">تغيير كلمة السر</button><button class="action-btn btn-red" onclick="deleteAdminUser('${u.id}')">حذف</button></div></div>`).join("");
 }
 async function createAdminUser(e){
   e.preventDefault();
@@ -1045,7 +1692,68 @@ async function renderSystemOverview(){
   renderModernBars("overviewAreasDistribution", toRows(areaCounts), "fill-emerald");
 }
 
+async function loadDashboardCoreStats() {
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  // عدد الصنايعية + توثيق معلّق - من allWorkers المحمّلة أصلًا (loadAllData)، بدون أي fetch إضافي
+  setText("dashWorkersCount", analyticsNumber(allWorkers.length));
+  setText("dashPendingVerification", analyticsNumber(allWorkers.filter(w => identityStatusValue(w) === "pending").length));
+
+  // طلبات اليوم / قيد التنفيذ / نسبة الإكمال / آخر 7 أيام - من /api/admin/service-requests
+  // الموجود بالفعل (نفس صلاحية reports:read لتبويب الطلبات - لو مش متاحة للأدمن الحالي
+  // بتتجاهل بهدوء من غير ما تكسر باقي الـDashboard)
+  try {
+    const r = await fetch("/api/admin/service-requests", { credentials: "include" });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) throw new Error("no-access");
+    const items = d.items || [];
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayCount = items.filter(it => String(it.created_at || "").slice(0, 10) === todayStr).length;
+    const inProgressCount = items.filter(it => it.status === "accepted" || it.status === "in_progress").length;
+    const completedCount = items.filter(it => it.status === "completed").length;
+    const completionRate = items.length ? Math.round((completedCount / items.length) * 100) : null;
+
+    setText("dashRequestsToday", analyticsNumber(todayCount));
+    setText("dashRequestsInProgress", analyticsNumber(inProgressCount));
+    setText("dashCompletionRate", completionRate === null ? "—" : completionRate + "%");
+
+    const days7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const dt = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      days7.push(dt.toISOString().slice(0, 10));
+    }
+    const counts7 = days7.map(dateStr => items.filter(it => String(it.created_at || "").slice(0, 10) === dateStr).length);
+    renderRequests7dChart(days7, counts7);
+  } catch (e) {
+    setText("dashRequestsToday", "—"); setText("dashRequestsInProgress", "—"); setText("dashCompletionRate", "—");
+  }
+}
+
+let _dashRequests7dChartInstance = null;
+function renderRequests7dChart(days7, counts7) {
+  const canvas = document.getElementById("dashRequests7dChart");
+  if (!canvas || typeof Chart === "undefined") return;
+  if (_dashRequests7dChartInstance) _dashRequests7dChartInstance.destroy();
+  _dashRequests7dChartInstance = new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: days7.map(analyticsDayLabel),
+      datasets: [{ label: "الطلبات", data: counts7, backgroundColor: "rgba(37,99,235,.75)", borderRadius: 8, maxBarThickness: 34 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { family: "Cairo" } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { precision: 0, font: { family: "Cairo" } } }
+      }
+    }
+  });
+}
+
 async function loadAnalytics() {
+  loadDashboardCoreStats();
   renderSystemOverview();
   const boxTopWorkers = document.getElementById("analyticsTopWorkers");
   const msg = document.getElementById("analyticsMessage");
@@ -1137,6 +1845,7 @@ async function loadAnalytics() {
     setText("analyticsCustomersToday", customers.today);
     setText("analyticsCustomersWeek", customers.week);
     setText("analyticsCustomersMonth", customers.month);
+    setText("dashCustomersCount", customers.total);
 
     renderModernBars("analyticsTopTradesByViews", d.top_trades_by_views, "fill-blue");
 
@@ -1527,16 +2236,16 @@ function waInboxDefaultReply(row){const name=row.worker_name||row.profile_name||
 async function loadWhatsappInbox(){
   if(!can("whatsapp:send"))return;
   const list=document.getElementById("waInboxList"),stats=document.getElementById("waInboxStats"); if(!list)return;
-  list.innerHTML='<div class="empty-state">جاري تحميل صندوق الوارد...</div>';
+  list.innerHTML='<div class="empty-admin">جاري تحميل صندوق الوارد...</div>';
   const status=document.getElementById("waInboxStatus")?.value||"all"; const q=(document.getElementById("waInboxSearch")?.value||"").trim();
   try{
     const r=await fetch(`/api/admin/whatsapp/inbox?limit=120&status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`,{credentials:"include"});
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل وارد واتساب");
     const items=d.items||[]; const totals=d.totals||{};
-    if(d.warning){list.innerHTML=`<div class="empty-state">${waEscape(d.warning)}</div>`; if(stats)stats.innerHTML=''; return;}
+    if(d.warning){list.innerHTML=`<div class="empty-admin">${waEscape(d.warning)}</div>`; if(stats)stats.innerHTML=''; return;}
     if(stats){stats.innerHTML=`<div class="stat-card"><strong>${totals.total||items.length||0}</strong><span>إجمالي</span></div><div class="stat-card"><strong>${totals.unread||0}</strong><span>غير مقروء</span></div><div class="stat-card"><strong>${totals.archived||0}</strong><span>مؤرشف</span></div>`}
-    if(!items.length){list.innerHTML='<div class="empty-state">لا توجد ردود واردة حتى الآن.</div>';return}
+    if(!items.length){list.innerHTML='<div class="empty-admin">لا توجد ردود واردة حتى الآن.</div>';return}
     list.innerHTML=items.map(row=>{
       const unread=(!row.read_at && (row.status||"new")!=="archived");
       const title=row.worker_name||row.profile_name||row.from_number||"رد وارد";
@@ -1545,7 +2254,7 @@ async function loadWhatsappInbox(){
       const workerInfo=worker&&worker.id?`<span class="wa-pill"><i class="fa-solid fa-user"></i>${waEscape(worker.registration_code||worker.name||row.worker_name||"")}</span><span class="wa-pill">${waEscape((worker.trade||"")+(worker.area?" - "+worker.area:""))}</span>`:'<span class="wa-pill pending">غير مربوط بصنايعي</span>';
       return `<div class="wa-inbox-item ${unread?"unread":""}"><div class="wa-inbox-head"><div><div class="wa-inbox-title">${waEscape(title)}</div><div class="wa-log-meta"><span class="wa-pill ${unread?"sent":""}">${unread?"غير مقروء":"مقروء/مؤرشف"}</span><span class="wa-pill"><i class="fa-brands fa-whatsapp"></i>${waEscape(sub)}</span>${workerInfo}</div></div></div><div class="wa-inbox-text">${waEscape(row.message_text||"")}</div><div class="wa-inbox-reply"><textarea id="waInboxReply_${row.id}" placeholder="اكتب رد الإدارة هنا...">${waEscape(waInboxDefaultReply(row))}</textarea></div><div class="wa-inbox-actions"><button class="big-btn btn-blue" onclick="sendWhatsappInboxReply('${waEscape(row.id)}')"><i class="fa-solid fa-paper-plane"></i> إرسال رد</button><button class="big-btn btn-dark" onclick="updateWhatsappInboxStatus('${waEscape(row.id)}','read')"><i class="fa-solid fa-check"></i> تعليم كمقروء</button><button class="big-btn btn-red" onclick="updateWhatsappInboxStatus('${waEscape(row.id)}','archived')"><i class="fa-solid fa-box-archive"></i> أرشفة</button></div></div>`;
     }).join("");
-  }catch(e){list.innerHTML=`<div class="empty-state">${waEscape(e.message||"تعذر تحميل الوارد")}</div>`}
+  }catch(e){list.innerHTML=`<div class="empty-admin">${waEscape(e.message||"تعذر تحميل الوارد")}</div>`}
 }
 
 async function updateWhatsappInboxStatus(id,status){
@@ -1572,7 +2281,7 @@ async function sendWhatsappInboxReply(id){
 async function loadWhatsappLogs(){
   if(!can("whatsapp:send"))return;
   const list=document.getElementById("waLogsList"),stats=document.getElementById("waLogsStats"); if(!list)return;
-  list.innerHTML='<div class="empty-state">جاري تحميل سجل واتساب...</div>';
+  list.innerHTML='<div class="empty-admin">جاري تحميل سجل واتساب...</div>';
   const status=document.getElementById("waLogStatus")?.value||"all";
   try{
     const r=await fetch(`/api/admin/whatsapp/logs?limit=120&status=${encodeURIComponent(status)}`,{credentials:"include"});
@@ -1580,14 +2289,14 @@ async function loadWhatsappLogs(){
     if(!r.ok||!d.success)throw new Error(d.error||"تعذر تحميل سجل واتساب");
     const items=d.items||[]; const totals=d.totals||{};
     if(stats){stats.innerHTML=`<div class="stat-card"><strong>${totals.total||items.length||0}</strong><span>إجمالي</span></div><div class="stat-card"><strong>${totals.sent||0}</strong><span>ناجحة</span></div><div class="stat-card"><strong>${totals.failed||0}</strong><span>فاشلة</span></div>`}
-    if(!items.length){list.innerHTML='<div class="empty-state">لا توجد رسائل في السجل حتى الآن.</div>';return}
+    if(!items.length){list.innerHTML='<div class="empty-admin">لا توجد رسائل في السجل حتى الآن.</div>';return}
     list.innerHTML=items.map(row=>{
       const st=row.status||"pending"; const cls=st==="sent"?"sent":(st==="failed"?"failed":"pending");
       const title=row.worker_name||row.phone||"مستلم واتساب"; const msg=row.message_text||"";
-      const err=row.error_message?`<div class="permission-note" style="margin-top:8px;color:#991b1b;background:#fee2e2;border-color:#fecaca">${waEscape(row.error_message)}</div>`:"";
+      const err=row.error_message?`<div class="verification-note" style="margin-top:8px;color:#991b1b;background:#fee2e2;border-color:#fecaca">${waEscape(row.error_message)}</div>`:"";
       return `<div class="wa-log-item"><h4>${waEscape(title)}</h4><p>${waEscape(msg).slice(0,260)}</p><div class="wa-log-meta"><span class="wa-pill ${cls}">${st==="sent"?"ناجحة":st==="failed"?"فاشلة":"قيد الانتظار"}</span><span class="wa-pill"><i class="fa-brands fa-whatsapp"></i>${waEscape(row.phone||"")}</span><span class="wa-pill">${waEscape(row.message_type||"رسالة")}</span><span class="wa-pill">${waEscape(row.sent_by||"الإدارة")}</span><span class="wa-pill">${waDate(row.created_at)}</span></div>${err}</div>`;
     }).join("");
-  }catch(e){list.innerHTML=`<div class="empty-state">${waEscape(e.message||"تعذر تحميل السجل")}</div>`}
+  }catch(e){list.innerHTML=`<div class="empty-admin">${waEscape(e.message||"تعذر تحميل السجل")}</div>`}
 }
 
 // ==========================================
@@ -1701,51 +2410,205 @@ function renderAdminChatMessages(messages){
 // ==========================================
 let adminSupportThreadsData = [];
 let adminSupportCurrentId = null;
+const SUPPORT_STATUS_LABELS_ADMIN = { new: 'مفتوحة', in_progress: 'قيد المتابعة', resolved: 'تم الحل', closed: 'مغلقة' };
+const SUPPORT_STATUS_CLASS_ADMIN = { new: 'status-blue', in_progress: 'status-yellow', resolved: 'status-green', closed: 'status-gray' };
+const SUPPORT_TYPE_LABELS_ADMIN = { technical: 'مشكلة تقنية', account: 'الحساب', worker_issue: 'مشكلة مع صنايعي', payment: 'الدفع والاشتراك', other: 'أخرى' };
 
-async function loadAdminSupportThreads() {
+const SUPPORT_PRIORITY_LABELS_ADMIN = { low: 'منخفضة', normal: 'عادية', high: 'عالية', urgent: 'عاجلة' };
+const SUPPORT_PRIORITY_CLASS_ADMIN = { low: 'status-gray', normal: 'status-blue', high: 'status-yellow', urgent: 'status-red' };
+let adminSupportStaff = [];
+let adminSupportListPollTimer = null;
+let adminSupportConvPollTimer = null;
+let adminSupportListLastHash = '';
+let adminSupportConvLastHash = '';
+
+function adminSupportQueryString() {
+  const params = new URLSearchParams();
+  const status = document.getElementById('adminSupportStatusFilter')?.value || '';
+  const category = document.getElementById('adminSupportTypeFilter')?.value || '';
+  const priority = document.getElementById('adminSupportPriorityFilter')?.value || '';
+  const assignedTo = document.getElementById('adminSupportAssignFilter')?.value || '';
+  const unreadOnly = document.getElementById('adminSupportUnreadOnly')?.checked || false;
+  const sortByPriority = document.getElementById('adminSupportPrioritySort')?.checked || false;
+  if (status) params.set('status', status);
+  if (category) params.set('category', category);
+  if (priority) params.set('priority', priority);
+  if (assignedTo) params.set('assigned_to', assignedTo);
+  if (unreadOnly) params.set('unread_only', 'true');
+  if (sortByPriority) params.set('sort', 'priority');
+  return params.toString();
+}
+
+async function loadAdminSupportThreads(silent) {
   const box = document.getElementById('adminSupportThreads');
-  if (box) box.innerHTML = '<div class="chat-empty">جاري تحميل محادثات خدمة العملاء...</div>';
+  if (box && !silent) box.innerHTML = '<div class="chat-empty">جاري تحميل المحادثات...</div>';
   try {
-    const r = await fetch('/api/admin/support-chat/threads', { credentials: 'include' });
+    const qs = adminSupportQueryString();
+    const r = await fetch('/api/admin/support-chat/conversations' + (qs ? '?' + qs : ''), { credentials: 'include' });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحميل محادثات خدمة العملاء');
-    adminSupportThreadsData = d.threads || [];
+    if (r.status === 403) { if (box) box.innerHTML = '<div class="chat-empty">ليس لديك صلاحية عرض خدمة العملاء</div>'; stopAdminSupportListPolling(); return; }
+    if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحميل المحادثات');
+
+    const hash = JSON.stringify((d.conversations || []).map(c => [c.id, c.admin_unread_count, c.status, c.priority, c.assigned_admin_id, c.last_message_at]));
+    if (hash === adminSupportListLastHash && silent) return;
+    adminSupportListLastHash = hash;
+
+    adminSupportThreadsData = d.conversations || [];
+    renderSupportStats();
     renderAdminSupportThreads();
+    updateAdminSupportTabBadge();
+    if (!adminSupportStaff.length) loadAdminSupportStaff();
+    startAdminSupportListPolling();
   } catch (e) {
-    if (box) box.innerHTML = '<div class="chat-empty">' + chatAdminEsc(e.message || 'تعذر التحميل') + '</div>';
+    if (box && !silent) box.innerHTML = '<div class="chat-empty">' + chatAdminEsc(e.message || 'تعذر التحميل') + '</div>';
   }
+}
+
+async function loadAdminSupportStaff() {
+  try {
+    const r = await fetch('/api/admin/support-chat/staff', { credentials: 'include' });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.success) adminSupportStaff = d.staff || [];
+  } catch (e) {}
+}
+
+function updateAdminSupportTabBadge() {
+  const badge = document.getElementById('adminSupportTabBadge');
+  if (!badge) return;
+  const total = adminSupportThreadsData.reduce((sum, t) => sum + (t.admin_unread_count || 0), 0);
+  if (total > 0) { badge.textContent = total > 99 ? '99+' : total; badge.style.display = 'inline-flex'; }
+  else badge.style.display = 'none';
+}
+
+function renderSupportStats() {
+  const box = document.getElementById('supportStats'); if (!box) return;
+  const counts = { total: adminSupportThreadsData.length, new: 0, in_progress: 0, resolved: 0, unread: 0 };
+  adminSupportThreadsData.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; if (t.admin_unread_count > 0) counts.unread++; });
+  box.innerHTML = [
+    ['fa-inbox', counts.total, 'إجمالي المحادثات'],
+    ['fa-envelope-open', counts.new, 'جديدة'],
+    ['fa-spinner', counts.in_progress, 'قيد المتابعة'],
+    ['fa-circle-check', counts.resolved, 'محلولة'],
+    ['fa-envelope', counts.unread, 'غير مقروءة']
+  ].map(([icon, val, label]) => `<div class="admin-stat"><div class="admin-stat-icon"><i class="fa-solid ${icon}"></i></div><div><h3>${val}</h3><p>${label}</p></div></div>`).join('');
 }
 
 function renderAdminSupportThreads() {
   const box = document.getElementById('adminSupportThreads');
   if (!box) return;
-  if (!adminSupportThreadsData.length) {
-    box.innerHTML = '<div class="chat-empty">لا توجد محادثات خدمة عملاء</div>';
-    return;
-  }
-  box.innerHTML = adminSupportThreadsData.map(t => {
-    return `<div class="chat-thread" onclick="loadAdminSupportMessages('${t.id}')"><h4>${chatAdminEsc(t.customer_name || t.phone || 'عميل')}</h4><p>${chatAdminEsc(t.phone || '')}</p></div>`;
+  const q = (document.getElementById('adminSupportSearch')?.value || '').trim().toLowerCase();
+  let rows = adminSupportThreadsData.filter(t => !q || (t.customer_name || '').toLowerCase().includes(q) || (t.phone || '').toLowerCase().includes(q) || (t.subject || '').toLowerCase().includes(q));
+
+  if (!rows.length) { box.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-inbox" style="font-size:26px;display:block;margin-bottom:8px;color:#cbd5e1;"></i>لا توجد محادثات مطابقة</div>'; return; }
+
+  box.innerHTML = rows.map(t => {
+    const typeIcon = t.created_by_type === 'worker' ? 'fa-user-gear' : 'fa-user';
+    const dim = (t.status === 'resolved' || t.status === 'closed') ? ' dim' : '';
+    return `<div class="chat-thread${t.admin_unread_count > 0 ? ' unread' : ''}${dim}${String(t.id) === String(adminSupportCurrentId) ? ' active' : ''}" onclick="loadAdminSupportMessages(${t.id})">
+      <h4><i class="fa-solid ${typeIcon}"></i> ${chatAdminEsc(t.customer_name || t.phone || 'مستخدم')} ${t.admin_unread_count > 0 ? `<span class="chat-badge" style="display:inline-flex;margin:0 4px">${t.admin_unread_count}</span>` : ''}</h4>
+      <p>${chatAdminEsc(t.subject || SUPPORT_TYPE_LABELS_ADMIN[t.category] || '')}</p>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;align-items:center;">
+        <span class="status-badge ${SUPPORT_STATUS_CLASS_ADMIN[t.status] || 'status-blue'}">${SUPPORT_STATUS_LABELS_ADMIN[t.status] || t.status}</span>
+        <span class="status-badge ${SUPPORT_PRIORITY_CLASS_ADMIN[t.priority] || 'status-blue'}">${SUPPORT_PRIORITY_LABELS_ADMIN[t.priority] || t.priority}</span>
+        ${t.assigned_admin_name ? `<span class="status-badge status-blue"><i class="fa-solid fa-user-check"></i> ${chatAdminEsc(t.assigned_admin_name)}</span>` : ''}
+      </div>
+      <span style="display:block;margin-top:4px;color:var(--muted);font-size:10.5px;">${waDate(t.last_message_at)}</span>
+    </div>`;
   }).join('');
 }
 
-async function loadAdminSupportMessages(threadId) {
+function adminSupportBackToList() {
+  document.getElementById('adminSupportListPanel')?.classList.remove('mobile-hidden');
+  document.getElementById('adminSupportDetailPanel')?.classList.remove('mobile-active');
+  adminSupportCurrentId = null;
+  stopAdminSupportConvPolling();
+}
+
+function startAdminSupportListPolling() {
+  if (adminSupportListPollTimer) return;
+  adminSupportListPollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (!document.getElementById('supportSection')?.classList.contains('active')) return;
+    loadAdminSupportThreads(true);
+  }, 12000);
+}
+function stopAdminSupportListPolling() { clearInterval(adminSupportListPollTimer); adminSupportListPollTimer = null; }
+function startAdminSupportConvPolling() {
+  stopAdminSupportConvPolling();
+  adminSupportConvPollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (!adminSupportCurrentId) return;
+    loadAdminSupportMessages(adminSupportCurrentId, true);
+  }, 5000);
+}
+function stopAdminSupportConvPolling() { clearInterval(adminSupportConvPollTimer); adminSupportConvPollTimer = null; }
+
+function renderAdminSupportAssignSelect(conv) {
+  const sel = document.getElementById('adminSupportAssignSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">غير مخصصة</option>' + adminSupportStaff.map(s => `<option value="${s.id}">${chatAdminEsc(s.name)}</option>`).join('');
+  sel.value = conv.assigned_admin_id || '';
+}
+
+async function loadAdminSupportMessages(threadId, silent) {
+  const isNewConv = String(adminSupportCurrentId) !== String(threadId);
   adminSupportCurrentId = threadId;
+  document.getElementById('adminSupportListPanel')?.classList.add('mobile-hidden');
+  document.getElementById('adminSupportDetailPanel')?.classList.add('mobile-active');
   const box = document.getElementById('adminSupportMessages');
-  if (box) box.innerHTML = '<div class="chat-empty">جاري تحميل الرسائل...</div>';
+  if (box && !silent) box.innerHTML = '<div class="chat-empty">جاري تحميل الرسائل...</div>';
   try {
-    const r = await fetch(`/api/admin/support-chat/threads/${encodeURIComponent(threadId)}/messages`, { credentials: 'include' });
+    const r = await fetch(`/api/admin/support-chat/conversations/${encodeURIComponent(threadId)}/messages`, { credentials: 'include' });
     const d = await r.json().catch(() => ({}));
+    if (r.status === 403) { if (box) box.innerHTML = '<div class="chat-empty">ليس لديك صلاحية عرض هذه المحادثة</div>'; return; }
     if (!r.ok || !d.success) throw new Error(d.error || 'تعذر التحميل');
-    document.getElementById('adminSupportTitle').textContent = 'محادثة عميل';
-    document.getElementById('adminSupportSub').textContent = d.thread?.phone || '';
-    document.getElementById('adminSupportForm').style.display = 'grid';
+    const conv = d.conversation || {};
+    const msgs = d.messages || [];
+    const hash = JSON.stringify(msgs.map(m => m.id)) + '|' + conv.status + '|' + conv.priority + '|' + conv.assigned_admin_id;
+    if (silent && hash === adminSupportConvLastHash) return;
+    const wasAtBottom = box ? (box.scrollHeight - box.scrollTop - box.clientHeight < 60) : true;
+    adminSupportConvLastHash = hash;
+
+    document.getElementById('adminSupportTitle').textContent = conv.subject || 'محادثة';
+    document.getElementById('adminSupportSub').textContent = (conv.customer_name || '') + (conv.phone ? ' - ' + conv.phone : '') + (conv.assigned_admin_name ? ' · مسؤول: ' + conv.assigned_admin_name : '');
+    const canReply = can('support:reply'), canManage = can('support:manage');
+    document.getElementById('adminSupportForm').style.display = canReply ? 'grid' : 'none';
+    document.getElementById('adminSupportControls').style.display = 'flex';
+    document.getElementById('adminSupportStatusSelect').value = conv.status || 'new';
+    document.getElementById('adminSupportStatusSelect').disabled = !canManage;
+    document.getElementById('adminSupportPrioritySelect').value = conv.priority || 'normal';
+    document.getElementById('adminSupportPrioritySelect').disabled = !canManage;
+    document.getElementById('adminSupportAssignSelect').disabled = !canManage;
+    renderAdminSupportAssignSelect(conv);
+    const attachLink = document.getElementById('adminSupportAttachmentLink');
+    if (conv.has_attachment) {
+      attachLink.style.display = 'inline-flex';
+      attachLink.onclick = async (ev) => {
+        ev.preventDefault();
+        try {
+          const ar = await fetch(`/api/admin/support-chat/conversations/${threadId}/attachment`, { credentials: 'include' });
+          const ad = await ar.json().catch(() => ({}));
+          if (ad.success && ad.url) window.open(ad.url, '_blank');
+          else toast('error', 'تعذر فتح المرفق');
+        } catch (e) { toast('error', 'تعذر فتح المرفق'); }
+      };
+    } else attachLink.style.display = 'none';
+
     if (box) {
-      const msgs = d.messages || [];
-      box.innerHTML = msgs.map(m => `<div class="admin-chat-msg ${m.sender_type === 'admin' ? 'admin' : 'worker'}"><b>${m.sender_type === 'admin' ? 'الإدارة' : 'العميل'}</b><br>${chatAdminEsc(m.message_text || '')}</div>`).join('');
-      box.scrollTop = box.scrollHeight;
+      box.innerHTML = msgs.map(m => {
+        if (m.is_system) return `<div class="admin-chat-msg-system">${chatAdminEsc(m.message_text || '')}</div>`;
+        return `<div class="admin-chat-msg ${m.sender_type === 'admin' ? 'admin' : 'worker'}"><b>${m.sender_type === 'admin' ? 'الإدارة' : (conv.created_by_type === 'worker' ? 'الصنايعي' : 'العميل')}</b><br>${chatAdminEsc(m.message_text || '')}</div>`;
+      }).join('');
+      if (!silent || wasAtBottom) box.scrollTop = box.scrollHeight;
     }
+    const item = adminSupportThreadsData.find(t => String(t.id) === String(threadId));
+    if (item) { item.admin_unread_count = 0; item.status = conv.status; item.priority = conv.priority; item.assigned_admin_id = conv.assigned_admin_id; item.assigned_admin_name = conv.assigned_admin_name; }
+    renderAdminSupportThreads();
+    renderSupportStats();
+    updateAdminSupportTabBadge();
+    if (isNewConv) startAdminSupportConvPolling();
   } catch (e) {
-    if (box) box.innerHTML = '<div class="chat-empty">' + chatAdminEsc(e.message) + '</div>';
+    if (box && !silent) box.innerHTML = '<div class="chat-empty">' + chatAdminEsc(e.message) + '</div>';
   }
 }
 
@@ -1756,7 +2619,7 @@ async function sendAdminSupportMessage(e) {
   const message = String(input?.value || '').trim();
   if (!message) return;
   try {
-    const r = await fetch(`/api/admin/support-chat/threads/${encodeURIComponent(adminSupportCurrentId)}/messages`, {
+    const r = await fetch(`/api/admin/support-chat/conversations/${encodeURIComponent(adminSupportCurrentId)}/messages`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -1769,6 +2632,75 @@ async function sendAdminSupportMessage(e) {
   } catch (err) {
     toast('error', err.message || 'فشل إرسال الرد');
   }
+}
+
+async function updateAdminSupportStatus() {
+  if (!adminSupportCurrentId) return;
+  const status = document.getElementById('adminSupportStatusSelect').value;
+  try {
+    const r = await fetch(`/api/admin/support-chat/conversations/${adminSupportCurrentId}/status`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحديث الحالة');
+    toast('success', 'تم تحديث حالة المحادثة');
+    loadAdminSupportMessages(adminSupportCurrentId);
+    loadAdminSupportThreads();
+  } catch (err) { toast('error', err.message || 'تعذر تحديث الحالة'); }
+}
+
+async function updateAdminSupportPriority() {
+  if (!adminSupportCurrentId) return;
+  const priority = document.getElementById('adminSupportPrioritySelect').value;
+  try {
+    const r = await fetch(`/api/admin/support-chat/conversations/${adminSupportCurrentId}/priority`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priority }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحديث الأولوية');
+    toast('success', 'تم تحديث الأولوية');
+    loadAdminSupportThreads(true);
+  } catch (err) { toast('error', err.message || 'تعذر تحديث الأولوية'); }
+}
+
+async function updateAdminSupportAssignment() {
+  if (!adminSupportCurrentId) return;
+  const adminId = document.getElementById('adminSupportAssignSelect').value || null;
+  try {
+    const r = await fetch(`/api/admin/support-chat/conversations/${adminSupportCurrentId}/assign`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_id: adminId }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحديث التعيين');
+    toast('success', 'تم تحديث التعيين');
+    loadAdminSupportMessages(adminSupportCurrentId);
+    loadAdminSupportThreads();
+  } catch (err) { toast('error', err.message || 'تعذر تحديث التعيين'); }
+}
+
+function assignSupportToMe() {
+  if (!currentAdmin?.id) { toast('error', 'تعذر تحديد هويتك'); return; }
+  const sel = document.getElementById('adminSupportAssignSelect');
+  if (sel) sel.value = currentAdmin.id;
+  updateAdminSupportAssignment();
+}
+
+async function loadSupportChannels() {
+  try {
+    const r = await fetch('/api/admin/settings/support-channels', { credentials: 'include' });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.success) {
+      document.getElementById('supportChannelPhone').value = d.channels.phone || '';
+      document.getElementById('supportChannelWhatsapp').value = d.channels.whatsapp || '';
+      document.getElementById('supportChannelHours').value = d.channels.working_hours || '';
+    }
+  } catch (e) {}
+}
+
+async function saveSupportChannels() {
+  try {
+    const phone = document.getElementById('supportChannelPhone').value.trim();
+    const whatsapp = document.getElementById('supportChannelWhatsapp').value.trim();
+    const working_hours = document.getElementById('supportChannelHours').value.trim();
+    const r = await fetch('/api/admin/settings/support-channels', { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, whatsapp, working_hours }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) throw new Error(d.error || 'تعذر الحفظ');
+    toast('success', 'تم حفظ قنوات التواصل');
+  } catch (err) { toast('error', err.message || 'تعذر الحفظ'); }
 }
 
 window.onload = checkLogin;

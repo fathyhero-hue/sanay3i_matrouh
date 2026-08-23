@@ -11,23 +11,270 @@
   --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.16);
   /* Navy Brand */
   --sanay3i-navy: #061A3D; --sanay3i-navy-2: #082052; --sanay3i-navy-3: #0B2A66;
+
+  /* =======================================================
+     طبقة Design System الدلالية - كل متغيّر هنا بيرجّع لنفس
+     القيم/المتغيرات القديمة فوق (مفيش أي لون اتغيّر)، الهدف بس
+     تسمية واضحة واحترافية تقدر تُستخدم في مكونات جديدة من غير
+     ما تلمس أي استخدام حالي لأسماء المتغيرات القديمة.
+     ======================================================= */
+  /* الألوان الأساسية (الهوية الحالية - أزرق داكن) */
+  --color-primary: var(--sanay3i-navy);
+  --color-primary-dark: var(--sanay3i-navy-3);
+  --color-primary-light: var(--blue-light);
+
+  /* الخلفيات والأسطح */
+  --color-background: var(--bg);
+  --color-surface: var(--white);
+  --color-surface-soft: #f1f5f9;
+
+  /* النصوص */
+  --text-primary: var(--primary);
+  --text-secondary: var(--secondary);
+  --text-muted: var(--muted);
+
+  /* الحدود */
+  --color-border: var(--border);
+
+  /* حالات (نجاح / تحذير / خطأ / معلومة) */
+  --color-success: var(--green);
+  --color-warning: var(--gold);
+  --color-error: var(--danger);
+  --color-info: var(--blue);
+
+  /* ظلال إضافية (shadow-sm/md/lg موجودين فوق بالفعل) */
+  --shadow-xs: 0 2px 8px rgba(15, 23, 42, 0.05);
+
+  /* استدارة الحواف */
+  --radius-sm: 10px; --radius-md: 16px; --radius-lg: 22px;
+  --radius-xl: 28px; --radius-full: 999px;
+
+  /* تدرج المسافات */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+
+  /* تدرج الخطوط - Mobile-first (Cairo) */
+  --font-size-xs: 12px; --font-size-sm: 13px; --font-size-base: 15px;
+  --font-size-md: 16px; --font-size-lg: 18px; --font-size-xl: 22px;
+  --font-size-2xl: 26px; --font-size-3xl: 32px;
+  --line-height-tight: 1.25; --line-height-normal: 1.6; --line-height-relaxed: 1.85;
+
+  /* مدة الانتقالات */
+  --duration-fast: 150ms; --duration-base: 250ms; --duration-slow: 400ms;
+}
+
+/* =========================================================
+   Dark Mode (بند 21) - نفس Design Tokens الحالية، بدون CSS موازٍ.
+   بيتفعّل بس على الصفحات اللي حاملة data-theme-app (عشان مايأثرش على
+   صفحات تانية زي لوحة الإدارة لسه مش مُراجعة لـDark Mode)، إما تلقائيًا
+   مع تفضيل النظام (prefers-color-scheme) أو باختيار صريح من المستخدم
+   عبر data-theme="dark|light" (محفوظ في localStorage - راجع theme.js)
+   ========================================================= */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme-app]:not([data-theme="light"]) {
+    --primary: #e7ecf5; --secondary: #b7c2d6; --muted: #8b96ac;
+    --bg: #0c1424; --border: #263248;
+    --color-surface: #151f34; --color-surface-soft: #1b2740;
+  }
+}
+:root[data-theme-app][data-theme="dark"] {
+  --primary: #e7ecf5; --secondary: #b7c2d6; --muted: #8b96ac;
+  --bg: #0c1424; --border: #263248;
+  --color-surface: #151f34; --color-surface-soft: #1b2740;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme-app]:not([data-theme="light"]) body {
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 35%),
+                radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.08), transparent 30%),
+                linear-gradient(135deg, #0c1424 0%, #0f1a2e 100%);
+  }
+}
+html[data-theme-app][data-theme="dark"] body {
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 35%),
+              radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.08), transparent 30%),
+              linear-gradient(135deg, #0c1424 0%, #0f1a2e 100%);
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; background-color: #061A3D; }
+html { scroll-behavior: smooth; background-color: #061A3D; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (display-mode: standalone) { html { background-color: #061A3D; } }
 
 body {
   margin: 0; font-family: "Cairo", sans-serif;
+  font-size: var(--font-size-base); line-height: var(--line-height-normal);
   background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 35%),
               radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 30%),
               linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
   color: var(--primary); direction: rtl;
+  -webkit-tap-highlight-color: transparent;
 }
 
-a { text-decoration: none; color: inherit; }
-button, input, select, textarea { font-family: inherit; }
+a { text-decoration: none; color: inherit; -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font-family: inherit; -webkit-tap-highlight-color: transparent; }
+button, a, [role="button"] { touch-action: manipulation; }
 .container { width: min(1180px, calc(100% - 30px)); margin: auto; }
+
+/* حالة الـfocus عند التنقل بالكيبورد فقط (مش عند اللمس/الضغط بالماوس) -
+   إضافية بالكامل، مبتلغيش أي سلوك focus افتراضي موجود */
+:focus-visible {
+  outline: 2.5px solid var(--color-primary-light);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* =========================================================
+   Design System Components - مكونات عامة قابلة لإعادة الاستخدام
+   في أي صفحة (اختيارية بالكامل - إضافة جديدة، لا تمس أي class
+   موجود بالمشروع، ومصممة على نفس هوية الأزرق الداكن الحالية)
+   ========================================================= */
+
+/* --- الأزرار --- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: 46px; padding: 12px 20px; border-radius: var(--radius-full);
+  border: none; background: var(--color-surface); color: var(--text-primary);
+  font-family: inherit; font-weight: 900; font-size: var(--font-size-sm);
+  line-height: 1; cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: transform var(--duration-base) ease, box-shadow var(--duration-base) ease,
+              background var(--duration-base) ease, opacity var(--duration-base) ease,
+              border-color var(--duration-base) ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled, .btn.is-disabled { opacity: 0.55; cursor: not-allowed; transform: none; pointer-events: none; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff; box-shadow: 0 14px 26px rgba(6, 26, 61, 0.24);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 30px rgba(6, 26, 61, 0.3); }
+
+.btn-secondary { background: rgba(29, 78, 216, 0.10); color: var(--blue-2); }
+.btn-secondary:hover { background: rgba(29, 78, 216, 0.16); }
+
+.btn-outline { background: transparent; color: var(--color-primary); border: 1.5px solid var(--color-border); }
+.btn-outline:hover { border-color: var(--color-primary); background: rgba(6, 26, 61, 0.04); }
+
+.btn-danger { background: var(--color-error); color: #fff; box-shadow: 0 14px 24px rgba(220, 38, 38, 0.22); }
+.btn-danger:hover { background: #b91c1c; transform: translateY(-2px); }
+
+/* --- الشارات (Badges) --- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--radius-full);
+  font-size: var(--font-size-xs); font-weight: 900;
+  background: var(--color-surface-soft); color: var(--text-secondary);
+  border: 1px solid var(--color-border);
+}
+.badge-success { background: rgba(22, 163, 74, 0.10); color: #15803d; border-color: rgba(22, 163, 74, 0.22); }
+.badge-warning { background: rgba(245, 158, 11, 0.12); color: #92400e; border-color: rgba(245, 158, 11, 0.24); }
+.badge-error   { background: rgba(220, 38, 38, 0.10); color: #b91c1c; border-color: rgba(220, 38, 38, 0.22); }
+.badge-info    { background: rgba(29, 78, 216, 0.10); color: #1d4ed8; border-color: rgba(29, 78, 216, 0.20); }
+
+/* --- حالة توفر الصنايعي (available/busy/offline) - Dot صغير على الصورة +
+   نسخة Badge بنص للسياقات اللي فيها مساحة أكتر (البروفايل/المشابهين) --- */
+.avail-dot-overlay {
+  position: absolute; bottom: 8px; left: 8px; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); z-index: 3;
+}
+.avail-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.avail-dot-green { background: #16a34a; }
+.avail-dot-yellow { background: #f59e0b; }
+.avail-dot-red { background: #dc2626; }
+.avail-badge {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--color-surface-soft);
+  border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 5px 11px;
+  font-size: 11.5px; font-weight: 900; color: var(--text-secondary);
+}
+
+/* --- شارات التوثيق (Badge System - بند 5 من الـMaster Plan) - كل شارة
+   بتتعرض فقط لو مصدرها الحقيقي في البيانات بيسمح بيها، راجع التقرير
+   لمصدر كل شارة. .badge-phone-verified معرّفة هنا للاكتمال البصري للنظام
+   فقط - مفيش أي مكان بيستخدمها فعليًا لعدم وجود آلية توثيق هاتف حقيقية. */
+.badge-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.badge-row:empty { display: none; }
+.badge-verified      { background: rgba(29, 78, 216, 0.10); color: #1d4ed8; border-color: rgba(29, 78, 216, 0.22); }
+.badge-verified i    { color: #1d4ed8; }
+.badge-featured      { background: linear-gradient(135deg, rgba(245,158,11,.16), rgba(251,191,36,.14)); color: #92400e; border-color: rgba(245, 158, 11, 0.28); }
+.badge-featured i    { color: #d97706; }
+.badge-top-rated     { background: rgba(124, 58, 237, 0.10); color: #6d28d9; border-color: rgba(124, 58, 237, 0.22); }
+.badge-top-rated i   { color: #7c3aed; }
+.badge-fast-response { background: rgba(22, 163, 74, 0.10); color: #15803d; border-color: rgba(22, 163, 74, 0.22); }
+.badge-fast-response i { color: #16a34a; }
+.badge-phone-verified { background: rgba(8, 145, 178, 0.10); color: #0e7490; border-color: rgba(8, 145, 178, 0.22); }
+.badge-phone-verified i { color: #0891b2; }
+
+/* --- مستويات الصنايعي (بند 17 - Gamification) - نفس مكوّن .badge الموحّد،
+   ألوان منفصلة عن شارات التوثيق عشان محدش يلخبط بينهم --- */
+.badge-level-new    { background: rgba(100, 116, 139, 0.10); color: #475569; border-color: rgba(100, 116, 139, 0.20); }
+.badge-level-new i  { color: #64748b; }
+.badge-level-pro    { background: rgba(13, 148, 136, 0.10); color: #0f766e; border-color: rgba(13, 148, 136, 0.24); }
+.badge-level-pro i  { color: #0d9488; }
+.badge-level-expert { background: rgba(79, 70, 229, 0.10); color: #4338ca; border-color: rgba(79, 70, 229, 0.24); }
+.badge-level-expert i { color: #4f46e5; }
+.badge-level-elite  { background: linear-gradient(135deg, #061A3D, #92400e); color: #fff; border-color: transparent; }
+.badge-level-elite i { color: #fbbf24; }
+
+/* نسخة صغيرة جدًا (أيقونة فقط) بتتحط جنب الاسم داخل المحتوى - بتظهر بس من
+   "محترف" فما فوق عشان معندهاش زحمة على أغلب الكروت (اللي لسه "جديد").
+   ما عادتش Overlay فوق الصورة. */
+.svc-level-tag {
+  flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; opacity: .8;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 6.5px; color: #fff;
+}
+.svc-level-tag.svc-level-pro { background: #0d9488; }
+.svc-level-tag.svc-level-expert { background: #4f46e5; }
+.svc-level-tag.svc-level-elite { background: linear-gradient(135deg, #061A3D, #d97706); }
+
+/* --- الكارت العام --- */
+.card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+}
+
+/* --- عنوان قسم --- */
+.section-title {
+  font-size: var(--font-size-xl); font-weight: 900; color: var(--text-primary);
+  margin: 0 0 var(--space-4); line-height: var(--line-height-tight);
+}
+
+/* --- حقول الإدخال --- */
+.input {
+  width: 100%; box-sizing: border-box; padding: 13px 16px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  font-family: inherit; font-size: var(--font-size-base); font-weight: 700;
+  background: var(--color-surface-soft); color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--duration-base) ease, background var(--duration-base) ease, box-shadow var(--duration-base) ease;
+}
+.input:focus { border-color: var(--blue); background: var(--color-surface); box-shadow: 0 0 0 4px rgba(29,78,216,0.10); }
+.input::placeholder { color: var(--text-muted); }
+
+.form-label {
+  display: block; margin-bottom: var(--space-2);
+  font-weight: 800; font-size: var(--font-size-sm); color: var(--text-secondary);
+}
+
+/* --- حالة فارغة --- */
+.empty-state {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); padding: 40px 20px; text-align: center;
+  color: var(--text-muted); font-weight: 800;
+}
+.empty-state i { font-size: 34px; margin-bottom: 12px; display: block; color: var(--color-border); }
+.empty-state h3 { margin: 10px 0 6px; font-size: 17px; font-weight: 900; color: var(--text-primary); }
+.empty-state p { margin: 0 0 14px; font-size: 13px; font-weight: 700; color: var(--text-muted); line-height: 1.5; }
+.empty-state-cta { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1.5px solid var(--color-border); background: var(--color-surface-soft); color: var(--text-primary); border-radius: var(--radius-md); font-family: inherit; font-size: 13px; font-weight: 900; text-decoration: none; cursor: pointer; transition: 0.2s ease; }
+.empty-state-cta:hover { background: var(--color-surface); border-color: var(--color-primary); }
+.empty-state-cta i { font-size: 12px; }
+
+/* --- Skeleton (حالة تحميل) --- */
+.skeleton {
+  position: relative; overflow: hidden; border-radius: var(--radius-md);
+  background-image: linear-gradient(90deg, var(--color-surface-soft) 0%, var(--color-border) 50%, var(--color-surface-soft) 100%);
+  background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* Header */
 .site-header {
@@ -67,7 +314,7 @@ button, input, select, textarea { font-family: inherit; }
 .mobile-nav a { padding: 12px 14px; border-radius: 14px; color: #fff !important; background: rgba(255,255,255,.08) !important; font-weight: 900; }
 
 /* Footer */
-.footer { background: var(--primary); color: #fff; }
+.footer { background: #0f172a; color: #fff; }
 .footer-content { padding: 32px 0 26px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 .footer-brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .footer-logo { width: 34px; height: 34px; border-radius: 11px; display: block; }
@@ -84,14 +331,179 @@ button, input, select, textarea { font-family: inherit; }
 .footer-bottom-content a { color: rgba(255,255,255,.72); font-size: 12px; font-weight: 800; }
 .footer-bottom-content a:hover { color: #fff; }
 
+/* جرس الإشعارات (بند 22.7) - مكوّن عام يتحمّل بأي هيدر فيه #notifBellSlot */
+.notif-bell-btn {
+  position: relative; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.10); color: #fff; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.notif-bell-badge {
+  position: absolute; top: -3px; left: -3px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
+  background: var(--color-error); color: #fff; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid var(--sanay3i-navy);
+}
+/* أيقونة الدعم مميّزة بصريًا عن جرس الإشعارات (نفس الحجم، لون مختلف بسيط) */
+.support-bell-btn {
+  background: rgba(37,99,235,.16); border-color: rgba(147,197,253,.35);
+  min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  pointer-events: auto; touch-action: manipulation;
+}
+.support-bell-btn:hover { background: rgba(37,99,235,.26); }
+.support-bell-btn #supportBellBadge { pointer-events: none; }
+.notif-panel {
+  display: none; position: absolute; top: 60px; left: 12px; right: 12px; max-width: 360px; margin-inline-start: auto;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  z-index: 3100; max-height: 70vh; overflow: hidden; display: none; flex-direction: column;
+}
+.notif-panel.show { display: flex; }
+.notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
+.notif-panel-head strong { color: var(--text-primary); font-size: 14px; }
+.notif-panel-head button { background: none; border: 0; color: var(--color-primary); font-weight: 800; font-size: 12px; cursor: pointer; }
+.notif-panel-list { overflow-y: auto; }
+.notif-item { padding: 12px 16px; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+.notif-item:last-child { border-bottom: 0; }
+.notif-item:hover { background: var(--color-surface-soft); }
+.notif-item.unread { background: rgba(37,99,235,.05); position: relative; }
+.notif-item.unread::before { content: ""; position: absolute; top: 16px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--color-primary); }
+.notif-item-title { font-weight: 900; color: var(--text-primary); font-size: 13px; padding-inline-end: 12px; }
+.notif-item-body { color: var(--text-muted); font-size: 12px; margin-top: 3px; }
+.notif-item-time { color: var(--text-muted); font-size: 10.5px; margin-top: 5px; }
+@media (max-width: 400px) { .notif-panel { top: 56px; left: 8px; right: 8px; max-width: none; } }
+
+/* مركز خدمة العملاء - Modal/Dialog حقيقي متمركز نص الشاشة (بند 22.8.2).
+   نظام تمركز واحد بس في كل المقاسات: الـoverlay بيعمل التمركز بالكامل عبر
+   CSS Grid (display:grid; place-items:center)، والـmodal نفسه position:relative
+   عادي جوه الـgrid - مفيش أي top/left/transform أو bottom:0 على الـmodal
+   ولا أي media query بيغيّر مكانه. أبعاد الـmodal بس (width/max-width) هي
+   اللي بتختلف حسب الشاشة. الحالة المقفولة لازم تكون فعلاً غير قابلة للتفاعل
+   (pointer-events:none) عشان أي عنصر شفاف مايقفلش على كليكات الصفحة قبل
+   الفتح الفعلي. */
+.support-overlay {
+  position: fixed; inset: 0; z-index: 5100;
+  display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+  background: rgba(7,20,45,.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  opacity: 0; visibility: hidden; pointer-events: none; overflow: hidden;
+  transition: opacity 160ms ease, visibility 160ms ease;
+}
+.support-overlay.show { opacity: 1; visibility: visible; pointer-events: auto; }
+
+.support-modal {
+  position: relative; z-index: 5200; display: flex; flex-direction: column;
+  background: var(--color-surface); box-shadow: 0 24px 70px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.10);
+  border-radius: 22px; overflow: hidden;
+  width: min(92vw, 560px); max-height: min(82dvh, 720px); max-height: min(82vh, 720px);
+  opacity: 0; transition: opacity 160ms ease;
+}
+.support-overlay.show .support-modal { opacity: 1; animation: fade-in-simple 180ms ease; }
+
+@media (max-width: 430px) {
+  .support-modal { width: calc(100vw - 32px); max-width: 420px; }
+}
+
+/* هيدر ثابت (أيقونة سماعة + عنوان + زرار إغلاق) - مايتحركش مع سكرول المحتوى */
+.support-modal-header {
+  flex: 0 0 auto; min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 18px; border-bottom: 1px solid var(--color-border);
+}
+.support-modal-header-title { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 900; color: var(--text-primary); margin: 0; }
+.support-modal-header-title i { color: var(--color-primary); font-size: 15px; }
+.support-modal-header-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.support-modal-back-btn {
+  border: 0; background: none; color: var(--color-primary); font-weight: 900; font-size: 14px; cursor: pointer;
+  min-width: 36px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; padding: 0;
+}
+.support-modal-close-btn {
+  border: 0; background: var(--color-surface-soft); color: var(--text-secondary); cursor: pointer;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; font-size: 16px;
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+
+/* منطقة المحتوى - هي الوحيدة اللي بتسكرول جوه الـmodal */
+.support-modal-body {
+  flex: 1 1 auto; min-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.support-modal-intro { margin: 2px 0 16px; }
+.support-modal-intro h4 { margin: 0 0 5px; font-size: 16px; font-weight: 900; color: var(--text-primary); }
+.support-modal-intro p { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--text-muted); line-height: 1.6; }
+
+.support-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 900; color: var(--text-primary); margin: 0 0 12px; }
+
+/* بطاقات إجراءات احترافية (أيقونة + عنوان + وصف صغير + سهم) بدل الأزرار
+   المسطّحة القديمة */
+.support-modal-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg, 16px); background: var(--color-surface);
+  box-shadow: var(--shadow-xs); color: var(--text-primary); font-family: inherit; text-decoration: none;
+  cursor: pointer; margin-bottom: 10px; text-align: right; transition: box-shadow .15s ease, transform .15s ease;
+}
+.support-modal-item:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.support-modal-item:last-child { margin-bottom: 0; }
+.support-modal-item-icon {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
+  font-size: 17px; background: var(--color-surface-soft); color: var(--color-primary);
+}
+.support-modal-item-text { flex: 1 1 auto; min-width: 0; }
+.support-modal-item-text strong { display: block; font-size: 13.5px; font-weight: 900; color: var(--text-primary); }
+.support-modal-item-text small { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 700; color: var(--text-muted); }
+.support-modal-item-arrow { flex: 0 0 auto; color: var(--text-muted); font-size: 15px; }
+
+.support-modal-back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--color-primary); font-weight: 900; font-size: 13px; cursor: pointer; min-height: 44px; padding: 0 4px; margin-bottom: 6px; }
+.support-empty { text-align: center; padding: 30px 10px; color: var(--text-muted); font-weight: 700; font-size: 13px; }
+.support-empty i { font-size: 26px; display: block; margin-bottom: 10px; color: var(--color-border); }
+
+.support-ticket-form { display: grid; gap: 12px; }
+.support-ticket-form label { display: block; font-size: 12.5px; font-weight: 900; color: var(--text-secondary); }
+.support-ticket-form input, .support-ticket-form select, .support-ticket-form textarea {
+  width: 100%; margin-top: 6px; border: 1px solid var(--color-border); border-radius: 12px; padding: 11px 13px;
+  font-family: inherit; font-size: 13.5px; font-weight: 700; background: var(--color-surface-soft); color: var(--text-primary); box-sizing: border-box;
+}
+.support-ticket-form textarea { min-height: 90px; resize: vertical; }
+.support-modal-submit { min-height: 48px; border: 0; border-radius: 14px; background: var(--color-primary); color: #fff; font-family: inherit; font-weight: 900; font-size: 14px; cursor: pointer; }
+.support-ticket-msg { font-size: 12.5px; font-weight: 800; text-align: center; }
+.support-ticket-msg.success { color: var(--color-success); }
+.support-ticket-msg.error { color: var(--color-error); }
+
+.support-tickets-list { display: grid; gap: 8px; }
+.support-ticket-item { position: relative; border: 1px solid var(--color-border); border-radius: 14px; padding: 12px 14px; cursor: pointer; background: var(--color-surface); }
+.support-ticket-item.unread { background: rgba(37,99,235,.05); border-color: rgba(37,99,235,.25); }
+.support-ticket-item.is-closed { opacity: .62; }
+.support-ticket-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.support-ticket-item-top strong { font-size: 13.5px; color: var(--text-primary); }
+.support-ticket-item-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.support-ticket-item-meta, .support-ticket-item-time { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+.support-unread-dot { position: absolute; top: 12px; left: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary); }
+
+.support-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 10.5px; font-weight: 900; white-space: nowrap; }
+.support-status-badge.status-new { background: rgba(37,99,235,.10); color: var(--color-primary); }
+.support-status-badge.status-in_progress { background: rgba(245,158,11,.14); color: #92400e; }
+.support-status-badge.status-resolved { background: rgba(22,163,74,.12); color: #15803d; }
+.support-status-badge.status-closed { background: var(--color-surface-soft); color: var(--text-muted); }
+
+.support-ticket-attach { display: block; margin: 10px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-border); max-width: 160px; }
+.support-ticket-attach img { width: 100%; display: block; }
+
+.support-ticket-msgs { display: flex; flex-direction: column; gap: 10px; max-height: 42vh; overflow-y: auto; padding: 12px 4px; margin: 10px 0; }
+.support-msg { max-width: 78%; padding: 9px 12px; border-radius: 16px; font-size: 13px; line-height: 1.6; }
+.support-msg p { margin: 0; }
+.support-msg-time { display: block; font-size: 9.5px; margin-top: 4px; opacity: .65; }
+.support-msg.mine { align-self: flex-end; background: var(--color-primary); color: #fff; border-bottom-left-radius: 4px; }
+.support-msg.them { align-self: flex-start; background: var(--color-surface-soft); color: var(--text-primary); border-bottom-right-radius: 4px; }
+.support-msg-system { align-self: center; background: var(--color-surface-soft); color: var(--text-muted); border-radius: 999px; padding: 5px 12px; font-size: 10.5px; font-weight: 800; }
+
+.support-reply-form { display: flex; gap: 8px; position: sticky; bottom: 0; background: var(--color-surface); padding-top: 8px; padding-bottom: env(safe-area-inset-bottom, 0px); margin-top: 4px; }
+.support-reply-form input { flex: 1; min-height: 46px; border: 1px solid var(--color-border); border-radius: 999px; padding: 0 16px; font-family: inherit; font-size: 13.5px; background: var(--color-surface-soft); color: var(--text-primary); }
+.support-reply-form button { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--color-primary); color: #fff; cursor: pointer; flex-shrink: 0; }
+
+@media (max-width: 400px) { .support-msg { max-width: 88%; } }
+
 /* Toast & Loaders */
 .copy-toast {
-  position: fixed; bottom: 22px; left: 22px; z-index: 3000; background: var(--primary); color: #fff;
+  position: fixed; bottom: 22px; left: 22px; z-index: 3000; background: #0f172a; color: #fff;
   border-radius: 18px; padding: 13px 16px; font-weight: 900; box-shadow: 0 18px 35px rgba(15,23,42,0.22);
   display: none; align-items: center; gap: 9px; max-width: calc(100% - 44px);
 }
 .copy-toast.show { display: flex; }
-.loading-box, .empty-box { background: rgba(255,255,255,.9); border: 1px solid var(--border); border-radius: 26px; padding: 35px 20px; text-align: center; color: var(--muted); font-weight: 800; box-shadow: var(--shadow-sm); }
+.loading-box, .empty-box { background: var(--color-surface); border: 1px solid var(--border); border-radius: 26px; padding: 35px 20px; text-align: center; color: var(--muted); font-weight: 800; box-shadow: var(--shadow-sm); }
 .loading-box { display: flex; flex-direction: column; align-items: center; }
 .spinner { width: 44px; height: 44px; border: 4px solid #dbeafe; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -101,6 +513,92 @@ button, input, select, textarea { font-family: inherit; }
 @media (max-width: 850px) {
   .main-nav, .header-btn { display: none; }
   .mobile-menu-btn { display: flex; }
+}
+
+/* عناصر مساعدة في الهيدر: الموقع الحالي/جرس الإشعارات/Avatar - مكوّن عام
+   قابل لإعادة الاستخدام في أي هيدر يحتاجه (مش مقتصر على site-header-compact) */
+.header-utility { display: flex; align-items: center; gap: 8px; }
+.location-chip {
+  display: flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  color: rgba(241,245,249,.88); font-size: 12.5px; font-weight: 900; white-space: nowrap;
+}
+.location-chip i { color: var(--color-primary-light, #93c5fd); font-size: 12px; }
+.icon-btn, .avatar-btn {
+  width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: #fff;
+  cursor: pointer; font-size: 15px; transition: 0.2s ease; flex-shrink: 0;
+}
+.icon-btn:hover, .avatar-btn:hover { background: rgba(255,255,255,.16); transform: translateY(-1px); }
+.avatar-btn { background: rgba(255,255,255,.14); font-weight: 900; font-size: 14px; }
+.avatar-btn #avatarInitial { text-transform: uppercase; }
+@media (max-width: 640px) {
+  .location-chip span { display: none; }
+  .location-chip { padding: 9px; width: 38px; height: 38px; justify-content: center; }
+  .icon-btn, .avatar-btn, .notif-bell-btn { width: 36px; height: 36px; font-size: 13px; }
+}
+@media (max-width: 400px) {
+  .header-utility { gap: 6px; }
+  .icon-btn, .avatar-btn, .notif-bell-btn { width: 34px; height: 34px; font-size: 12.5px; }
+}
+
+/* هيدر أخف بصريًا (site-header-compact) - مُطبَّق فقط على الصفحات اللي
+   بتحمل الكلاس ده صراحةً (index.html)، فمبيأثرش على هيدر أي صفحة تانية */
+.site-header-compact .header-content { min-height: 68px; }
+@media (max-width: 640px) {
+  .site-header-compact .header-content { min-height: 58px; }
+  .site-header-compact .brand-logo-frame { width: 42px; height: 42px; border-radius: 14px; }
+  .site-header-compact .brand-text h1 { font-size: 16px; }
+  .site-header-compact .brand-text span { font-size: 10px; margin-top: 2px; }
+  .site-header-compact .mobile-menu-btn { width: 38px; height: 38px; border-radius: 12px; font-size: 15px; }
+}
+
+/* =========================================================
+   Bottom Navigation - تنقل سفلي ثابت للموبايل فقط (أقل من 768px)،
+   مكوّن عام قابل لإعادة الاستخدام (زي باقي مكوّنات Design System)
+   ========================================================= */
+.bottom-nav { display: none; }
+
+@media (max-width: 767px) {
+  .bottom-nav {
+    display: flex; align-items: stretch; justify-content: space-around;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 2500;
+    background: var(--color-surface); backdrop-filter: blur(14px);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -10px 24px rgba(15,23,42,0.08);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 6px 2px; border-radius: var(--radius-md); min-width: 0;
+    color: var(--text-muted); font-size: 9.5px; font-weight: 800;
+    transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
+  }
+  .bottom-nav-item i { font-size: 16px; }
+  .bottom-nav-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .bottom-nav-item.active { color: var(--color-primary); }
+  .bottom-nav-item:active { background: var(--color-surface-soft); }
+
+  /* عنصر معطّل بصريًا (المفضلة - لسه مفيهاش منطق حقيقي) - مش قابل للضغط،
+     ومفيهوش أي تفاعل Active/Hover عشان الرسالة تكون واضحة إنه "قريبًا" */
+  .bottom-nav-item-disabled { color: #cbd5e1; cursor: not-allowed; pointer-events: none; }
+
+  /* الزر المركزي البارز "+ اطلب صنايعي" - عائم فوق الشريط بالظبط في النص،
+     نفس منطق التنقل الحالي (رابط عادي لقسم الصنايعية الحقيقي بالرئيسية)،
+     من غير أي Endpoint أو منطق طلب جديد */
+  .bottom-nav-fab {
+    position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+    width: 50px; height: 50px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 19px;
+    box-shadow: 0 10px 22px rgba(6,26,61,0.32); border: 3px solid #fff;
+  }
+  .bottom-nav-fab:active { transform: translateX(-50%) scale(0.94); }
+
+  /* عشان الشريط الثابت ميغطيش آخر محتوى - بس للصفحات اللي فعليًا فيها
+     bottom-nav (عن طريق body.has-bottom-nav)، من غير أي تأثير على أي
+     صفحة تانية بتحمّل global.css ومفيهاش bottom-nav خالص */
+  body.has-bottom-nav { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 640px) {
   .footer-content { display: block; text-align: center; padding: 20px 0 16px; }
@@ -116,6 +614,194 @@ button, input, select, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   html { scroll-behavior: auto; }
+}
+
+/* =========================================================
+   Service Card (.svc-card) - كارت الصنايعي الموحّد الجديد، مصمّم من الصفر
+   ومُستخدم في كل مكان بيعرض صنايعي كـكارت: الرئيسية، بالقرب منك، المفضلة،
+   المشابهين. 3 مناطق واضحة بس: Header (صورة+هوية+قلب) / شارات (سطر واحد،
+   حد أقصى 2) / Footer (زرار أساسي + اتصال). مكوّن عام هنا في global.css
+   عشان يتحمّل في كل صفحة محتاجاه (index/worker/favorites) بدون تكرار
+   ========================================================= */
+@keyframes svc-card-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.svc-card {
+  position: relative;
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 11px 11px 0; box-shadow: var(--shadow-xs); cursor: pointer; overflow: hidden;
+  transition: transform var(--duration-base) ease, box-shadow var(--duration-base) ease, border-color var(--duration-base) ease;
+  animation: svc-card-fade-in 220ms ease both;
+}
+.svc-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); border-color: rgba(37,99,235,.22); }
+.svc-card:active { transform: scale(0.985); }
+.svc-card.featured-card { border-color: rgba(245,158,11,.4); }
+.svc-card.verified-card { border-color: rgba(34,197,94,.28); }
+
+/* Body: صورة (يمين، أول عنصر في DOM) + هوية (رأسي) - Flex بسيط بيعتمد على
+   dir="rtl" الأصلي للصفحة (أول عنصر في DOM = أقصى اليمين تلقائيًا)، بدون
+   أي حيلة Grid/direction إضافية ممكن تقلب الترتيب غلط */
+.svc-card-header {
+  display: flex; align-items: center; gap: 10px; padding-bottom: 3px;
+}
+
+.svc-card-avatar { position: relative; width: 64px; height: 64px; border-radius: var(--radius-md); overflow: hidden; flex-shrink: 0; background: #dbeafe; }
+.svc-card-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.svc-card-identity { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-inline-end: 32px; }
+.svc-card-name {
+  margin: 0; font-size: 14.5px; font-weight: 900; color: var(--text-primary); line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.svc-card-name span { overflow: hidden; text-overflow: ellipsis; }
+.svc-card-trade {
+  font-size: 11.5px; font-weight: 800; color: var(--color-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.svc-card-info {
+  display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden;
+}
+.svc-card-info i { color: var(--color-primary); font-size: 9.5px; }
+.svc-card-info .svc-dot { color: var(--color-border); font-weight: 400; }
+/* سطر خفيف واحد: تقييم (لو موجود) + حالة التوفر بجانبه - نص خفيف صغير مش
+   Badge ضخمة، بيستغل الفراغ تحت المنطقة من غير ما ياخد وزن بصري أكبر من الاسم */
+.svc-card-info-light { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: var(--text-muted); opacity: .9; }
+.svc-card-info-light i { color: var(--gold); font-size: 9.5px; }
+.svc-avail-chip { display: inline-flex; align-items: center; gap: 4px; }
+.svc-avail-chip .avail-dot { width: 6px; height: 6px; }
+
+/* زر المفضلة - عنصر صغير واحد بس أعلى يسار الكارت، خارج صف الاسم/الصورة تمامًا */
+.svc-fav-btn {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--color-border);
+  background: var(--color-surface); color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer; box-shadow: var(--shadow-xs);
+  transition: transform var(--duration-fast) ease, background var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+.svc-fav-btn:hover { transform: scale(1.06); }
+.svc-fav-btn:active { transform: scale(0.9); }
+.svc-fav-btn.svc-fav-active { background: rgba(220,38,38,0.10); border-color: rgba(220,38,38,0.25); color: var(--color-error); }
+.svc-fav-btn.svc-fav-active i { font-weight: 900; }
+@keyframes fav-pop { 0% { transform: scale(1); } 45% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.fav-pop { animation: fav-pop 200ms ease; }
+.svc-card-removing { animation: svc-card-fade-out 180ms ease forwards; }
+@keyframes svc-card-fade-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.94); } }
+
+/* شارة واحدة أساسية غالبًا (verified > featured > top-rated) - صف أفقي واحد
+   بدون Stack رأسي أبدًا، وارتفاع صغير جدًا (20-22px) */
+.svc-card-badges.badge-row { display: flex; flex-wrap: nowrap; overflow: hidden; gap: 3px; margin: 0 0 3px; height: 17px; }
+.svc-card-badges.badge-row .badge { height: 17px; box-sizing: border-box; display: inline-flex; align-items: center; font-size: 8.5px; font-weight: 700; padding: 0 6px; gap: 2px; white-space: nowrap; flex-shrink: 0; }
+.svc-card-badges.badge-row .badge i { font-size: 7.5px; }
+
+/* Footer: صف مستقل كامل العرض، مفصول بخط علوي، زرار واضح نصّي + زرار اتصال
+   بنص وأيقونة سوا - مش أيقونة لوحدها */
+.svc-card-footer {
+  display: flex; align-items: stretch;
+  min-height: 40px; margin: 0 -11px; border-top: 1px solid var(--color-border);
+  /* .svc-card نفسه overflow:hidden + border-radius، فمحتاجينش أي border-radius
+     يدوي هنا - الزوايا السفلية بتتقصّ تلقائيًا مع حواف الكارت */
+}
+.svc-btn-primary {
+  flex: 0 0 62%; border: 0; cursor: pointer;
+  background: var(--color-primary); color: #fff; font-family: inherit; font-weight: 900; font-size: 13px;
+  border-inline-end: 1px solid rgba(255,255,255,.16);
+}
+.svc-btn-primary:hover { background: var(--color-primary-dark); }
+.svc-btn-call {
+  flex: 1; border: 0;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(34, 197, 94, 0.10); color: var(--green); font-family: inherit; font-weight: 900; font-size: 12.5px;
+}
+.svc-btn-call.disabled { opacity: .5; pointer-events: none; }
+
+/* Mobile-only: الأسطر الفرعية (trade/info/info-light) كانت بتورث
+   line-height:1.6 من الـbody بدل ما يكون لها line-height خاص بيها - ده كان
+   بيضيف صندوق سطر أعلى من ارتفاع النص الفعلي على كل سطر (فراغ غير مرئي
+   داخل كل سطر نص)، وهو السبب الحقيقي للفراغ الرأسي اللي مكنش بيتحل بمجرد
+   تقليل padding/margin. الحل هنا: line-height ضيق لكل سطور الهوية +
+   تقليل إضافي لأي ارتفاع إجباري (avatar/header/badges/footer) على الموبايل
+   فقط، من غير ما نلمس نص أصغر من المقروء. */
+@media (max-width: 430px) {
+  .svc-card { padding: 8px 8px 0; }
+  .svc-card-header { gap: 8px; padding-bottom: 2px; }
+  .svc-card-avatar { width: 52px; height: 52px; }
+  .svc-card-identity { padding-inline-end: 26px; gap: 0; }
+  .svc-card-name { font-size: 13.5px; line-height: 1.15; }
+  .svc-card-trade { font-size: 11px; line-height: 1.15; margin-top: 1px; }
+  .svc-card-info, .svc-card-info-light { font-size: 10px; line-height: 1.15; margin-top: 2px; }
+  .svc-card-badges.badge-row { height: 16px; margin: 2px 0 2px; }
+  .svc-card-badges.badge-row .badge { height: 16px; font-size: 8px; padding: 0 5px; }
+  .svc-card-footer { margin: 0 -8px; min-height: 36px; }
+  .svc-btn-primary, .svc-btn-call { font-size: 12px; }
+  .svc-fav-btn { top: 7px; left: 7px; width: 23px; height: 23px; font-size: 10px; }
+}
+
+/* Skeleton Loading (Step 18) - Shimmer placeholders matching .svc-card shape */
+.svc-card-skeleton {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: 12px; box-shadow: var(--shadow-xs);
+}
+.svc-card-skeleton .svc-card-header {
+  display: flex; align-items: center; gap: 10px;
+}
+.svc-card-skeleton .svc-card-avatar {
+  width: 60px; height: 60px; border-radius: var(--radius-md); flex-shrink: 0; background: var(--color-surface-soft);
+  overflow: hidden;
+}
+.svc-card-skeleton .svc-card-avatar::before {
+  content: ""; display: block; width: 100%; height: 100%; background-image: linear-gradient(90deg, var(--color-surface-soft) 0%, var(--color-border) 50%, var(--color-surface-soft) 100%);
+  background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.svc-card-skeleton .svc-card-identity {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;
+}
+.svc-card-skeleton .svc-card-name,
+.svc-card-skeleton .svc-card-trade,
+.svc-card-skeleton .svc-card-info {
+  margin: 0; height: 12px; border-radius: 4px; background-image: linear-gradient(90deg, var(--color-surface-soft) 0%, var(--color-border) 50%, var(--color-surface-soft) 100%);
+  background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.svc-card-skeleton .svc-card-name { height: 14px; width: 85%; }
+.svc-card-skeleton .svc-card-trade { height: 11px; width: 70%; }
+.svc-card-skeleton .svc-card-info { height: 10px; width: 60%; }
+.svc-card-skeleton .svc-fav-btn {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background-image: linear-gradient(90deg, var(--color-surface-soft) 0%, var(--color-border) 50%, var(--color-surface-soft) 100%);
+  background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; border: 0;
+}
+.svc-card-skeleton .svc-card-badges {
+  display: flex; gap: 4px; height: 18px; margin-bottom: 0;
+}
+.svc-card-skeleton .badge {
+  flex: 0 0 50px; height: 18px; border-radius: 12px; background-image: linear-gradient(90deg, var(--color-surface-soft) 0%, var(--color-border) 50%, var(--color-surface-soft) 100%);
+  background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; border: 0;
+}
+.svc-card-skeleton .svc-card-footer {
+  display: flex; align-items: center; gap: 6px;
+}
+.svc-card-skeleton .svc-btn-primary,
+.svc-card-skeleton .svc-btn-call {
+  height: 30px; border-radius: var(--radius-sm); background-image: linear-gradient(90deg, var(--color-surface-soft) 0%, var(--color-border) 50%, var(--color-surface-soft) 100%);
+  background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; border: 0;
+}
+.svc-card-skeleton .svc-btn-primary { flex: 1; }
+.svc-card-skeleton .svc-btn-call { width: 30px; flex-shrink: 0; }
+@media (max-width: 400px) {
+  .svc-card-skeleton { padding: 10px; gap: 7px; }
+  .svc-card-skeleton .svc-card-avatar { width: 50px; height: 50px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .svc-card-skeleton .svc-card-name,
+  .svc-card-skeleton .svc-card-trade,
+  .svc-card-skeleton .svc-card-info,
+  .svc-card-skeleton .svc-fav-btn,
+  .svc-card-skeleton .badge,
+  .svc-card-skeleton .svc-btn-primary,
+  .svc-card-skeleton .svc-btn-call,
+  .svc-card-skeleton .svc-card-avatar::before {
+    animation: none !important; background-position: 0 !important;
+  }
 }
 
 /* =========================================================
@@ -277,14 +963,17 @@ button, input, select, textarea { font-family: inherit; }
 /* =========================================================
    بوابة تسجيل العميل البسيطة (اسم + رقم) قبل إظهار وسائل التواصل
    ========================================================= */
+@keyframes fade-scale-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes fade-in-simple { from { opacity: 0; } to { opacity: 1; } }
 .gate-modal-overlay {
   position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 4300;
   display: none; align-items: center; justify-content: center; padding: 18px;
 }
-.gate-modal-overlay.show { display: flex; }
+.gate-modal-overlay.show { display: flex; animation: fade-in-simple 180ms ease; }
 .gate-modal-box {
-  width: min(420px, 100%); background: #fff; border-radius: 24px; padding: 26px;
+  width: min(420px, 100%); background: var(--color-surface); border-radius: 24px; padding: 26px;
   text-align: center; box-shadow: var(--shadow-lg);
+  animation: fade-scale-in 200ms ease;
 }
 .gate-modal-icon {
   width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 18px;

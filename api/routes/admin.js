@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
-const { supabase, isSupabaseReady } = require("../config/supabase");
+const { supabase, isSupabaseReady, SUPABASE_ID_BUCKET } = require("../config/supabase");
+const { createNotification } = require("../utils/notifications");
 const { today, addMonths, bool, clientIp, makeRegistrationCode } = require("../utils/helpers");
 const {
   requirePermission,
@@ -561,7 +562,7 @@ router.put("/reports/:id", requirePermission("reports:manage"), async (req, res)
 // محتوى الطلب أو تقييم العميل). نفس صلاحيات البلاغات (reports:*) لأنها أقرب
 // عمليًا لطبيعة المتابعة التشغيلية اليومية دي.
 // ===============================
-const SR_ADMIN_COLUMNS = "id, worker_id, customer_id, customer_name, customer_phone, description, status, created_at, updated_at, accepted_at, completed_at, rejected_reason";
+const SR_ADMIN_COLUMNS = "id, worker_id, customer_id, customer_name, customer_phone, description, status, scheduling_type, scheduled_at, created_at, updated_at, accepted_at, completed_at, rejected_reason";
 
 // انتقالات منطقية فقط + cancelled كإجراء إداري إضافي من أي حالة نشطة (مش موجود
 // في مسار الصنايعي العادي) - الحالات النهائية (completed/rejected/cancelled) مفيهاش رجوع
@@ -569,6 +570,14 @@ const ADMIN_SR_TRANSITIONS = {
   new: ["accepted", "rejected", "cancelled"],
   accepted: ["in_progress", "cancelled"],
   in_progress: ["completed", "cancelled"]
+};
+
+const SR_ADMIN_STATUS_NOTIFY = {
+  accepted: { title: "تم قبول طلبك", body: "الصنايعي وافق على تنفيذ طلب الخدمة." },
+  in_progress: { title: "بدأ تنفيذ طلبك", body: "الصنايعي بدأ العمل على طلب الخدمة." },
+  completed: { title: "اكتمل طلبك", body: "تم إنجاز طلب الخدمة، يمكنك الآن تقييم الصنايعي." },
+  rejected: { title: "تم رفض طلبك", body: "الصنايعي اعتذر عن تنفيذ طلب الخدمة." },
+  cancelled: { title: "تم إلغاء طلبك", body: "تم إلغاء طلب الخدمة." }
 };
 
 async function attachReviewFlags(rows) {
@@ -613,6 +622,34 @@ router.get("/service-requests", requirePermission("reports:read"), async (req, r
   }
 });
 
+// مرفقات طلب خدمة للإدارة (بند 22.4) - نفس منطق getServiceRequestAttachments
+// في api/routes/serviceRequests.js بالضبط (Signed URL قصيرة الصلاحية، نفس
+// الـBucket)، بس من غير تقييد "صاحب الطلب" لأن الإدارة تقدر تشوف أي طلب
+router.get("/service-requests/:id/attachments", requirePermission("reports:read"), async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const requestId = Number(req.params.id);
+    if (!requestId) return res.status(400).json({ success: false, error: "معرف الطلب غير صحيح" });
+
+    const { data: rows, error: listErr } = await supabase
+      .from("service_request_attachments")
+      .select("id, file_path, media_type, created_at")
+      .eq("service_request_id", requestId)
+      .order("created_at", { ascending: true });
+    if (listErr) throw listErr;
+
+    const attachments = [];
+    for (const row of (rows || [])) {
+      const { data: signedData } = await supabase.storage.from(SUPABASE_ID_BUCKET).createSignedUrl(row.file_path, 300);
+      if (signedData?.signedUrl) attachments.push({ id: row.id, media_type: row.media_type, url: signedData.signedUrl });
+    }
+
+    res.json({ success: true, attachments });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message || "تعذر جلب المرفقات" });
+  }
+});
+
 router.patch("/service-requests/:id/status", requirePermission("reports:manage"), async (req, res) => {
   if (!isSupabaseReady(res)) return;
   try {
@@ -626,7 +663,7 @@ router.patch("/service-requests/:id/status", requirePermission("reports:manage")
 
     const { data: current, error: fetchErr } = await supabase
       .from("service_requests")
-      .select("id, worker_id, customer_name, status")
+      .select("id, worker_id, customer_id, customer_name, status")
       .eq("id", requestId)
       .maybeSingle();
     if (fetchErr) throw fetchErr;
@@ -660,6 +697,14 @@ router.patch("/service-requests/:id/status", requirePermission("reports:manage")
       entity_name: current.customer_name,
       details: { from: current.status, to: nextStatus, reason: updates.rejected_reason || null }
     }).catch(() => {});
+
+    if (current.customer_id && SR_ADMIN_STATUS_NOTIFY[nextStatus]) {
+      const n = SR_ADMIN_STATUS_NOTIFY[nextStatus];
+      createNotification({
+        recipientType: "customer", recipientId: current.customer_id, type: "request_" + nextStatus,
+        title: n.title, body: n.body, link: "/my-requests?open=" + requestId
+      });
+    }
 
     res.json({ success: true, request: updated });
   } catch (e) {

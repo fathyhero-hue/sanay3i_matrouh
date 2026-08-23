@@ -1,0 +1,274 @@
+/* =========================================================
+   Account / Auth / Requests - أنماط مشتركة لصفحات العميل
+   (customer-auth, account, my-requests, reset-password)
+   يستخدم Design Tokens من global.css فقط - بدون أي متغيرات
+   ألوان جديدة أو Design System موازٍ. عناصر الهيدر والفوتر
+   والـbottom-nav وكل شيء عام موجود بالفعل في global.css.
+   ========================================================= */
+
+/* --- هيكل الصفحات المتمركزة (تسجيل الدخول/الحساب/إعادة التعيين) --- */
+.auth-page-body {
+  display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+}
+.auth-main {
+  flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.login-card {
+  width: 100%; max-width: 420px; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-6); box-shadow: var(--shadow-lg);
+}
+
+.login-icon {
+  width: 60px; height: 60px; margin: 0 auto var(--space-4); border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-primary), var(--blue));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 23px; box-shadow: 0 14px 28px rgba(6, 26, 61, 0.26);
+}
+
+.login-title { text-align: center; margin: 0 0 6px; font-size: var(--font-size-xl); font-weight: 900; color: var(--text-primary); }
+.login-subtitle { text-align: center; margin: 0 0 var(--space-5); font-size: 13px; color: var(--text-muted); font-weight: 700; line-height: var(--line-height-relaxed); }
+
+.session-check-box { text-align: center; padding: var(--space-4) 0; }
+.session-check-box i { font-size: 26px; color: var(--blue); margin-bottom: var(--space-3); display: block; }
+.session-check-box p { color: var(--text-muted); font-weight: 800; margin: 0; }
+
+/* --- التبويبات (دخول / حساب جديد) --- */
+.tabs { display: flex; gap: 8px; background: var(--color-surface-soft); border-radius: var(--radius-full); padding: 5px; margin-bottom: var(--space-5); }
+.tab-btn {
+  flex: 1; border: none; background: transparent; padding: 10px 8px; border-radius: var(--radius-full);
+  font-family: inherit; font-weight: 800; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: background var(--duration-base) ease, color var(--duration-base) ease;
+}
+.tab-btn.active { background: var(--color-surface); color: var(--color-primary); box-shadow: var(--shadow-xs); }
+
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+
+/* --- الفورمات: حقول كبيرة ومريحة للموبايل --- */
+.form-group { margin-bottom: var(--space-4); }
+.form-group label { display: block; margin-bottom: 7px; font-weight: 800; font-size: 13px; color: var(--text-secondary); }
+.input-wrap { position: relative; }
+.input-wrap i { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); color: var(--blue); font-size: 15px; pointer-events: none; }
+.input-wrap input {
+  width: 100%; min-height: 50px; padding: 13px 44px 13px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  font-family: inherit; font-size: 15px; background: var(--color-surface-soft); outline: none; color: var(--text-primary);
+  transition: border-color var(--duration-base) ease, background var(--duration-base) ease, box-shadow var(--duration-base) ease;
+  box-sizing: border-box;
+}
+.input-wrap input:focus { border-color: var(--blue); background: var(--color-surface); box-shadow: 0 0 0 4px rgba(29,78,216,0.10); }
+
+.btn-block { width: 100%; min-height: 50px; margin-top: 4px; font-size: 15px; }
+
+.status-msg { margin-top: var(--space-4); font-size: 13px; text-align: center; font-weight: 800; line-height: var(--line-height-relaxed); min-height: 0; }
+.status-msg.error { color: var(--color-error); }
+.status-msg.success { color: var(--color-success); }
+
+.signup-hints { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--color-border); text-align: center; }
+.signup-hints p { margin: 0 0 10px; font-size: 12px; color: var(--text-muted); font-weight: 800; }
+.signup-hints .hint-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.signup-hints a {
+  font-size: 12px; font-weight: 800; text-decoration: none; color: var(--blue);
+  background: #eff6ff; padding: 8px 14px; border-radius: var(--radius-full); border: 1px solid #dbeafe;
+}
+.signup-hints a:hover { background: #dbeafe; }
+
+.forgot-password-link { display: block; text-align: center; margin-top: 10px; color: var(--blue); font-size: 12.5px; font-weight: 800; text-decoration: none; }
+.forgot-password-link:hover { text-decoration: underline; }
+
+.back-home { display: block; text-align: center; margin-top: var(--space-5); color: var(--text-muted); font-size: 13px; font-weight: 800; text-decoration: none; }
+.back-home:hover { color: var(--color-primary); }
+.back-home i { margin-left: 5px; }
+
+/* =========================================================
+   صفحة "طلباتي" / Account Hub
+   ========================================================= */
+.account-header-content { justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 8px 0; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.header-btn-ghost, .logout-btn {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff;
+  min-height: 40px; padding: 0 16px; border-radius: var(--radius-full); font-family: inherit; font-weight: 800; font-size: 12.5px;
+  cursor: pointer; display: flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap;
+}
+.header-btn-ghost:hover, .logout-btn:hover { background: rgba(255,255,255,0.18); }
+.logout-btn.danger { background: rgba(220,38,38,0.25); border-color: rgba(220,38,38,0.4); }
+
+.account-main { flex: 1; width: 100%; max-width: 760px; padding: var(--space-6) var(--space-4) var(--space-8); }
+
+.page-title-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: var(--space-2) 0 4px; }
+.page-title { text-align: center; font-size: var(--font-size-xl); font-weight: 900; margin: 0; }
+.refresh-btn {
+  background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-primary);
+  min-height: 38px; padding: 0 16px; border-radius: var(--radius-full); font-family: inherit; font-weight: 800; font-size: 12.5px;
+  cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow-xs);
+}
+.refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
+.refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.page-subtitle { text-align: center; font-size: 13px; color: var(--text-muted); font-weight: 700; margin: 0 0 var(--space-6); }
+
+/* بطاقة بيانات العميل - Account Hub */
+.profile-card {
+  display: flex; align-items: center; gap: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6); box-shadow: var(--shadow-sm);
+}
+.profile-card-icon {
+  width: 46px; height: 46px; border-radius: 50%; flex: none;
+  background: linear-gradient(135deg, var(--color-primary), var(--blue)); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 19px;
+}
+.profile-card-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.profile-card-info strong { font-size: 15px; color: var(--text-primary); }
+.profile-card-info span { font-size: 12.5px; color: var(--text-muted); font-weight: 700; }
+
+/* Toggle المظهر (بند 21) - segmented control بنفس نمط .tabs/.tab-btn
+   الموجود بالفعل، بدون أي مكوّن جديد */
+.theme-toggle-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4); margin-bottom: var(--space-5); box-shadow: var(--shadow-sm);
+}
+.theme-toggle-label { font-size: 13px; font-weight: 800; color: var(--text-secondary); display: flex; align-items: center; gap: 7px; }
+.theme-toggle-tabs { flex: 0 0 auto; margin-bottom: 0; }
+.theme-toggle-tabs .tab-btn { flex: none; padding: 8px 14px; }
+
+.login-required {
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 40px 24px;
+  text-align: center; box-shadow: var(--shadow-sm);
+}
+.login-required i { font-size: 28px; color: var(--blue); margin-bottom: var(--space-3); }
+.login-required p { color: var(--text-muted); font-weight: 700; margin: 10px 0 var(--space-4); }
+.login-required a {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  background: linear-gradient(135deg, var(--color-primary), var(--sanay3i-navy-2));
+  color: #fff; padding: 12px 26px; border-radius: var(--radius-full); font-weight: 900; font-size: 14px;
+}
+
+.loading { text-align: center; padding: 40px; color: var(--text-muted); font-weight: 700; }
+
+/* --- كروت الطلبات --- */
+.request-card {
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5);
+  margin-bottom: var(--space-4); box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.request-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.request-worker { font-weight: 900; font-size: 15px; color: var(--text-primary); }
+.request-worker span { display: block; font-weight: 700; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.request-id { font-size: 11px; color: var(--text-muted); font-weight: 800; margin-top: 4px; }
+
+/* حالات الطلب - نظام Badges موحّد (نفس قيم status الحقيقية من الـBackend) */
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 900; white-space: nowrap; flex: none; }
+.status-new { background: rgba(29,78,216,0.10); color: var(--color-info); }
+.status-accepted { background: rgba(22,163,74,0.12); color: var(--color-success); }
+.status-in_progress { background: rgba(245,158,11,0.14); color: #b45309; }
+.status-completed { background: rgba(124,58,237,0.12); color: #6d28d9; }
+.status-rejected { background: rgba(220,38,38,0.10); color: var(--color-error); }
+.status-cancelled { background: var(--color-surface-soft); color: var(--text-secondary); }
+
+.request-desc { font-size: 13px; color: var(--text-secondary); font-weight: 600; line-height: 1.8; margin: 8px 0; word-break: break-word; }
+.request-meta { font-size: 11.5px; color: var(--text-muted); font-weight: 700; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.request-meta span i { margin-left: 4px; }
+.rejected-reason { margin-top: 10px; font-size: 12px; color: var(--color-error); font-weight: 700; background: #fef2f2; padding: 8px 12px; border-radius: var(--radius-md); word-break: break-word; }
+
+.rate-btn {
+  margin-top: var(--space-3); background: linear-gradient(135deg, var(--gold), #fbbf24); color: #fff; border: none;
+  min-height: 40px; padding: 0 18px; border-radius: var(--radius-full); font-family: inherit; font-weight: 900; font-size: 12px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.rate-btn:hover { transform: translateY(-1px); }
+.review-done-badge { margin-top: var(--space-3); display: inline-flex; align-items: center; gap: 6px; color: var(--color-success); font-weight: 800; font-size: 12px; }
+
+.cancel-request-btn {
+  margin-top: var(--space-3); margin-inline-start: 8px; background: var(--color-surface); color: var(--color-error); border: 1px solid rgba(220,38,38,0.35);
+  min-height: 40px; padding: 0 16px; border-radius: var(--radius-full); font-family: inherit; font-weight: 900; font-size: 12px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.cancel-request-btn:hover { background: #fef2f2; }
+.cancel-request-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.request-detail-btn {
+  margin-top: var(--space-3); display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+  background: var(--color-surface-soft); color: var(--text-primary); border: 1px solid var(--color-border);
+  min-height: 42px; border-radius: var(--radius-md); font-family: inherit; font-weight: 900; font-size: 12.5px; cursor: pointer;
+}
+.request-detail-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* --- مودال تفاصيل الطلب (Timeline) --- */
+.rq-detail-box { width: min(480px, 100%); max-height: 88vh; overflow-y: auto; }
+.rq-detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.rq-detail-head h3 { margin: 0; }
+.rq-detail-close { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--color-surface-soft); color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+
+.rq-timeline { display: flex; flex-direction: column; gap: 0; margin-bottom: var(--space-4); }
+.rq-timeline-step { display: flex; align-items: center; gap: 12px; position: relative; padding-bottom: 20px; }
+.rq-timeline-step:last-child { padding-bottom: 0; }
+.rq-timeline-step:not(:last-child)::before {
+  content: ""; position: absolute; top: 30px; right: 15px; width: 2px; height: calc(100% - 10px);
+  background: var(--color-border);
+}
+.rq-timeline-step.done:not(:last-child)::before { background: var(--color-success); }
+.rq-timeline-dot {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--color-surface-soft); color: var(--text-muted); border: 2px solid var(--color-border); font-size: 12px; z-index: 1;
+}
+.rq-timeline-step.done .rq-timeline-dot { background: var(--color-success); color: #fff; border-color: var(--color-success); }
+.rq-timeline-step span { font-size: 13px; font-weight: 800; color: var(--text-secondary); }
+.rq-timeline-step.done span { color: var(--text-primary); font-weight: 900; }
+.rq-timeline-terminal { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: var(--radius-md); font-weight: 900; font-size: 13px; margin-bottom: var(--space-4); }
+.rq-timeline-rejected { background: #fef2f2; color: var(--color-error); }
+.rq-timeline-cancelled { background: var(--color-surface-soft); color: var(--text-secondary); }
+
+.rq-detail-info { display: grid; gap: 8px; margin-bottom: var(--space-4); }
+.rq-info-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; background: var(--color-surface-soft); border-radius: var(--radius-md); padding: 9px 12px; font-size: 12.5px; }
+.rq-info-row span { color: var(--text-muted); font-weight: 800; flex-shrink: 0; }
+.rq-info-row strong { color: var(--text-primary); font-weight: 900; text-align: left; overflow-wrap: anywhere; }
+.rq-info-desc { flex-direction: column; align-items: stretch; }
+.rq-info-desc strong { text-align: right; margin-top: 4px; }
+
+.rq-detail-section-label { display: block; margin-bottom: 8px; font-size: 12.5px; color: var(--text-primary); }
+.rq-attach-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--space-4); }
+.rq-attach-thumb { width: 68px; height: 68px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--color-border); display: block; }
+.rq-attach-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.rq-detail-actions { display: flex; gap: 10px; }
+.rq-action-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px;
+  border-radius: var(--radius-md); font-weight: 900; font-size: 12.5px; text-decoration: none;
+}
+.rq-call-btn { background: rgba(29,78,216,0.10); color: var(--color-info); }
+.rq-wa-btn { background: rgba(22,163,74,0.10); color: var(--color-success); }
+.rq-action-btn.disabled { opacity: 0.5; pointer-events: none; }
+
+/* --- مودالات (تقييم / حذف الحساب) --- */
+.review-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 4200;
+  display: none; align-items: center; justify-content: center; padding: var(--space-4);
+}
+.review-modal-overlay.show { display: flex; }
+.review-modal-box { width: min(440px, 100%); max-height: 88vh; overflow-y: auto; background: var(--color-surface); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: 0 25px 65px rgba(15,23,42,0.3); }
+.review-modal-box h3 { margin: 0 0 6px; color: var(--text-primary); }
+.review-modal-box p { color: var(--text-muted); font-weight: 700; margin: 0 0 var(--space-4); font-size: 13px; }
+.review-rating-label { display: block; font-size: 12px; font-weight: 900; color: var(--text-secondary); margin-bottom: 5px; }
+.review-modal-box select, .review-modal-box textarea {
+  width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px;
+  margin-bottom: 10px; font-family: inherit; font-weight: 700; outline: none; box-sizing: border-box;
+  background: var(--color-surface-soft); color: var(--text-primary);
+}
+.review-modal-box textarea { min-height: 90px; resize: vertical; }
+.review-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.review-modal-actions button { flex: 1; min-height: 46px; border: 0; border-radius: var(--radius-md); font-weight: 900; cursor: pointer; }
+.review-submit-btn { background: var(--color-primary); color: #fff; }
+.review-cancel-btn { background: var(--color-surface-soft); color: var(--color-primary); }
+.review-modal-message { display: none; margin-top: 10px; border-radius: var(--radius-md); padding: 10px 12px; font-weight: 800; font-size: 13px; }
+.review-modal-message.success { display: block; background: #dcfce7; color: #166534; }
+.review-modal-message.error { display: block; background: #fee2e2; color: #991b1b; }
+
+@media (max-width: 460px) {
+  .login-card { padding: var(--space-6) var(--space-5); border-radius: var(--radius-lg); }
+  .auth-main { padding: var(--space-5) var(--space-3); }
+}
+
+@media (max-width: 400px) {
+  .account-header-content { justify-content: center; }
+}

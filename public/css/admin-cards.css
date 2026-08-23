@@ -1,32 +1,96 @@
 /* =========================================================
+   جدول الصنايعية (Desktop) + كروت مختصرة (Mobile) - بند 22.3
+   نفس إجراءات الإدارة الحالية (data-worker-action) والصلاحيات، بس عرض
+   ملخّص فقط: صورة/اسم/حرفة/منطقة/توثيق/حالة/تقييم/إجراءات. التفاصيل
+   الكاملة (اشتراك/صور أعمال/وصف/توثيق) لسه متاحة عبر أزرار "تعديل"
+   و"مراجعة التوثيق" اللي بتفتح نفس المودالات الأصلية بدون أي تغيير
+   ========================================================= */
+.admin-table-wrap { display: block; overflow-x: auto; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: var(--shadow-sm); }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table thead th { background: var(--bg); color: var(--muted); font-weight: 900; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; padding: 12px 14px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.admin-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--primary); font-weight: 700; }
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table tbody tr:hover { background: rgba(37,99,235,.03); }
+.admin-td-worker { display: flex; align-items: center; gap: 10px; min-width: 190px; }
+.admin-td-worker strong { display: block; font-size: 13.5px; font-weight: 900; color: var(--primary); }
+.admin-td-sub { display: block; color: var(--muted); font-size: 11.5px; font-weight: 700; margin-top: 2px; }
+.admin-table-avatar { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: #dbeafe; flex-shrink: 0; }
+.admin-table .status-badge { white-space: nowrap; }
+
+.admin-row-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.icon-action-btn {
+    width: 32px; height: 32px; border: 0; border-radius: 10px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px;
+    flex-shrink: 0;
+}
+
+.admin-worker-compact-list { display: none; }
+.admin-worker-compact-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 10px;
+    box-shadow: var(--shadow-sm); margin-bottom: 8px;
+}
+.admin-worker-compact-head { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 6px; }
+.admin-worker-compact-info { min-width: 0; flex: 1; }
+.admin-worker-compact-info h4 { margin: 0; font-size: 14px; font-weight: 900; color: var(--primary); }
+.admin-worker-compact-card .admin-table-avatar { width: 50px; height: 50px; border-radius: 14px; }
+.admin-worker-compact-card .status-row { margin: 6px 0; gap: 5px; }
+.admin-worker-compact-card .admin-row-actions { border-top: 1px solid var(--border); padding-top: 10px; }
+.admin-worker-compact-card .icon-action-btn { flex: 1; height: 44px; border-radius: 12px; }
+
+/* أزرار الإجراءات على الكارت المضغوط (موبايل فقط): زر أساسي واحد ("تعديل")
+   + زر "⋮" يفتح قائمة صغيرة فيها باقي الإجراءات الأصلية بالضبط (نفس
+   data-worker-action) بدل عرض 5 أزرار ملونة جنب بعض */
+.admin-card-actions-row { display: flex; gap: 8px; margin-top: 8px; }
+.card-primary-btn {
+    flex: 1; min-height: 38px; border: 0; border-radius: 10px;
+    background: var(--blue); color: #fff; font-weight: 900; font-size: 12.5px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+}
+.card-more-btn {
+    width: 38px; height: 38px; flex-shrink: 0; border: 1px solid var(--border);
+    background: var(--bg); color: var(--primary); border-radius: 10px; font-size: 15px; cursor: pointer;
+}
+.admin-card-actions-menu {
+    display: none; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.admin-worker-compact-card.menu-open .admin-card-actions-menu { display: flex; }
+.admin-card-actions-menu .action-btn { width: 100%; justify-content: flex-start; min-height: 38px; }
+
+@media (max-width: 760px) {
+    .admin-table-wrap { display: none; }
+    .admin-worker-compact-list { display: block; }
+}
+
+/* =========================================================
    ADMIN CARDS & STATS
    ========================================================= */
 .admin-stats-grid, .notifications-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 18px;
 }
 .admin-stat, .notification-card {
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 20px;
+    border-radius: 14px;
+    padding: 14px 16px;
     box-shadow: var(--shadow-sm);
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
-.notification-card { cursor: pointer; transition: .25s ease; }
+.notification-card { cursor: pointer; transition: .2s ease; }
 .notification-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .admin-stat-icon, .notification-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 18px;
     flex-shrink: 0;
 }
 .admin-stat-icon { background: rgba(29, 78, 216, .09); color: var(--blue); }
@@ -34,16 +98,16 @@
 .notification-icon.yellow { background: #fef3c7; color: #92400e; }
 .notification-icon.red { background: #fee2e2; color: #991b1b; }
 .notification-icon.green { background: #dcfce7; color: #166534; }
-.admin-stat h3, .notification-card h4 { font-size: 26px; font-weight: 900; color: var(--primary); line-height: 1.1; }
-.notification-card h4 { font-size: 24px; }
-.admin-stat p, .notification-card p { color: var(--muted); font-size: 13px; font-weight: 800; margin-top: 3px; }
+.admin-stat h3, .notification-card h4 { font-size: 20px; font-weight: 900; color: var(--primary); line-height: 1.1; }
+.notification-card h4 { font-size: 19px; }
+.admin-stat p, .notification-card p { color: var(--muted); font-size: 12px; font-weight: 800; margin-top: 3px; }
 
 .admin-filter-grid {
     display: grid;
-    grid-template-columns: 1fr 190px 190px 190px 190px auto;
-    gap: 12px;
+    grid-template-columns: 1fr 170px 170px 170px 170px auto;
+    gap: 10px;
 }
-.admin-input-wrap { position: relative; height: 54px; }
+.admin-input-wrap { position: relative; height: 44px; }
 .admin-input-wrap i { position: absolute; right: 17px; top: 50%; transform: translateY(-50%); color: var(--blue); }
 .admin-input-wrap input, .admin-input-wrap select {
     width: 100%;
@@ -51,7 +115,7 @@
     border: 1px solid var(--border);
     outline: none;
     background: var(--bg);
-    border-radius: 18px;
+    border-radius: 12px;
     padding: 0 46px 0 14px;
     font-weight: 800;
 }
@@ -89,7 +153,7 @@
 .admin-worker-card, .review-admin-card {
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 24px;
+    border-radius: 16px;
     padding: 16px;
     box-shadow: var(--shadow-sm);
 }
@@ -101,7 +165,7 @@
 .admin-worker-img {
     width: 116px;
     height: 116px;
-    border-radius: 22px;
+    border-radius: 18px;
     object-fit: cover;
     background: #dbeafe;
 }
@@ -179,7 +243,7 @@
 .review-stars { color: #f59e0b; font-weight: 900; font-size: 16px; }
 .review-comment { color: var(--muted); font-weight: 700; line-height: 1.8; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin: 10px 0; }
 
-.admin-worker-actions-direct-v7 { margin-top: 14px; border: 1px solid #dbeafe; background: linear-gradient(135deg, #f8fbff, #f1f7ff); border-radius: 20px; padding: 12px; display: grid; gap: 10px; }
+.admin-worker-actions-direct-v7 { margin-top: 14px; border: 1px solid #dbeafe; background: linear-gradient(135deg, #f8fbff, #f1f7ff); border-radius: 16px; padding: 12px; display: grid; gap: 10px; }
 .admin-worker-actions-direct-v7-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: #0f172a; font-weight: 900; }
 .admin-worker-actions-direct-v7-head small { color: #2563eb; font-size: 12px; font-weight: 900; background: #dbeafe; border-radius: 999px; padding: 5px 9px; }
 .admin-worker-actions-direct-v7-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
@@ -194,14 +258,25 @@
     .admin-worker-actions-direct-v7-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
-    .notifications-grid, .admin-stats-grid { grid-template-columns: 1fr !important; gap: 10px; }
-    .notification-card, .admin-stat { padding: 14px; border-radius: 22px !important; }
+    .notifications-grid, .admin-stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px; }
+    .notification-card, .admin-stat {
+        padding: 10px;
+        border-radius: 12px !important;
+        min-height: 82px;
+        max-height: 92px;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .admin-stat-icon, .notification-icon { width: 32px; height: 32px; border-radius: 9px; font-size: 13px; }
+    .admin-stat h3, .notification-card h4 { font-size: 16px; }
+    .notification-card h4 { font-size: 15px; }
+    .admin-stat p, .notification-card p { font-size: 10px; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
     .admin-filter-grid { grid-template-columns: 1fr !important; gap: 10px; }
     .admin-input-wrap, .admin-input-wrap input, .admin-input-wrap select, .clear-btn { width: 100%; min-width: 0; }
     .quick-filter-pills { gap: 6px; }
     .quick-filter-pill { padding: 7px 11px; font-size: 12px; }
     .admin-workers-grid { grid-template-columns: 1fr !important; gap: 14px; }
-    .admin-worker-card, .review-admin-card { grid-template-columns: 1fr !important; padding: 14px; gap: 12px; border-radius: 22px !important; }
+    .admin-worker-card, .review-admin-card { grid-template-columns: 1fr !important; padding: 14px; gap: 12px; border-radius: 16px !important; }
     .admin-worker-img { width: 100% !important; height: 190px !important; border-radius: 18px !important; object-fit: cover; }
     .admin-worker-main h3 { font-size: 20px; line-height: 1.35; }
     .worker-tags, .status-row, .card-actions { gap: 7px; }
@@ -228,7 +303,7 @@
    ANALYTICS (لوحة التحليلات الذكية)
    ========================================================= */
 .analytics-modern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-.chart-card { background: #fff; border-radius: 20px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+.chart-card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
 .chart-card h3 { font-size: 16px; color: var(--primary); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
 
 .bar-item { margin-bottom: 15px; }
@@ -241,7 +316,7 @@
 .fill-emerald { background: linear-gradient(90deg, #10b981, #059669); }
 
 .stats-hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
-.stat-hero-card { background: #fff; padding: 20px; border-radius: 20px; border: 1px solid var(--border); text-align: center; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: transform 0.2s;}
+.stat-hero-card { background: #fff; padding: 20px; border-radius: 16px; border: 1px solid var(--border); text-align: center; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: transform 0.2s;}
 .stat-hero-card:hover { transform: translateY(-3px); }
 .stat-hero-card::before { content: ''; position: absolute; top: 0; right: 0; width: 100%; height: 4px; background: var(--bg-color, #0f172a); }
 .stat-icon-bg { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px; background: var(--light-bg); color: var(--bg-color); }

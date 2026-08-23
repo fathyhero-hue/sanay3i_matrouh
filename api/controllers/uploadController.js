@@ -45,6 +45,10 @@ const chatUpload = upload.fields([
   { name: "attachment", maxCount: 1 }
 ]);
 
+// مرفقات طلب الخدمة (صور فقط حاليًا - نفس فلتر/حدود الصور العامة، الفيديو
+// مؤجل لحد ما نضيف تحقق/حدود مخصوصة له)
+const serviceRequestUpload = upload.array("attachments", 3);
+
 // دالة لاستخراج الامتداد الصحيح للصورة
 function ext(file) {
   const e = path.extname(file.originalname || "");
@@ -111,15 +115,20 @@ function workFiles(req) { return req.files?.workPhotos || []; }
 function idFrontFile(req) { return req.files?.idFront?.[0] || null; }
 function idBackFile(req) { return req.files?.idBack?.[0] || null; }
 function chatAttachmentFile(req) { return req.files?.attachment?.[0] || null; }
+function serviceRequestFiles(req) { return Array.isArray(req.files) ? req.files : []; }
 
 module.exports = {
   workerUpload,
   chatUpload,
+  serviceRequestUpload,
   uploadImage,
   uploadPrivateImage,
   mainFile,
   workFiles,
   idFrontFile,
   idBackFile,
-  chatAttachmentFile
+  chatAttachmentFile,
+  serviceRequestFiles,
+  secureImageFileFilter,
+  ALLOWED_IMAGE_MIME_TYPES
 };

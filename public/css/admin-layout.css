@@ -4,7 +4,7 @@
 .admin-dashboard {
     display: none;
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8fafc, #eef6ff);
+    background: #f6f8fb;
     padding-bottom: 70px;
 }
 .admin-dashboard.show { display: block; }
@@ -13,119 +13,294 @@
     position: sticky;
     top: 0;
     z-index: 999;
-    background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2) 55%, var(--sanay3i-navy-3));
+    background: var(--sanay3i-navy);
     border-bottom: 1px solid rgba(148,163,184,.22);
-    box-shadow: 0 18px 45px rgba(2,6,23,.20);
-    backdrop-filter: blur(18px);
+    box-shadow: var(--shadow-sm);
 }
 .admin-topbar-content {
-    height: 82px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 14px;
 }
 .admin-topbar .brand-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 17px;
-    background: linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
-    border: 1px solid rgba(255,255,255,.22);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 21px;
+    font-size: 16px;
     flex-shrink: 0;
 }
+.admin-topbar .brand-text h1 { font-size: 15px; }
+.admin-topbar .brand-text span { font-size: 11px; }
 .admin-role-badge {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    background: rgba(255,255,255,.12);
-    border: 1px solid rgba(255,255,255,.22);
+    gap: 6px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
     color: #fff;
     border-radius: 999px;
-    padding: 9px 16px;
-    font-weight: 900;
-    font-size: 12.5px;
+    padding: 6px 12px;
+    font-weight: 800;
+    font-size: 11.5px;
     white-space: nowrap;
 }
-.admin-actions-top { display: flex; gap: 10px; align-items: center; }
+.admin-actions-top { display: flex; gap: 6px; align-items: center; }
+.admin-actions-mobile { display: none; position: relative; }
+.admin-more-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    z-index: 1100;
+}
+.admin-more-menu.open { display: flex; flex-direction: column; gap: 2px; }
+.admin-more-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: right;
+}
+.admin-more-item:hover { background: var(--bg); }
+.admin-more-item i { width: 16px; text-align: center; color: var(--blue); flex-shrink: 0; }
+.admin-more-item-danger, .admin-more-item-danger i { color: #dc2626; }
+.admin-icon-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s ease;
+}
+.admin-icon-btn:hover { background: rgba(255,255,255,.18); }
+.admin-icon-btn-logout { background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.3); }
+.admin-icon-btn-logout:hover { background: rgba(239,68,68,.3); }
+/* legacy alias kept for any remaining .admin-mini-btn usage (e.g. sidebar footer logout) */
 .admin-mini-btn {
-    min-height: 42px;
+    min-height: 40px;
     border: 1px solid var(--border);
     background: #fff;
     color: var(--primary);
-    border-radius: 999px;
-    padding: 10px 16px;
+    border-radius: 12px;
+    padding: 9px 14px;
     font-weight: 900;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 .logout-btn { background: #fee2e2; color: #991b1b; }
 
-.admin-hero { padding: 44px 0 26px; }
-.admin-hero-box, .admin-panel {
+/* Compact page-header (مش كارت كبير) - عنوان + سطر وصف قصير + زر تحديث صغير */
+.admin-hero { padding: 14px 0 10px; }
+.admin-panel {
     background: #fff;
     border: 1px solid var(--border);
-    border-radius: 28px;
-    padding: 24px;
-    box-shadow: var(--shadow-md);
-    margin-bottom: 24px;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 18px;
 }
-.admin-hero-box { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.admin-hero-box .section-label { display: inline-block; color: var(--blue); font-weight: 900; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
-.admin-hero-box h2 { font-size: 34px; color: var(--primary); font-weight: 900; }
-.admin-hero-box p, .admin-panel p { color: var(--muted); font-weight: 700; }
-
-.admin-tabs {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin: 10px 0 24px;
-}
-.admin-tab {
-    border: 1px solid var(--border);
-    text-decoration: none;
+.admin-panel p { color: var(--muted); font-weight: 700; }
+.admin-hero-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-hero-text h2 { font-size: 19px; color: var(--primary); font-weight: 900; line-height: 1.3; }
+.admin-hero-text p { font-size: 12.5px; margin-top: 3px; color: var(--muted); font-weight: 700; line-height: 1.5; max-width: 62ch; }
+.admin-hero-refresh {
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
     background: #fff;
-    color: var(--primary);
-    border-radius: 999px;
-    padding: 12px 18px;
+    color: var(--blue);
+    border-radius: 12px;
+    padding: 9px 14px;
     font-weight: 900;
+    font-size: 12.5px;
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
 }
-.admin-tab.active { background: var(--blue); color: #fff; }
+.admin-hero-refresh:hover { background: var(--bg); }
+
+/* =========================================================
+   Sidebar / Drawer التنقل الرئيسي للإدارة (بند 22.2) - نفس روابط/أزرار
+   الـtabs وصلاحيات data-permission القديمة بالضبط، بس داخل هيكل
+   Sidebar ثابت على الديسكتوب وDrawer قابل للفتح/الإغلاق على الموبايل.
+   switchTab() في admin.js بتشتغل زي ما هي من غير أي تعديل لأنها بتستهدف
+   .admin-tab/.admin-section بالـclass بس، مش بمكانهم في الصفحة.
+   ========================================================= */
+.admin-body { display: flex; align-items: flex-start; gap: 22px; width: min(1400px, calc(100% - 30px)); margin: 0 auto; }
+.admin-main { flex: 1; min-width: 0; padding: 20px 0 0; }
+
+.admin-menu-toggle { display: none; }
+.admin-drawer-overlay { display: none; }
+.admin-drawer-close, .admin-sidebar-head { display: none; }
+
+.admin-sidebar {
+    flex: 0 0 240px;
+    position: sticky;
+    top: 76px;
+    align-self: flex-start;
+    max-height: calc(100vh - 96px);
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+/* رأس/تذييل الـDrawer (بس ظاهرين على الموبايل) - ثابتين، ما بيتمددوش */
+.admin-sidebar-head, .admin-sidebar-foot { flex: 0 0 auto; }
+
+/* عنصر التنقل الفعلي القابل للتمرير - هو الوحيد اللي بيسكرول جوه الـDrawer */
+.admin-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 14px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+    margin: 0;
+}
+.admin-nav-group-label {
+    font-size: 10.5px; font-weight: 900; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .04em; padding: 12px 10px 4px;
+}
+.admin-nav-group-label:first-child { padding-top: 2px; }
+.admin-tab {
+    border: 1px solid transparent;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 40px;
+    text-align: right;
+    background: transparent;
+    color: var(--primary);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+}
+.admin-tab:hover { background: var(--bg); }
+.admin-tab.active { background: var(--blue); color: #fff; font-weight: 900; box-shadow: var(--shadow-sm); }
+.admin-tab i { width: 16px; text-align: center; flex-shrink: 0; }
+
+.admin-sidebar-foot {
+    border-top: 1px solid var(--border);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.admin-sidebar-user { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--primary); font-size: 12.5px; }
+.admin-sidebar-user i { color: var(--blue); font-size: 16px; }
+.admin-sidebar-logout { width: 100%; justify-content: center; }
+
 .admin-section { display: none; }
 .admin-section.active { display: block; }
 
 @media (max-width: 760px) {
     .container { width: min(100% - 24px, 1180px); }
     .admin-dashboard { padding-bottom: 100px; }
-    .admin-topbar-content { height: auto !important; min-height: 70px; padding: 10px 0; flex-direction: column; align-items: stretch !important; gap: 10px; }
-    .admin-actions-top { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-    .admin-mini-btn { min-height: 42px; border-radius: 14px; padding: 9px 10px; justify-content: center; font-size: 12px; }
-    .admin-hero { padding: 22px 0 12px; }
-    .admin-hero-box, .admin-panel { border-radius: 22px !important; }
-    .admin-hero-box { padding: 16px; flex-direction: column; align-items: flex-start; }
-    .admin-hero-box h2 { font-size: 25px; line-height: 1.35; }
-    .admin-hero-box p, .admin-panel p { font-size: 13px; line-height: 1.8; }
-    .admin-hero-box .btn { width: 100%; justify-content: center; }
-    .admin-tabs { flex-wrap: nowrap !important; overflow-x: auto; gap: 8px; padding: 8px 0 12px; margin-bottom: 14px; position: sticky; top: 0; z-index: 60; background: rgba(248,250,252,.96); backdrop-filter: blur(12px); scrollbar-width: none; }
-    .admin-tabs::-webkit-scrollbar { display: none; }
-    .admin-tab { flex: 0 0 auto; white-space: nowrap; padding: 10px 14px; font-size: 13px; }
-}
 
-@media (max-width: 640px) and (orientation: portrait) {
-    .container, .admin-container, .wrap { width: calc(100% - 16px) !important; max-width: none !important; }
-    .admin-header, .topbar, header { padding: 8px !important; }
-    .admin-tabs, .tabs, .tab-nav { display: flex !important; overflow-x: auto !important; gap: 6px !important; padding: 7px !important; scrollbar-width: none; }
-    .admin-tabs::-webkit-scrollbar, .tabs::-webkit-scrollbar, .tab-nav::-webkit-scrollbar { display: none; }
-    .tab-btn, .admin-tab, [data-tab] { flex: 0 0 auto !important; min-height: 34px !important; border-radius: 10px !important; padding: 6px 9px !important; font-size: 10.5px !important; }
-    .panel, .card { border-radius: 14px !important; padding: 10px !important; }
+    /* هيدر موبايل مضغوط: شعار صغير + اسم الصفحة + زر ⋮ واحد للإجراءات
+       بدل صف الأزرار الكبيرة، وزر فتح الأقسام */
+    .admin-topbar-content { height: 56px !important; min-height: 56px; padding: 0; flex-wrap: nowrap; align-items: center !important; gap: 8px; }
+    .admin-topbar .brand-icon { width: 32px; height: 32px; border-radius: 10px; font-size: 14px; }
+    .admin-topbar .brand-text span { display: none; }
+    .admin-topbar .brand-text h1 { font-size: 13px; }
+    .admin-role-badge { display: none; }
+    .admin-actions-top { display: none; }
+    .admin-actions-mobile { display: block; }
+    .admin-more-menu { left: auto; right: 0; }
+    .admin-mini-btn { min-height: 44px; border-radius: 12px; padding: 9px 10px; justify-content: center; font-size: 12px; }
+
+    /* Header الصفحة (hero) مضغوط - عنوان + سطر وصف + زر تحديث صغير، بدون كارت كبير */
+    .admin-hero { padding: 10px 0 8px; }
+    .admin-hero-box { flex-direction: column; align-items: stretch; gap: 8px; }
+    .admin-hero-text h2 { font-size: 16.5px; line-height: 1.3; }
+    .admin-hero-text p { font-size: 11.5px; line-height: 1.5; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .admin-hero-refresh { width: 100%; justify-content: center; padding: 8px 12px; font-size: 12px; }
+    .admin-panel { border-radius: 16px !important; padding: 14px; }
+    .admin-panel p { font-size: 13px; line-height: 1.8; }
+
+    /* زر فتح قائمة الأقسام مضغوط بأعلى الهيدر بدل Sidebar ثابتة */
+    .admin-menu-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; height: 36px; border-radius: 10px; padding: 0 12px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #fff; font-weight: 900; font-size: 12px; cursor: pointer; width: auto; flex-shrink: 0; }
+    .admin-actions-mobile .admin-icon-btn { width: 36px; height: 36px; font-weight: 900; }
+
+    .admin-body { display: block; width: 100%; }
+    .admin-main { padding-top: 14px; }
+
+    /* =====================================================
+       Drawer من اليمين فوق Overlay - نفس أزرار/روابط الـSidebar
+       وصلاحياتها. الهيكل: .admin-sidebar (container ثابت الحجم على
+       الشاشة كلها) -> .admin-sidebar-head (ثابت) + .admin-tabs (هو
+       الوحيد القابل للتمرير) + .admin-sidebar-foot (ثابت). محدش من
+       الاتنين head/foot عندهم overflow:hidden يمنعوا الـscroll، والـ
+       scroll حصرًا على .admin-tabs زي ما هو متعرف بره الميديا كويري.
+       ===================================================== */
+    .admin-sidebar {
+        position: fixed; inset-block: 0; right: 0; top: 0; bottom: 0;
+        height: 100dvh; max-height: 100dvh; margin: 0;
+        width: min(84vw, 320px);
+        border-radius: 0; border: 0; border-inline-start: 1px solid var(--border);
+        box-shadow: -18px 0 44px rgba(2,6,23,.28);
+        z-index: 5000;
+        transform: translateX(100%);
+        transition: transform .28s ease;
+        /* display:flex; flex-direction:column; overflow:hidden موروثين من القاعدة فوق */
+    }
+    .admin-sidebar.open { transform: translateX(0); }
+    .admin-drawer-close, .admin-sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border); }
+    .admin-drawer-close { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); color: var(--primary); font-size: 15px; cursor: pointer; padding: 0; justify-content: center; flex-shrink: 0; }
+    .admin-sidebar-title { display: flex; align-items: center; gap: 8px; font-weight: 900; color: var(--primary); font-size: 14px; }
+    .admin-tabs { padding: 12px; }
+    .admin-sidebar-foot { padding: 14px; }
+
+    .admin-drawer-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 4900; display: none; }
+    .admin-drawer-overlay.show { display: block; }
 }

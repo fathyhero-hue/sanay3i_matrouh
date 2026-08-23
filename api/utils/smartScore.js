@@ -70,6 +70,44 @@ function smartScoreWorker(worker, signals) {
   };
 }
 
+// مستويات الصنايعي (بند 17 - Gamification) - 4 مستويات بتتحسب ديناميكيًا مع
+// كل Response، مش مخزّنة يدويًا، عشان تفضل دايمًا متسقة مع بيانات حقيقية
+// (تقييم/عدد تقييمات/طلبات مكتملة). الـThresholds دي مبنية على فحص التوزيع
+// الفعلي الحالي: أغلب الصنايعية (~130) لسه من غير تقييمات (جديد)، حوالي 15
+// عندهم تقييم واحد لحد 3 (محترف)، حوالي 4 عندهم 4-5 تقييمات ممتازة أو 4+
+// طلبات مكتملة (خبير)، وصنايعي واحد بس وصل لـ6 تقييمات ممتازة (نخبة) -
+// المستويات دي هتتحرك تلقائيًا مع نمو البيانات الحقيقية بدون أي تعديل يدوي.
+const LEVELS = {
+  new:    { slug: "new",    label: "جديد",  icon: "fa-seedling" },
+  pro:    { slug: "pro",    label: "محترف", icon: "fa-thumbs-up" },
+  expert: { slug: "expert", label: "خبير",  icon: "fa-medal" },
+  elite:  { slug: "elite",  label: "نخبة",  icon: "fa-crown" }
+};
+
+function computeWorkerLevel(signals) {
+  const s = signals || {};
+  const avgRating = Number(s.rating_average || 0);
+  const reviewCount = Number(s.review_count || 0);
+  const completedCount = Number(s.completed_count || 0);
+  const totalRequests = Number(s.total_requests || 0);
+  const cancelledCount = Number(s.cancelled_count || 0);
+  // نسبة الإلغاء بتُحسب بس لو فيه عينة كافية (3 طلبات على الأقل) عشان
+  // إلغاء واحد لصنايعي جديد ميبقاش مؤشر حقيقي
+  const cancellationRate = totalRequests >= 3 ? cancelledCount / totalRequests : 0;
+
+  let level = LEVELS.new;
+  if ((reviewCount >= 6 && avgRating >= 4.8) || completedCount >= 6) level = LEVELS.elite;
+  else if ((reviewCount >= 4 && avgRating >= 4.5) || completedCount >= 4) level = LEVELS.expert;
+  else if ((reviewCount >= 1 && avgRating >= 4) || completedCount >= 1) level = LEVELS.pro;
+
+  // نسبة إلغاء مرتفعة (أكتر من 30%) بتوقف الترقية لأعلى من "محترف" - حماية
+  // بسيطة بدون نظام نقاط معقد
+  if (cancellationRate > 0.3 && (level === LEVELS.expert || level === LEVELS.elite)) {
+    level = LEVELS.pro;
+  }
+  return level;
+}
+
 // دالة لجلب التقييمات والإحصائيات من قاعدة البيانات وربطها بالصنايعية
 async function attachSmartScoresToWorkers(workers) {
   const rows = Array.isArray(workers) ? workers : [];
@@ -78,7 +116,7 @@ async function attachSmartScoresToWorkers(workers) {
 
   const idKeys = ids.map(v => String(v));
   const signalsById = {};
-  idKeys.forEach(k => { signalsById[k] = { rating_sum: 0, review_count: 0, rating_average: 0, call: 0, whatsapp: 0, profile_view: 0, share: 0 }; });
+  idKeys.forEach(k => { signalsById[k] = { rating_sum: 0, review_count: 0, rating_average: 0, call: 0, whatsapp: 0, profile_view: 0, share: 0, completed_count: 0, cancelled_count: 0, total_requests: 0 }; });
 
   // 1. جلب التقييمات المعتمدة
   try {
@@ -125,10 +163,38 @@ async function attachSmartScoresToWorkers(workers) {
     }
   } catch (e) {}
 
-  const scored = rows.map(w => ({
-    ...w,
-    ...smartScoreWorker(w, signalsById[String(w.id)] || {})
-  }));
+  // 3. جلب عدد الطلبات المكتملة/الملغاة لكل صنايعي (بند 17 - مستويات
+  // الصنايعي) - نفس جدول الطلبات المستخدم في لوحة الصنايعي، بدون أي بيانات
+  // شخصية للعميل
+  try {
+    const { data: requests, error: requestsError } = await supabase
+      .from("service_requests")
+      .select("worker_id,status")
+      .in("worker_id", ids)
+      .limit(50000);
+
+    if (!requestsError) {
+      (requests || []).forEach(r => {
+        const key = String(r.worker_id || "");
+        if (!signalsById[key]) return;
+        signalsById[key].total_requests += 1;
+        if (r.status === "completed") signalsById[key].completed_count += 1;
+        if (r.status === "cancelled") signalsById[key].cancelled_count += 1;
+      });
+    }
+  } catch (e) {}
+
+  const scored = rows.map(w => {
+    const signals = signalsById[String(w.id)] || {};
+    const level = computeWorkerLevel(signals);
+    return {
+      ...w,
+      ...smartScoreWorker(w, signals),
+      level: level.slug,
+      level_label: level.label,
+      level_icon: level.icon
+    };
+  });
 
   // الترتيب النهائي للصنايعية
   scored.sort((a, b) => {
@@ -147,5 +213,6 @@ async function attachSmartScoresToWorkers(workers) {
 
 module.exports = {
   smartScoreWorker,
-  attachSmartScoresToWorkers
+  attachSmartScoresToWorkers,
+  computeWorkerLevel
 };

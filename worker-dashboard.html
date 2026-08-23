@@ -9,6 +9,102 @@
   <style>
     body { font-family: 'Cairo', sans-serif; background: #f8fafc; margin: 0; color: #334155; }
     .header { background: #061A3D; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    /* جرس الإشعارات (بند 22.7) */
+    .notif-bell-btn { position: relative; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.10); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .notif-bell-badge { position: absolute; top: -3px; left: -3px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid #061A3D; }
+    .support-bell-btn { background: rgba(56,189,248,.20); border-color: rgba(125,211,252,.4); }
+    .support-bell-btn:hover { background: rgba(56,189,248,.30); }
+    @media (max-width: 400px) { .notif-bell-btn { width: 34px; height: 34px; font-size: 12.5px; } }
+    .notif-panel { display: none; position: absolute; top: 54px; left: 10px; width: min(340px, 90vw); background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 20px 45px rgba(2,6,23,.25); z-index: 3100; max-height: 70vh; overflow: hidden; flex-direction: column; }
+    .notif-panel.show { display: flex; }
+    .notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; }
+    .notif-panel-head strong { color: #0f172a; font-size: 13px; }
+    .notif-panel-head button { background: none; border: 0; color: #0284c7; font-weight: 800; font-size: 11.5px; cursor: pointer; }
+    .notif-panel-list { overflow-y: auto; }
+    .notif-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item.unread { background: rgba(2,132,199,.05); }
+    .notif-item-title { font-weight: 900; color: #0f172a; font-size: 12.5px; }
+    .notif-item-body { color: #64748b; font-size: 11.5px; margin-top: 3px; }
+    .notif-item-time { color: #94a3b8; font-size: 10px; margin-top: 4px; }
+    /* مركز خدمة العملاء (بند 22.8) - نفس نظام .support-overlay/.support-modal
+       المستخدم في public/css/global.css (Grid Centering حقيقي، مفيش أي
+       Bottom Sheet)، منسوخ هنا بألوان الصفحة الثابتة لأن الصفحة دي مش
+       بتحمّل global.css. اتشالت نسخة الـBottom Sheet القديمة المتعارضة. */
+    .support-overlay {
+      position: fixed; inset: 0; z-index: 5100;
+      display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+      background: rgba(7,20,45,.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+      opacity: 0; visibility: hidden; pointer-events: none; overflow: hidden;
+      transition: opacity 160ms ease, visibility 160ms ease;
+    }
+    .support-overlay.show { opacity: 1; visibility: visible; pointer-events: auto; }
+    .support-modal {
+      position: relative; z-index: 5200; display: flex; flex-direction: column;
+      background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.10);
+      border-radius: 22px; overflow: hidden;
+      width: min(92vw, 560px); max-height: min(82dvh, 720px); max-height: min(82vh, 720px);
+      opacity: 0; transition: opacity 160ms ease;
+    }
+    .support-overlay.show .support-modal { opacity: 1; }
+    @media (max-width: 430px) { .support-modal { width: calc(100vw - 32px); max-width: 420px; } }
+    .support-modal-header { flex: 0 0 auto; min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 18px; border-bottom: 1px solid #e2e8f0; }
+    .support-modal-header-title { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; font-weight: 900; color: #0f172a; margin: 0; }
+    .support-modal-header-title i { color: #061A3D; font-size: 15px; }
+    .support-modal-header-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .support-modal-back-btn { border: 0; background: none; color: #061A3D; font-weight: 900; font-size: 14px; cursor: pointer; min-width: 36px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; padding: 0; }
+    .support-modal-close-btn { border: 0; background: #f8fafc; color: #334155; cursor: pointer; width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .support-modal-body { flex: 1 1 auto; min-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px)); }
+    .support-modal-intro { margin: 2px 0 16px; }
+    .support-modal-intro h4 { margin: 0 0 5px; font-size: 16px; font-weight: 900; color: #0f172a; }
+    .support-modal-intro p { margin: 0; font-size: 12.5px; font-weight: 700; color: #64748b; line-height: 1.6; }
+    .support-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 900; color: #0f172a; margin: 0 0 12px; }
+    .support-modal-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; box-shadow: 0 2px 8px rgba(15,23,42,.05); color: #0f172a; font-family: inherit; text-decoration: none; cursor: pointer; margin-bottom: 10px; text-align: right; box-sizing: border-box; }
+    .support-modal-item:last-child { margin-bottom: 0; }
+    .support-modal-item-icon { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 17px; background: #f8fafc; color: #061A3D; }
+    .support-modal-item-text { flex: 1 1 auto; min-width: 0; }
+    .support-modal-item-text strong { display: block; font-size: 13.5px; font-weight: 900; color: #0f172a; }
+    .support-modal-item-text small { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 700; color: #64748b; }
+    .support-modal-item-arrow { flex: 0 0 auto; color: #64748b; font-size: 15px; }
+    .support-modal-back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: #061A3D; font-weight: 900; font-size: 13px; cursor: pointer; min-height: 44px; padding: 0 4px; margin-bottom: 6px; }
+    .support-empty { text-align: center; padding: 30px 10px; color: #64748b; font-weight: 700; font-size: 13px; }
+    .support-empty i { font-size: 26px; display: block; margin-bottom: 10px; color: #e2e8f0; }
+    .support-ticket-form { display: grid; gap: 12px; }
+    .support-ticket-form label { display: block; font-size: 12.5px; font-weight: 900; color: #334155; }
+    .support-ticket-form input, .support-ticket-form select, .support-ticket-form textarea { width: 100%; margin-top: 6px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 11px 13px; font-family: inherit; font-size: 13.5px; font-weight: 700; background: #f8fafc; color: #0f172a; box-sizing: border-box; }
+    .support-ticket-form textarea { min-height: 90px; resize: vertical; }
+    .support-modal-submit { min-height: 48px; border: 0; border-radius: 14px; background: #061A3D; color: #fff; font-family: inherit; font-weight: 900; font-size: 14px; cursor: pointer; }
+    .support-ticket-msg { font-size: 12.5px; font-weight: 800; text-align: center; }
+    .support-ticket-msg.success { color: #16a34a; }
+    .support-ticket-msg.error { color: #dc2626; }
+    .support-tickets-list { display: grid; gap: 8px; }
+    .support-ticket-item { position: relative; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 14px; cursor: pointer; background: #fff; }
+    .support-ticket-item.unread { background: rgba(2,132,199,.05); border-color: rgba(2,132,199,.25); }
+    .support-ticket-item.is-closed { opacity: .62; }
+    .support-ticket-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .support-ticket-item-top strong { font-size: 13.5px; color: #0f172a; }
+    .support-ticket-item-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+    .support-ticket-item-meta, .support-ticket-item-time { font-size: 11px; color: #64748b; font-weight: 700; }
+    .support-unread-dot { position: absolute; top: 12px; left: 12px; width: 8px; height: 8px; border-radius: 50%; background: #061A3D; }
+    .support-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 10.5px; font-weight: 900; white-space: nowrap; }
+    .support-status-badge.status-new { background: rgba(2,132,199,.10); color: #0284c7; }
+    .support-status-badge.status-in_progress { background: rgba(245,158,11,.14); color: #92400e; }
+    .support-status-badge.status-resolved { background: rgba(22,163,74,.12); color: #15803d; }
+    .support-status-badge.status-closed { background: #f1f5f9; color: #64748b; }
+    .support-ticket-attach { display: block; margin: 10px 0; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; max-width: 160px; }
+    .support-ticket-attach img { width: 100%; display: block; }
+    .support-ticket-msgs { display: flex; flex-direction: column; gap: 10px; max-height: 42vh; overflow-y: auto; padding: 12px 4px; margin: 10px 0; }
+    .support-msg { max-width: 78%; padding: 9px 12px; border-radius: 16px; font-size: 13px; line-height: 1.6; }
+    .support-msg p { margin: 0; }
+    .support-msg-time { display: block; font-size: 9.5px; margin-top: 4px; opacity: .65; }
+    .support-msg.mine { align-self: flex-end; background: #061A3D; color: #fff; border-bottom-left-radius: 4px; }
+    .support-msg.them { align-self: flex-start; background: #f1f5f9; color: #0f172a; border-bottom-right-radius: 4px; }
+    .support-msg-system { align-self: center; background: #f1f5f9; color: #64748b; border-radius: 999px; padding: 5px 12px; font-size: 10.5px; font-weight: 800; }
+    .support-reply-form { display: flex; gap: 8px; position: sticky; bottom: 0; background: #fff; padding-top: 8px; padding-bottom: env(safe-area-inset-bottom, 0px); }
+    #supportTicketDetail > .support-modal-title, #supportTicketDetail > .support-status-badge { position: sticky; top: 0; background: #fff; z-index: 2; }
+    #supportTicketDetail > .support-modal-title { padding-top: 2px; }
+    .support-reply-form input { flex: 1; min-height: 46px; border: 1px solid #e2e8f0; border-radius: 999px; padding: 0 16px; font-family: inherit; font-size: 13.5px; background: #f8fafc; color: #0f172a; box-sizing: border-box; }
+    .support-reply-form button { width: 46px; height: 46px; border-radius: 50%; border: 0; background: #061A3D; color: #fff; cursor: pointer; flex-shrink: 0; }
     .header h2 { margin: 0; font-size: 20px; }
     .container { max-width: 800px; margin: 30px auto; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     
@@ -111,15 +207,123 @@
     .sr-btn-start:hover { background: #0369a1; }
     .sr-btn-complete { background: #7c3aed; color: #fff; }
     .sr-btn-complete:hover { background: #6d28d9; }
+
+    /* ======================================================
+       نظرة عامة أعلى اللوحة (تحية + Stats + أحدث الطلبات)
+       ====================================================== */
+    .wd-overview { max-width: 800px; margin: 22px auto 0; padding: 0 25px; }
+    .wd-greeting { font-size: 16px; color: #334155; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .wd-greeting strong { color: #061A3D; }
+    /* شارة مستوى الصنايعي (بند 17) - نفس ألوان .badge-level-* في global.css
+       عشان تفضل متسقة مع نفس الشارة اللي بتظهر في البروفايل والكارت */
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 900; border: 1px solid transparent; }
+    .badge-level-new    { background: rgba(100, 116, 139, 0.10); color: #475569; border-color: rgba(100, 116, 139, 0.20); }
+    .badge-level-pro    { background: rgba(13, 148, 136, 0.10); color: #0f766e; border-color: rgba(13, 148, 136, 0.24); }
+    .badge-level-expert { background: rgba(79, 70, 229, 0.10); color: #4338ca; border-color: rgba(79, 70, 229, 0.24); }
+    .badge-level-elite  { background: linear-gradient(135deg, #061A3D, #92400e); color: #fff; border-color: transparent; }
+
+    .wd-availability-toggle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .wd-availability-label { font-size: 12.5px; font-weight: 800; color: #64748b; }
+    .wd-avail-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .wd-avail-btn {
+      display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid #e2e8f0; background: #fff;
+      color: #334155; border-radius: 999px; padding: 7px 13px; font-family: inherit; font-weight: 800;
+      font-size: 12px; cursor: pointer;
+      transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 150ms ease;
+    }
+    .wd-avail-btn:active { transform: scale(0.95); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    .wd-avail-btn.active { border-color: #061A3D; background: #061A3D; color: #fff; }
+    .wd-avail-btn.active .avail-dot { box-shadow: 0 0 0 2px rgba(255,255,255,.5); }
+    .wd-availability-status { font-size: 12px; font-weight: 800; }
+    .avail-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .avail-dot-green { background: #16a34a; }
+    .avail-dot-yellow { background: #f59e0b; }
+    .avail-dot-red { background: #dc2626; }
+    .avail-dot-overlay {
+      position: absolute; bottom: 6px; left: 6px; width: 11px; height: 11px; border-radius: 50%;
+      border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    }
+
+    .wd-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    .wd-stat-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px;
+      display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+    }
+    .wd-stat-icon { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .wd-stat-icon-blue { background: #e0f2fe; color: #0284c7; }
+    .wd-stat-icon-green { background: #dcfce7; color: #16a34a; }
+    .wd-stat-icon-gold { background: #fef3c7; color: #b45309; }
+    .wd-stat-icon-purple { background: #ede9fe; color: #7c3aed; }
+    .wd-stat-card strong { display: block; font-size: 19px; color: #0f172a; line-height: 1.2; }
+    .wd-stat-card span { display: block; font-size: 11.5px; color: #64748b; font-weight: 700; margin-top: 2px; }
+
+    .wd-preview-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
+    .wd-preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .wd-preview-head strong { color: #0f172a; font-size: 15px; }
+    .wd-preview-viewall { background: none; border: none; color: #0284c7; font-family: inherit; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+    .wd-preview-viewall:hover { color: #0369a1; }
+    @media (max-width: 480px) {
+      .wd-overview { padding: 0 14px; }
+      .wd-stats-grid { gap: 8px; }
+      .wd-stat-card { padding: 11px; gap: 9px; }
+      .wd-stat-icon { width: 36px; height: 36px; font-size: 14px; }
+      .wd-stat-card strong { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
 
   <div class="header">
     <h2><i class="fa-solid fa-gauge-high"></i> لوحة التحكم</h2>
-    <div>
+    <div style="display:flex;align-items:center;gap:6px;">
+        <div id="notifBellSlot" style="position:relative;"></div>
+        <div id="supportBellSlot" style="position:relative;"></div>
         <a href="#" id="viewProfileBtn" target="_blank" style="color: #e0f2fe; text-decoration: none; margin-left: 15px; font-weight: bold; font-size: 14px;"><i class="fa-solid fa-eye"></i> رؤية صفحتي</a>
         <button class="btn btn-danger" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
+    </div>
+  </div>
+
+  <div class="wd-overview">
+    <div class="wd-greeting">مرحبًا، <strong id="wdGreetingName">صنايعي</strong> <span id="wdLevelBadge"></span></div>
+
+    <div class="wd-availability-toggle">
+      <span class="wd-availability-label">حالتك الآن:</span>
+      <div class="wd-avail-btns" id="wdAvailBtns">
+        <button type="button" class="wd-avail-btn" data-status="available" onclick="wdSetAvailability('available')"><span class="avail-dot avail-dot-green"></span> متاح</button>
+        <button type="button" class="wd-avail-btn" data-status="busy" onclick="wdSetAvailability('busy')"><span class="avail-dot avail-dot-yellow"></span> مشغول</button>
+        <button type="button" class="wd-avail-btn" data-status="offline" onclick="wdSetAvailability('offline')"><span class="avail-dot avail-dot-red"></span> غير متاح</button>
+      </div>
+      <span class="wd-availability-status" id="wdAvailabilityStatus"></span>
+    </div>
+
+    <div class="wd-stats-grid" id="wdStatsGrid">
+      <div class="wd-stat-card">
+        <div class="wd-stat-icon wd-stat-icon-blue"><i class="fa-solid fa-inbox"></i></div>
+        <div><strong id="wdStatNew">-</strong><span>طلبات جديدة</span></div>
+      </div>
+      <div class="wd-stat-card">
+        <div class="wd-stat-icon wd-stat-icon-green"><i class="fa-solid fa-calendar-day"></i></div>
+        <div><strong id="wdStatToday">-</strong><span>طلبات اليوم</span></div>
+      </div>
+      <div class="wd-stat-card">
+        <div class="wd-stat-icon wd-stat-icon-gold"><i class="fa-solid fa-star"></i></div>
+        <div><strong id="wdStatRating">-</strong><span>متوسط التقييم</span></div>
+      </div>
+      <div class="wd-stat-card" id="wdStatViewsCard" style="display:none;">
+        <div class="wd-stat-icon wd-stat-icon-purple"><i class="fa-solid fa-eye"></i></div>
+        <div><strong id="wdStatViews">-</strong><span>مشاهدات آخر 30 يوم</span></div>
+      </div>
+    </div>
+
+    <div class="wd-preview-section">
+      <div class="wd-preview-head">
+        <strong id="wdPreviewTitle">أحدث الطلبات</strong>
+        <button type="button" class="wd-preview-viewall" onclick="switchTab('serviceRequests')">عرض الكل <i class="fa-solid fa-arrow-left"></i></button>
+      </div>
+      <div id="wdPreviewList"><div class="sr-empty">جاري التحميل...</div></div>
     </div>
   </div>
 
@@ -230,20 +434,31 @@
         <small style="display:block; color:#64748b; margin-top:10px;">الصور الجديدة تخضع لمراجعة الإدارة قبل الظهور للجمهور.</small>
       </div>
 
-      <!-- حالة توثيق الهوية ورفع صورة البطاقة -->
+      <!-- موقع الصنايعي الجغرافي (بند 11) - بإذن المستخدم فقط عند الضغط -->
+      <div id="locationSection" style="margin-bottom:25px; padding:16px; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc;">
+        <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-location-dot"></i> موقعي الجغرافي</h3>
+        <p style="color:#64748b; font-size:13px; margin:0 0 12px;">تحديد موقعك بيساعد العملاء القريبين منك يلاقوك أسرع في قسم "صنايعية بالقرب منك".</p>
+        <div id="locationStatusText" style="font-weight:800; margin-bottom:10px; color:#64748b;">لسه محددتش موقعك.</div>
+        <button class="btn" type="button" onclick="wdUpdateLocation(this)"><i class="fa-solid fa-location-crosshairs"></i> تحديد/تحديث موقعي الحالي</button>
+        <div id="locationUpdateStatus" style="margin-top:10px; font-weight:bold;"></div>
+      </div>
+
+      <!-- توثيق الحساب: not_submitted / pending / approved / rejected -->
       <div id="identitySection" style="margin-bottom:25px; padding:16px; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc;">
-        <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-id-card"></i> توثيق الهوية</h3>
+        <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-id-card"></i> توثيق الحساب</h3>
         <div id="identityStatusBadge" style="font-weight:bold; margin-bottom:8px;"></div>
         <div id="identityReasonBox" style="display:none; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:10px 12px; border-radius:8px; font-size:14px; margin-bottom:12px;"></div>
-        <div class="form-group">
-          <label>صورة البطاقة الشخصية (الوجه)</label>
-          <input type="file" id="idFrontInput" accept="image/*">
+        <div id="identityUploadForm">
+          <div class="form-group">
+            <label>صورة البطاقة الشخصية (الوجه)</label>
+            <input type="file" id="idFrontInput" accept="image/*">
+          </div>
+          <div class="form-group">
+            <label>صورة البطاقة الشخصية (الظهر)</label>
+            <input type="file" id="idBackInput" accept="image/*">
+          </div>
+          <button class="btn" id="identityUploadBtn" onclick="uploadIdDocuments(this)"><i class="fa-solid fa-upload"></i> طلب توثيق الحساب</button>
         </div>
-        <div class="form-group">
-          <label>صورة البطاقة الشخصية (الظهر)</label>
-          <input type="file" id="idBackInput" accept="image/*">
-        </div>
-        <button class="btn" onclick="uploadIdDocuments(this)"><i class="fa-solid fa-upload"></i> إرسال صورة البطاقة للمراجعة</button>
         <div id="idUploadStatus" style="margin-top:10px; font-weight:bold;"></div>
       </div>
 
@@ -478,6 +693,17 @@
           const worker = d.worker;
           const pending = worker.pending_changes || {};
           const profileDraft = (pending.profile && typeof pending.profile === 'object') ? pending.profile : {};
+
+          const wdGreetingName = document.getElementById('wdGreetingName');
+          if (wdGreetingName) wdGreetingName.textContent = worker.name || 'صنايعي';
+          wdSetActiveAvailabilityBtn(worker.availability_status || 'available');
+
+          const locText = document.getElementById('locationStatusText');
+          if (locText) {
+            locText.textContent = (worker.latitude != null && worker.longitude != null)
+              ? 'موقعك محدد حاليًا. تقدر تحدّثه في أي وقت.'
+              : 'لسه محددتش موقعك.';
+          }
 
           // تعبئة البيانات (تعرض آخر مقترح لسه بانتظار المراجعة لو موجود، وإلا البيانات الفعلية)
           document.getElementById('w_name').value = profileDraft.name ?? worker.name ?? '';
@@ -821,30 +1047,45 @@
         }
     }
 
-    // حالة توثيق الهوية
+    // توثيق الحساب: not_submitted -> pending -> approved/rejected. المصدر
+    // النهائي لظهور Badge "هوية موثقة" هو identity_verified فقط، وما بيتفعّلش
+    // إلا بعد موافقة الإدارة
     const IDENTITY_LABELS = {
-      pending: { label: 'بانتظار المراجعة', color: '#ca8a04' },
-      verified: { label: 'تم التوثيق ✓', color: '#16a34a' },
-      rejected: { label: 'مرفوض', color: '#dc2626' },
-      needs_data: { label: 'يحتاج تعديل بيانات', color: '#0284c7' },
-      needs_id_reupload: { label: 'مطلوب إعادة رفع صورة البطاقة', color: '#dc2626' }
+      not_submitted: { label: 'حسابك غير موثق', color: '#64748b' },
+      pending: { label: 'طلب التوثيق قيد المراجعة', color: '#ca8a04' },
+      approved: { label: '✓ حسابك موثق من الإدارة', color: '#16a34a' },
+      rejected: { label: 'تعذر اعتماد طلب التوثيق', color: '#dc2626' }
     };
 
     function renderIdentityStatus(worker) {
-      const status = worker.identity_status || (worker.identity_verified ? 'verified' : 'pending');
-      const info = IDENTITY_LABELS[status] || IDENTITY_LABELS.pending;
+      const status = worker.identity_verification_status || (worker.identity_verified ? 'approved' : 'not_submitted');
+      const info = IDENTITY_LABELS[status] || IDENTITY_LABELS.not_submitted;
       const badge = document.getElementById('identityStatusBadge');
       badge.style.color = info.color;
-      badge.innerHTML = '<i class="fa-solid fa-circle" style="font-size:10px;"></i> الحالة: ' + info.label;
+      badge.innerHTML = '<i class="fa-solid fa-circle" style="font-size:10px;"></i> ' + info.label +
+        (status === 'approved' ? ' <span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:900;"><i class="fa-solid fa-circle-check"></i> هوية موثقة</span>' : '');
 
       const reasonBox = document.getElementById('identityReasonBox');
-      const reason = worker.identity_rejection_reason || '';
-      const note = worker.identity_review_note || '';
-      if ((reason || note) && status !== 'verified') {
+      const reason = worker.identity_verification_rejection_reason || '';
+      if (reason && status === 'rejected') {
         reasonBox.style.display = 'block';
-        reasonBox.innerHTML = (reason ? '<b>ملاحظة الإدارة:</b> ' + reason : '') + (note ? '<br>' + note : '');
+        reasonBox.innerHTML = '<b>سبب الرفض:</b> ' + reason;
       } else {
         reasonBox.style.display = 'none';
+      }
+
+      // نموذج الرفع يظهر فقط لما فعلًا محتاج نطلب/نعيد طلب توثيق - وبيتخفي
+      // تمامًا وقت pending عشان يمنع إرسال طلب مكرر من الواجهة (والسيرفر
+      // برضه بيرفضه حتى لو حد لف على الفورم يدويًا)
+      const uploadForm = document.getElementById('identityUploadForm');
+      const uploadBtn = document.getElementById('identityUploadBtn');
+      if (status === 'pending') {
+        uploadForm.style.display = 'none';
+      } else {
+        uploadForm.style.display = 'block';
+        uploadBtn.innerHTML = status === 'rejected'
+          ? '<i class="fa-solid fa-rotate-right"></i> إعادة إرسال طلب التوثيق'
+          : '<i class="fa-solid fa-upload"></i> طلب توثيق الحساب';
       }
     }
 
@@ -886,7 +1127,7 @@
 
         if (d.success) {
           status.style.color = '#16a34a';
-          status.innerText = 'تم إرسال صورة البطاقة بنجاح، وفي انتظار مراجعة الإدارة.';
+          status.innerText = 'تم إرسال طلب التوثيق بنجاح، وفي انتظار مراجعة الإدارة.';
           document.getElementById('idFrontInput').value = '';
           document.getElementById('idBackInput').value = '';
           loadProfile();
@@ -1192,6 +1433,180 @@
       }
     }
 
+    // ======================================================
+    // نظرة عامة أعلى اللوحة (بند 9) - Stats + أحدث الطلبات، من نفس بيانات
+    // طلبات الخدمة الحقيقية (بدون تكرار لمنطق التبويب نفسه، مجرد Fetch مستقل
+    // خفيف عند فتح الصفحة) + متوسط تقييم حقيقي (Endpoint عام موجود بالفعل) +
+    // مشاهدات البروفايل لو فيها مصدر حقيقي فقط (Endpoint صغير جديد لتجميع
+    // analytics_events الموجودة أصلًا - لا يُعرض رقم لو مفيش بيانات)
+    // ======================================================
+    // موقع الصنايعي الجغرافي (بند 11) - بإذن المتصفح فقط عند ضغط الزرار،
+    // مفيش أي طلب إذن تلقائي عند فتح الصفحة
+    function wdUpdateLocation(btn) {
+      const statusEl = document.getElementById('locationUpdateStatus');
+      if (!navigator.geolocation) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'المتصفح ده مش بيدعم تحديد الموقع';
+        return;
+      }
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري تحديد موقعك...';
+      statusEl.textContent = '';
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          const r = await fetch('/api/worker/profile/' + workerId + '/location', {
+            method: 'PUT',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude })
+          });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok || !d.success) throw new Error(d.error || 'تعذر حفظ موقعك');
+          document.getElementById('locationStatusText').textContent = 'موقعك محدد حاليًا. تقدر تحدّثه في أي وقت.';
+          statusEl.style.color = '#16a34a';
+          statusEl.textContent = 'تم حفظ موقعك بنجاح';
+        } catch (e) {
+          statusEl.style.color = '#dc2626';
+          statusEl.textContent = e.message || 'تعذر حفظ موقعك';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }, (err) => {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = 'تم رفض إذن الموقع أو تعذر تحديده';
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    // حالة توفر الصنايعي (بند 10) - تحديث فوري ومباشر (مش عن طريق مراجعة
+    // الإدارة زي باقي تعديلات البروفايل)، وممنوع تمامًا يعدّل حالة صنايعي
+    // تاني (requireWorkerOwnership على الـEndpoint نفسه، مش بس هنا في الواجهة)
+    function wdSetActiveAvailabilityBtn(status) {
+      document.querySelectorAll('#wdAvailBtns .wd-avail-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === status);
+      });
+    }
+
+    async function wdSetAvailability(status) {
+      const statusEl = document.getElementById('wdAvailabilityStatus');
+      statusEl.textContent = '';
+      try {
+        const r = await fetch('/api/worker/profile/' + workerId + '/availability', {
+          method: 'PUT',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ availability_status: status })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحديث حالتك');
+        wdSetActiveAvailabilityBtn(status);
+        statusEl.style.color = '#16a34a';
+        statusEl.textContent = 'تم التحديث';
+        setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      } catch (e) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = e.message || 'تعذر تحديث حالتك';
+      }
+    }
+
+    async function loadDashboardOverview() {
+      try {
+        const r = await fetch('/api/service-requests/worker/' + workerId, { headers: authHeaders() });
+        const d = await r.json();
+        if (r.ok && d.success) {
+          renderWdStats(d.requests || []);
+          renderWdPreview(d.requests || []);
+        }
+      } catch (e) {}
+
+      try {
+        const r2 = await fetch('/api/workers/' + workerId + '/reviews/summary');
+        const d2 = await r2.json();
+        document.getElementById('wdStatRating').textContent = d2.count ? (d2.average + ' / 5') : 'لا يوجد بعد';
+      } catch (e) {}
+
+      // مستوى الصنايعي (بند 17) - محسوب ديناميكيًا وجاهز أصلًا في
+      // /api/workers/:id (نفس الـEndpoint العام) - مفيش داعي لأي منطق حساب هنا
+      try {
+        const r4 = await fetch('/api/workers/' + workerId);
+        const d4 = await r4.json();
+        const badge = document.getElementById('wdLevelBadge');
+        if (badge && d4 && d4.level && d4.level_icon && d4.level_label) {
+          badge.innerHTML = `<span class="badge badge-level-${d4.level}"><i class="fa-solid ${d4.level_icon}"></i> ${srEsc(d4.level_label)}</span>`;
+        }
+      } catch (e) {}
+
+      try {
+        const r3 = await fetch('/api/worker/profile/' + workerId + '/views', { headers: authHeaders() });
+        const d3 = await r3.json();
+        if (r3.ok && d3.success && d3.views !== null && d3.views !== undefined) {
+          document.getElementById('wdStatViews').textContent = d3.views;
+          document.getElementById('wdStatViewsCard').style.display = 'flex';
+        }
+      } catch (e) {}
+    }
+
+    function renderWdStats(requests) {
+      const newCount = requests.filter(r => r.status === 'new').length;
+      const today = new Date().toDateString();
+      const todayCount = requests.filter(r => new Date(r.created_at).toDateString() === today).length;
+      document.getElementById('wdStatNew').textContent = newCount;
+      document.getElementById('wdStatToday').textContent = todayCount;
+    }
+
+    function renderWdPreview(requests) {
+      const list = document.getElementById('wdPreviewList');
+      const titleEl = document.getElementById('wdPreviewTitle');
+      if (titleEl) titleEl.textContent = requests.length ? 'أحدث الطلبات' : 'لا توجد طلبات حاليًا';
+      const top = requests.slice(0, 5);
+      if (!top.length) {
+        list.innerHTML = '<div class="sr-empty"><i class="fa-solid fa-inbox"></i><br>لسه معندكش طلبات خدمة.</div>';
+        return;
+      }
+      list.innerHTML = top.map(r => {
+        const statusClass = 'sr-status-' + (r.status || 'new');
+        const statusLabel = SR_STATUS_LABELS[r.status] || r.status;
+        const shortDesc = (r.description || '').slice(0, 90) + ((r.description || '').length > 90 ? '...' : '');
+        const acceptBtn = r.status === 'new'
+          ? `<button type="button" class="sr-btn sr-btn-accept" onclick="srUpdateStatus(${r.id}, 'accepted')"><i class="fa-solid fa-check"></i> قبول</button>`
+          : '';
+        const schedulingLabels = { now: 'الآن', today: 'اليوم', tomorrow: 'غدًا', scheduled: 'موعد محدد' };
+        const schedulingText = r.scheduling_type ? (schedulingLabels[r.scheduling_type] || '') : '';
+        return `<div class="sr-card">
+          <div class="sr-top">
+            <div class="sr-customer">
+              ${srEsc(r.customer_name)}
+              <div class="sr-id">طلب رقم #${srEsc(r.id)}</div>
+            </div>
+            <span class="sr-status ${statusClass}">${srEsc(statusLabel)}</span>
+          </div>
+          <div class="sr-desc">${srEsc(shortDesc)}</div>
+          <div class="sr-meta">
+            <i class="fa-regular fa-calendar"></i> ${srFormatDate(r.created_at)}
+            ${schedulingText ? ' &middot; <i class="fa-regular fa-clock"></i> ' + srEsc(schedulingText) : ''}
+          </div>
+          <div class="sr-actions">
+            <button type="button" class="sr-btn sr-btn-start" onclick="wdViewDetail(${r.id})"><i class="fa-solid fa-eye"></i> عرض التفاصيل</button>
+            ${acceptBtn}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function wdViewDetail(id) {
+      switchTab('serviceRequests');
+      setTimeout(() => {
+        const el = document.getElementById('sr-card-' + id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.outline = '2px solid #0284c7';
+          setTimeout(() => { el.style.outline = ''; }, 2000);
+        }
+      }, 350);
+    }
+
     async function srUpdateStatus(id, status, rejectedReason) {
       const body = { status };
       if (rejectedReason) body.rejected_reason = rejectedReason;
@@ -1204,6 +1619,7 @@
         const d = await r.json().catch(() => ({}));
         if (!r.ok || !d.success) throw new Error(d.error || 'تعذر تحديث حالة الطلب');
         loadServiceRequests();
+        loadDashboardOverview();
       } catch (e) {
         alert(e.message || 'تعذر تحديث حالة الطلب');
       }
@@ -1284,6 +1700,7 @@
 
     // التشغيل المبدئي
     loadProfile();
+    loadDashboardOverview();
     setInterval(() => {
       if(document.getElementById('chat').classList.contains('active')) loadMessages();
     }, 10000);
@@ -1294,6 +1711,11 @@
         loadServiceRequests();
       }
     }, 30000);
+
+    // فتح تبويب طلبات الخدمة تلقائيًا لو جاي من رابط إشعار (?tab=serviceRequests)
+    if (urlParams.get('tab') === 'serviceRequests') switchTab('serviceRequests');
   </script>
+  <script src="/js/notifications-widget.js?v=20260823"></script>
+  <script src="/js/support-widget.js?v=20260823"></script>
 </body>
 </html>

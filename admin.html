@@ -82,49 +82,84 @@
       </a>
       <div class="admin-actions-top">
         <span class="admin-role-badge" id="adminRoleBadge"><i class="fa-solid fa-user-shield"></i> الإدارة</span>
-        <button class="admin-mini-btn" onclick="loadAllData()"><i class="fa-solid fa-rotate"></i> تحديث</button>
-        <button class="admin-mini-btn" data-permission="backup:export" onclick="downloadBackup()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button>
-        <button class="admin-mini-btn" data-permission="backup:export" onclick="exportWorkersReport()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
-        <button class="admin-mini-btn" onclick="renewAllWorkers()"><i class="fa-solid fa-calendar-plus"></i> تجديد للكل</button>
-        <a href="/" class="admin-mini-btn"><i class="fa-solid fa-house"></i> الرئيسية</a>
-        <button class="admin-mini-btn logout-btn" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button>
+        <button class="admin-icon-btn" onclick="loadAllData()" title="تحديث" aria-label="تحديث"><i class="fa-solid fa-rotate"></i></button>
+        <button class="admin-icon-btn" data-permission="backup:export" onclick="downloadBackup()" title="نسخ احتياطي" aria-label="نسخ احتياطي"><i class="fa-solid fa-database"></i></button>
+        <button class="admin-icon-btn" data-permission="backup:export" onclick="exportWorkersReport()" title="تصدير Excel" aria-label="تصدير Excel"><i class="fa-solid fa-file-excel"></i></button>
+        <button class="admin-icon-btn" onclick="renewAllWorkers()" title="تجديد للكل" aria-label="تجديد للكل"><i class="fa-solid fa-calendar-plus"></i></button>
+        <a href="/" class="admin-icon-btn" title="الرئيسية" aria-label="الرئيسية"><i class="fa-solid fa-house"></i></a>
+        <button class="admin-icon-btn admin-icon-btn-logout" onclick="logoutAdmin()" title="خروج" aria-label="خروج"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
       </div>
+      <div class="admin-actions-mobile">
+        <button type="button" class="admin-icon-btn admin-more-toggle" id="adminMoreToggle" onclick="toggleAdminMoreMenu()" aria-label="المزيد من الإجراءات" aria-expanded="false" aria-controls="adminMoreMenu"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+        <div class="admin-more-menu" id="adminMoreMenu">
+          <button class="admin-more-item" onclick="loadAllData();closeAdminMoreMenu()"><i class="fa-solid fa-rotate"></i> تحديث البيانات</button>
+          <button class="admin-more-item" data-permission="backup:export" onclick="downloadBackup();closeAdminMoreMenu()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button>
+          <button class="admin-more-item" data-permission="backup:export" onclick="exportWorkersReport();closeAdminMoreMenu()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
+          <button class="admin-more-item" onclick="renewAllWorkers();closeAdminMoreMenu()"><i class="fa-solid fa-calendar-plus"></i> تجديد للكل</button>
+          <a class="admin-more-item" href="/"><i class="fa-solid fa-house"></i> الرئيسية</a>
+          <button class="admin-more-item admin-more-item-danger" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> تسجيل الخروج</button>
+        </div>
+      </div>
+      <button type="button" class="admin-menu-toggle" id="adminMenuToggle" onclick="toggleAdminDrawer()" aria-label="فتح قائمة الأقسام" aria-expanded="false" aria-controls="adminSidebar">
+        <i class="fa-solid fa-bars"></i> الأقسام
+      </button>
     </div>
   </header>
 
   <section class="admin-hero">
-    <div class="container">
-      <div class="admin-hero-box">
-        <div>
-          <span class="section-label">Dashboard</span>
-          <h2>إدارة دليل صنايعي مطروح</h2>
-          <p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p>
-        </div>
-        <button class="btn btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button>
+    <div class="container admin-hero-box">
+      <div class="admin-hero-text">
+        <h2>إدارة دليل صنايعي مطروح</h2>
+        <p>تحكم كامل في الصنايعية، الموافقات، الاشتراكات، الحرف، المناطق، وصور الأعمال.</p>
       </div>
+      <button class="admin-hero-refresh" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات</button>
     </div>
   </section>
 
-  <section class="container">
-    <div class="admin-tabs">
+  <div class="admin-body">
+    <div class="admin-drawer-overlay" id="adminDrawerOverlay" onclick="closeAdminDrawer()"></div>
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="admin-sidebar-head">
+        <span class="admin-sidebar-title"><i class="fa-solid fa-table-columns"></i> الأقسام</span>
+        <button type="button" class="admin-drawer-close" id="adminDrawerClose" onclick="closeAdminDrawer()" aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    <nav class="admin-tabs" id="adminTabsNav">
+      <span class="admin-nav-group-label">إدارة الصنايعية</span>
       <button class="admin-tab active" onclick="switchTab('workers',this)"><i class="fa-solid fa-users-gear"></i> الصنايعية</button>
       <a class="admin-tab" data-permission="workers:create" href="/admin/add-worker"><i class="fa-solid fa-user-plus"></i> إضافة صنايعي</a>
+      <button class="admin-tab" data-permission="workers:review" onclick="switchTab('identityRequests',this)"><i class="fa-solid fa-id-card-clip"></i> طلبات التوثيق</button>
+
+      <span class="admin-nav-group-label">الإعدادات</span>
+      <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('homepageContent',this)"><i class="fa-solid fa-images"></i> محتوى الرئيسية</button>
       <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('trades',this)"><i class="fa-solid fa-screwdriver-wrench"></i> الحرف</button>
       <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('areas',this)"><i class="fa-solid fa-map-location-dot"></i> المناطق</button>
       <button class="admin-tab" data-permission="settings:manage" onclick="switchTab('subscriptions',this)"><i class="fa-solid fa-crown"></i> الاشتراكات</button>
+
+      <span class="admin-nav-group-label">الجودة والدعم</span>
       <button class="admin-tab" data-permission="reviews:review" onclick="switchTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button>
       <button class="admin-tab" data-permission="reports:read" onclick="switchTab('reports',this)"><i class="fa-solid fa-triangle-exclamation"></i> البلاغات</button>
       <button class="admin-tab" data-permission="reports:read" onclick="switchTab('serviceRequests',this)"><i class="fa-solid fa-clipboard-list"></i> طلبات الخدمة</button>
+
+      <span class="admin-nav-group-label">العملاء والتواصل</span>
       <button class="admin-tab" data-permission="analytics:read" onclick="switchTab('customers',this)"><i class="fa-solid fa-user-group"></i> العملاء</button>
       <button class="admin-tab" data-permission="whatsapp:send" onclick="switchTab('whatsapp',this)"><i class="fa-brands fa-whatsapp"></i> رسائل واتساب</button>
       <button class="admin-tab" data-permission="workers:read" onclick="switchTab('chat',this);loadAdminChatThreads()"><i class="fa-solid fa-comments"></i> محادثات التطبيق <span id="adminChatTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button>
-      <button class="admin-tab" data-permission="workers:read" onclick="switchTab('support',this);loadAdminSupportThreads()"><i class="fa-solid fa-headset"></i> خدمة العملاء <span id="adminSupportTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button>
+      <button class="admin-tab" data-permission="support:read" onclick="switchTab('support',this);loadAdminSupportThreads();loadSupportChannels()"><i class="fa-solid fa-headset"></i> خدمة العملاء <span id="adminSupportTabBadge" class="chat-badge" style="display:none;margin:0">0</span></button>
+
+      <span class="admin-nav-group-label">النظام</span>
       <button class="admin-tab" data-permission="analytics:read" onclick="switchTab('analytics',this)"><i class="fa-solid fa-chart-line"></i> التحليلات</button>
       <button class="admin-tab" data-permission="backup:export" onclick="switchTab('backups',this)"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</button>
       <button class="admin-tab" data-permission="admin_users:manage" onclick="switchTab('users',this)"><i class="fa-solid fa-users-gear"></i> المستخدمون</button>
       <button class="admin-tab" data-permission="activity_log:read" onclick="switchTab('activityLog',this)"><i class="fa-solid fa-clock-rotate-left"></i> سجل النشاط</button>
-    </div>
+    </nav>
 
+      <div class="admin-sidebar-foot">
+        <div class="admin-sidebar-user"><i class="fa-solid fa-circle-user"></i> <span id="adminSidebarName">الإدارة</span></div>
+        <button type="button" class="admin-mini-btn logout-btn admin-sidebar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> تسجيل الخروج</button>
+      </div>
+    </aside>
+
+    <section class="admin-main">
     <div class="notifications-grid" id="notificationsGrid">
       <div class="notification-card" onclick="showPendingWorkers()">
         <div class="notification-icon blue"><i class="fa-solid fa-user-clock"></i></div>
@@ -180,6 +215,29 @@
       <div id="adminWorkersGrid" class="admin-workers-grid"></div>
     </section>
 
+    <!-- Identity Requests Section (بند 22.4) - نفس بيانات allWorkers وworkers:review
+         API الموجودة بالفعل، بس في تبويب مستقل لمتابعة طلبات التوثيق بسهولة -->
+    <section class="admin-section" id="identityRequestsSection">
+      <div class="admin-panel">
+        <h3>طلبات التوثيق</h3>
+        <p>مراجعة توثيق هوية الصنايعية - نفس منطق التحقق الحالي، بعرض مرتّب يبدأ بالمعلّق أولًا.</p>
+        <div class="admin-stats-grid" id="identityReqStats" style="margin-top:14px"></div>
+        <div class="admin-filter-grid" style="grid-template-columns:1fr 190px auto;margin-top:14px;">
+          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="identityReqSearch" type="text" placeholder="بحث بالاسم أو الهاتف..." oninput="renderIdentityRequestsAdmin()" /></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="identityReqStatusFilter" onchange="renderIdentityRequestsAdmin()">
+            <option value="">كل الحالات</option>
+            <option value="pending">بانتظار المراجعة</option>
+            <option value="verified">موثّق</option>
+            <option value="needs_data">يحتاج تعديل بيانات</option>
+            <option value="needs_id_reupload">إعادة رفع البطاقة</option>
+            <option value="rejected">مرفوض</option>
+          </select></div>
+          <button class="big-btn btn-dark" onclick="loadAllData().then(renderIdentityRequestsAdmin)"><i class="fa-solid fa-rotate"></i> تحديث</button>
+        </div>
+        <div id="identityReqList" style="margin-top:14px;"></div>
+      </div>
+    </section>
+
     <!-- Trades Section -->
     <section class="admin-section" id="tradesSection">
       <div class="admin-panel">
@@ -203,6 +261,31 @@
           <button type="submit"><i class="fa-solid fa-plus"></i> إضافة منطقة</button>
         </form>
         <div class="items-list" id="areasList"></div>
+      </div>
+    </section>
+
+    <!-- Homepage Content Section (بند: محتوى الرئيسية - Hero Slider + Stats Slider) -->
+    <section class="admin-section" id="homepageContentSection">
+      <div class="admin-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <h3><i class="fa-solid fa-images"></i> إدارة السلايدر الرئيسي</h3>
+            <p>الشرائح اللي بتظهر أعلى الصفحة الرئيسية للعميل. الترتيب حسب "ترتيب العرض"، وممكن تحديد تاريخ بداية/نهاية اختياري لأي شريحة.</p>
+          </div>
+          <button type="button" class="big-btn btn-dark" onclick="openHeroSlideModal()"><i class="fa-solid fa-plus"></i> إضافة شريحة</button>
+        </div>
+        <div class="items-list hp-content-list" id="heroSlidesList"></div>
+      </div>
+
+      <div class="admin-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <h3><i class="fa-solid fa-chart-simple"></i> إدارة سلايدر الإحصائيات</h3>
+            <p>يظهر تحت شريط البحث في الرئيسية. النوع "مقياس" قيمته تُحسب تلقائيًا من قاعدة البيانات، والنوع "مخصص" نص حر بالكامل.</p>
+          </div>
+          <button type="button" class="big-btn btn-dark" onclick="openStatsItemModal()"><i class="fa-solid fa-plus"></i> إضافة عنصر</button>
+        </div>
+        <div class="items-list hp-content-list" id="statsSliderItemsList"></div>
       </div>
     </section>
 
@@ -299,26 +382,92 @@
       <div class="admin-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
-            <h3><i class="fa-solid fa-headset"></i> خدمة العملاء</h3>
-            <p>محادثات العملاء التي تبدأ من أيقونة خدمة العملاء العائمة داخل التطبيق.</p>
+            <h3><i class="fa-solid fa-headset"></i> مركز خدمة العملاء</h3>
+            <p>محادثات دعم العملاء والصنايعية - رد، تغيير حالة/أولوية، ومتابعة المرفقات.</p>
           </div>
-          <button class="big-btn btn-dark" onclick="loadAdminSupportThreads()"><i class="fa-solid fa-rotate"></i> تحديث خدمة العملاء</button>
+          <button class="big-btn btn-dark" onclick="loadAdminSupportThreads()"><i class="fa-solid fa-rotate"></i> تحديث</button>
         </div>
+        <details style="margin-top:14px;">
+          <summary style="cursor:pointer;font-weight:900;color:var(--primary);"><i class="fa-solid fa-gear"></i> قنوات التواصل (اتصال/واتساب)</summary>
+          <div class="admin-filter-grid" style="grid-template-columns:1fr 1fr 1fr auto;margin-top:10px;">
+            <div class="admin-input-wrap"><i class="fa-solid fa-phone"></i><input id="supportChannelPhone" type="text" placeholder="رقم الاتصال (مثال: 01xxxxxxxxx)"></div>
+            <div class="admin-input-wrap"><i class="fa-brands fa-whatsapp"></i><input id="supportChannelWhatsapp" type="text" placeholder="رقم واتساب (بصيغة دولية بدون +)"></div>
+            <div class="admin-input-wrap"><i class="fa-regular fa-clock"></i><input id="supportChannelHours" type="text" placeholder="ساعات العمل (اختياري)"></div>
+            <button class="big-btn btn-blue" onclick="saveSupportChannels()"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+          </div>
+        </details>
+        <div class="admin-stats-grid" id="supportStats" style="margin-top:14px"></div>
+        <div class="admin-filter-grid" style="grid-template-columns:1fr 140px 140px 140px 140px auto;margin-top:14px;">
+          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="adminSupportSearch" type="text" placeholder="بحث بالاسم أو رقم الهاتف..." oninput="renderAdminSupportThreads()" /></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="adminSupportStatusFilter" onchange="renderAdminSupportThreads()">
+            <option value="">كل الحالات</option>
+            <option value="new">مفتوحة</option>
+            <option value="in_progress">قيد المتابعة</option>
+            <option value="resolved">تم الحل</option>
+            <option value="closed">مغلقة</option>
+          </select></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-layer-group"></i><select id="adminSupportTypeFilter" onchange="renderAdminSupportThreads()">
+            <option value="">كل الأنواع</option>
+            <option value="technical">مشكلة تقنية</option>
+            <option value="account">الحساب</option>
+            <option value="worker_issue">مشكلة مع صنايعي</option>
+            <option value="payment">الدفع والاشتراك</option>
+            <option value="other">أخرى</option>
+          </select></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-signal"></i><select id="adminSupportPriorityFilter" onchange="renderAdminSupportThreads()">
+            <option value="">كل الأولويات</option>
+            <option value="urgent">عاجلة</option>
+            <option value="high">عالية</option>
+            <option value="normal">عادية</option>
+            <option value="low">منخفضة</option>
+          </select></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-user-tag"></i><select id="adminSupportAssignFilter" onchange="renderAdminSupportThreads()">
+            <option value="">الكل</option>
+            <option value="me">مخصصة لي</option>
+            <option value="unassigned">غير مخصصة</option>
+          </select></div>
+          <label class="verified-filter-wrap" style="height:44px;" for="adminSupportUnreadOnly">
+            <input type="checkbox" id="adminSupportUnreadOnly" onchange="renderAdminSupportThreads()">
+            <i class="fa-solid fa-envelope"></i> غير مقروءة فقط
+          </label>
+        </div>
+        <label class="verified-filter-wrap" style="height:40px;margin-top:10px;display:inline-flex;" for="adminSupportPrioritySort">
+          <input type="checkbox" id="adminSupportPrioritySort" onchange="renderAdminSupportThreads()">
+          <i class="fa-solid fa-arrow-up-wide-short"></i> ترتيب بالأولوية أولًا
+        </label>
       </div>
       <div class="admin-chat-layout">
-        <div class="admin-chat-panel">
-          <h3>محادثات العملاء</h3>
-          <div class="admin-chat-tools"><input id="adminSupportSearch" placeholder="بحث بالاسم أو رقم الهاتف..." oninput="renderAdminSupportThreads()"></div>
-          <div class="chat-thread-list" id="adminSupportThreads"><div class="chat-empty">اضغط تحديث لعرض محادثات خدمة العملاء</div></div>
+        <div class="admin-chat-panel" id="adminSupportListPanel">
+          <h3>المحادثات</h3>
+          <div class="chat-thread-list" id="adminSupportThreads"><div class="chat-empty">اضغط تحديث لعرض المحادثات</div></div>
         </div>
-        <div class="admin-chat-panel">
-          <div class="admin-chat-head"><div><h3 id="adminSupportTitle">اختر محادثة</h3><p id="adminSupportSub" style="margin:3px 0 0;color:var(--muted);font-weight:800">افتح محادثة للرد على العميل.</p></div></div>
+        <div class="admin-chat-panel" id="adminSupportDetailPanel">
+          <button type="button" class="admin-support-back-mobile" id="adminSupportBackBtn" onclick="adminSupportBackToList()"><i class="fa-solid fa-arrow-right"></i> رجوع للقائمة</button>
+          <div class="admin-chat-head"><div><h3 id="adminSupportTitle">اختر محادثة</h3><p id="adminSupportSub" style="margin:3px 0 0;color:var(--muted);font-weight:800">افتح محادثة للرد.</p></div></div>
+          <div class="admin-support-controls" id="adminSupportControls" style="display:none">
+            <select id="adminSupportStatusSelect" onchange="updateAdminSupportStatus()">
+              <option value="new">مفتوحة</option>
+              <option value="in_progress">قيد المتابعة</option>
+              <option value="resolved">تم الحل</option>
+              <option value="closed">مغلقة</option>
+            </select>
+            <select id="adminSupportPrioritySelect" onchange="updateAdminSupportPriority()">
+              <option value="low">أولوية منخفضة</option>
+              <option value="normal">أولوية عادية</option>
+              <option value="high">أولوية عالية</option>
+              <option value="urgent">عاجلة</option>
+            </select>
+            <select id="adminSupportAssignSelect" onchange="updateAdminSupportAssignment()">
+              <option value="">غير مخصصة</option>
+            </select>
+            <button type="button" class="action-btn btn-dark" onclick="assignSupportToMe()"><i class="fa-solid fa-user-check"></i> تعيين لي</button>
+            <a id="adminSupportAttachmentLink" href="#" target="_blank" style="display:none" class="action-btn btn-blue"><i class="fa-solid fa-paperclip"></i> عرض المرفق</a>
+          </div>
           <div class="admin-chat-messages" id="adminSupportMessages"><div class="chat-empty">لا توجد محادثة مفتوحة</div></div>
           <form class="admin-chat-form" id="adminSupportForm" onsubmit="sendAdminSupportMessage(event)" style="display:none">
-            <textarea id="adminSupportInput" placeholder="اكتب رد خدمة العملاء هنا..."></textarea>
+            <textarea id="adminSupportInput" placeholder="اكتب ردك هنا..."></textarea>
             <div class="admin-chat-form-actions">
-              <button type="submit" class="big-btn btn-blue"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>
-              <button type="button" class="big-btn btn-dark" onclick="loadAdminSupportMessages(adminSupportCurrentId)"><i class="fa-solid fa-rotate"></i> تحديث</button>
+              <button type="submit" class="big-btn btn-blue"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
             </div>
           </form>
         </div>
@@ -339,6 +488,41 @@
             <option value="90">أداء آخر 3 شهور</option>
             <option value="365">أداء آخر سنة</option>
           </select>
+        </div>
+
+        <!-- المؤشرات الأساسية للـDashboard (بند 22.1) - أرقام حقيقية من allWorkers
+             المحمّلة أصلًا + /api/admin/analytics (عملاء) + /api/admin/service-requests
+             (طلبات اليوم/قيد التنفيذ/نسبة الإكمال)، بدون أي تعديل على منطق الصلاحيات -->
+        <div class="stats-hero-grid" style="margin-bottom: 15px;">
+          <div class="stat-hero-card" style="--bg-color: #0f172a; --light-bg: #e2e8f0;">
+            <div class="stat-icon-bg"><i class="fa-solid fa-toolbox"></i></div>
+            <h2 id="dashWorkersCount">0</h2><p>عدد الصنايعية</p>
+          </div>
+          <div class="stat-hero-card" style="--bg-color: #2563eb; --light-bg: #dbeafe;">
+            <div class="stat-icon-bg"><i class="fa-solid fa-users"></i></div>
+            <h2 id="dashCustomersCount">0</h2><p>عدد العملاء</p>
+          </div>
+          <div class="stat-hero-card" style="--bg-color: #10b981; --light-bg: #d1fae5;">
+            <div class="stat-icon-bg"><i class="fa-solid fa-calendar-day"></i></div>
+            <h2 id="dashRequestsToday">0</h2><p>طلبات اليوم</p>
+          </div>
+          <div class="stat-hero-card" style="--bg-color: #f59e0b; --light-bg: #fef3c7;">
+            <div class="stat-icon-bg"><i class="fa-solid fa-spinner"></i></div>
+            <h2 id="dashRequestsInProgress">0</h2><p>طلبات قيد التنفيذ</p>
+          </div>
+          <div class="stat-hero-card" style="--bg-color: #8b5cf6; --light-bg: #ede9fe;">
+            <div class="stat-icon-bg"><i class="fa-solid fa-chart-simple"></i></div>
+            <h2 id="dashCompletionRate">—</h2><p>نسبة إكمال الطلبات</p>
+          </div>
+          <div class="stat-hero-card" style="--bg-color: #ec4899; --light-bg: #fce7f3;">
+            <div class="stat-icon-bg"><i class="fa-solid fa-id-card-clip"></i></div>
+            <h2 id="dashPendingVerification">0</h2><p>توثيق معلّق</p>
+          </div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom:20px;">
+          <h3><i class="fa-solid fa-calendar-week" style="color:#2563eb;"></i> طلبات آخر 7 أيام</h3>
+          <div style="position:relative;height:220px;"><canvas id="dashRequests7dChart"></canvas></div>
         </div>
 
         <!-- الأرقام السريعة -->
@@ -490,7 +674,7 @@
           </select>
           <button class="big-btn btn-dark" onclick="loadReports()"><i class="fa-solid fa-rotate"></i> تحديث البلاغات</button>
         </div>
-        <div id="reportsList" class="items-list"><div class="empty-admin">اضغط تحديث البلاغات لعرض البلاغات.</div></div>
+        <div id="reportsList"><div class="empty-admin">اضغط تحديث البلاغات لعرض البلاغات.</div></div>
       </div>
     </section>
 
@@ -499,8 +683,10 @@
       <div class="admin-panel">
         <h3>طلبات الخدمة</h3>
         <p>متابعة طلبات الخدمة بين العملاء والصنايعية - عرض فقط، بدون تعديل محتوى الطلب أو تقييم العميل.</p>
-        <div class="sr-admin-filters" style="margin-top:14px">
-          <select id="srAdminStatusFilter" onchange="loadServiceRequestsAdmin()">
+        <div class="admin-stats-grid" id="srAdminStats" style="margin-top:14px"></div>
+        <div class="admin-filter-grid" style="grid-template-columns:1fr 170px auto;margin-top:14px;">
+          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="srAdminSearchInput" type="text" placeholder="بحث باسم العميل أو رقم الهاتف..." oninput="debouncedLoadServiceRequestsAdmin()" /></div>
+          <div class="admin-input-wrap"><i class="fa-solid fa-filter"></i><select id="srAdminStatusFilter" onchange="loadServiceRequestsAdmin()">
             <option value="">كل الحالات</option>
             <option value="new">جديد</option>
             <option value="accepted">تم القبول</option>
@@ -508,11 +694,10 @@
             <option value="completed">مكتمل</option>
             <option value="rejected">مرفوض</option>
             <option value="cancelled">ملغي</option>
-          </select>
-          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="srAdminSearchInput" type="text" placeholder="بحث باسم العميل أو رقم الهاتف..." oninput="debouncedLoadServiceRequestsAdmin()" /></div>
+          </select></div>
           <button class="big-btn btn-dark" onclick="loadServiceRequestsAdmin()"><i class="fa-solid fa-rotate"></i> تحديث</button>
         </div>
-        <div id="srAdminList" class="items-list"><div class="empty-admin">اضغط تحديث لعرض طلبات الخدمة.</div></div>
+        <div id="srAdminList" style="margin-top:14px;"><div class="empty-admin">اضغط تحديث لعرض طلبات الخدمة.</div></div>
       </div>
     </section>
 
@@ -522,10 +707,11 @@
         <h3>العملاء</h3>
         <p>حسابات العملاء اللي سجّلوا (اسم + رقم) قبل إظهار بيانات تواصل صنايعي، ونشاطهم في التطبيق.</p>
         <div class="admin-stats-grid" id="customersStats" style="margin-top:14px"></div>
-        <div class="sr-admin-filters" style="margin-top:14px">
+        <div class="admin-filter-grid" style="grid-template-columns:1fr auto;margin-top:14px;">
+          <div class="admin-input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="adminCustomerSearch" type="text" placeholder="بحث بالاسم أو رقم الهاتف..." oninput="renderCustomersAdmin()" /></div>
           <button class="big-btn btn-dark" onclick="loadCustomersAdmin()"><i class="fa-solid fa-rotate"></i> تحديث</button>
         </div>
-        <div id="customersAdminList" class="items-list"><div class="empty-admin">اضغط تحديث لعرض العملاء.</div></div>
+        <div id="customersAdminList" style="margin-top:14px;"><div class="empty-admin">اضغط تحديث لعرض العملاء.</div></div>
       </div>
     </section>
 
@@ -641,7 +827,7 @@
           </select>
           <button type="submit"><i class="fa-solid fa-plus"></i> إضافة</button>
         </form>
-        <div id="adminUsersList" class="admin-users-grid"></div>
+        <div id="adminUsersList" class="admin-workers-grid"></div>
       </div>
     </section>
 
@@ -663,7 +849,7 @@
     <section class="admin-section" id="backupsSection">
       <div class="admin-panel">
         <h3>النسخ الاحتياطي وتصدير البيانات</h3>
-        <div id="backupSummary" class="backup-summary-list" style="margin-bottom: 14px;"></div>
+        <div id="backupSummary" class="admin-stats-grid" style="margin-bottom: 14px;"></div>
         <div class="admin-workers-grid">
           <div class="admin-worker-card" style="display:block; text-align:center;">
             <h4><i class="fa-solid fa-file-code"></i> نسخة كاملة JSON</h4>
@@ -677,7 +863,8 @@
       </div>
     </section>
 
-  </section>
+    </section>
+  </div>
 </main>
 
 <div class="message-toast" id="toast"></div>

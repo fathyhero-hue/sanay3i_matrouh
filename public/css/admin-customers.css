@@ -21,13 +21,13 @@
 .cust-admin-meta strong { color: var(--primary); }
 
 .cust-detail-overlay {
-    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 4400;
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 5200;
     display: none; align-items: center; justify-content: center; padding: 18px;
 }
 .cust-detail-overlay.show { display: flex; }
 .cust-detail-box {
     width: min(560px, 100%); max-height: 85vh; overflow-y: auto;
-    background: #fff; border-radius: 22px; padding: 24px; position: relative;
+    background: #fff; border-radius: 18px; padding: 24px; position: relative;
     box-shadow: 0 25px 65px rgba(15,23,42,0.3);
 }
 .cust-detail-close {

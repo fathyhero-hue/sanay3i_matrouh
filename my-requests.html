@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme-app>
 <head>
+  <script>(function(){var t=localStorage.getItem('sanay3i_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>طلباتي | صنايعي مطروح</title>
@@ -8,163 +9,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="theme-color" content="#061A3D">
-  <style>
-    :root {
-      --sanay3i-navy: #061A3D; --sanay3i-navy-2: #082052; --sanay3i-navy-3: #0B2A66;
-      --blue: #1d4ed8; --gold: #f59e0b; --danger: #dc2626; --green: #16a34a; --purple: #7c3aed;
-      --muted: #64748b; --border: #e2e8f0;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Cairo', sans-serif; margin: 0; min-height: 100vh; color: #0f172a; overflow-x: hidden;
-      display: flex; flex-direction: column; align-items: center;
-      background:
-        radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 35%),
-        radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.12), transparent 30%),
-        linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
-    }
-
-    .site-header {
-      width: 100%; position: sticky; top: 0; z-index: 10;
-      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2) 55%, var(--sanay3i-navy-3));
-      box-shadow: 0 18px 45px rgba(2,6,23,.20);
-    }
-    .header-content {
-      max-width: 1180px; margin: auto; width: calc(100% - 30px);
-      min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; }
-    .brand-logo-frame {
-      width: 50px; height: 50px; flex: none; border-radius: 17px; padding: 4px;
-      background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
-      border: 1px solid rgba(255,255,255,0.22); overflow: hidden;
-    }
-    .brand-logo-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 13px; display: block; }
-    .brand-text h1 { margin: 0; font-size: 19px; font-weight: 900; color: #fff; line-height: 1.2; }
-    .brand-text span { display: block; color: rgba(226,232,240,.8); font-size: 11.5px; font-weight: 800; margin-top: 3px; }
-
-    .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .header-btn-ghost, .logout-btn {
-      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff;
-      padding: 9px 16px; border-radius: 999px; font-family: inherit; font-weight: 800; font-size: 12.5px;
-      cursor: pointer; display: flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap;
-    }
-    .header-btn-ghost:hover, .logout-btn:hover { background: rgba(255,255,255,0.18); }
-
-    main { flex: 1; width: 100%; max-width: 760px; padding: 30px 16px 60px; }
-
-    .page-title-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
-    .page-title { text-align: center; font-size: 22px; font-weight: 900; margin: 0; }
-    .refresh-btn {
-      background: #fff; border: 1px solid var(--border); color: var(--sanay3i-navy);
-      padding: 8px 16px; border-radius: 999px; font-family: inherit; font-weight: 800; font-size: 12.5px;
-      cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 6px 16px rgba(15,23,42,0.06);
-    }
-    .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
-    .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .page-subtitle { text-align: center; font-size: 13.5px; color: var(--muted); font-weight: 700; margin: 0 0 24px; }
-
-    .profile-card {
-      display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid var(--border);
-      border-radius: 20px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 14px 34px rgba(15,23,42,0.06);
-    }
-    .profile-card-icon {
-      width: 46px; height: 46px; border-radius: 50%; flex: none;
-      background: linear-gradient(135deg, var(--sanay3i-navy), var(--blue)); color: #fff;
-      display: flex; align-items: center; justify-content: center; font-size: 19px;
-    }
-    .profile-card-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-    .profile-card-info strong { font-size: 15px; color: #0f172a; }
-    .profile-card-info span { font-size: 12.5px; color: var(--muted); font-weight: 700; }
-
-    .login-required {
-      background: #fff; border: 1px solid var(--border); border-radius: 22px; padding: 36px 24px;
-      text-align: center; box-shadow: 0 20px 50px rgba(15,23,42,0.08);
-    }
-    .login-required i { font-size: 30px; color: var(--blue); margin-bottom: 12px; }
-    .login-required p { color: var(--muted); font-weight: 700; margin: 10px 0 18px; }
-    .login-required a {
-      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
-      background: linear-gradient(135deg, var(--sanay3i-navy), var(--sanay3i-navy-2));
-      color: #fff; padding: 12px 26px; border-radius: 999px; font-weight: 900; font-size: 14px;
-    }
-
-    .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); font-weight: 700; }
-    .empty-state i { font-size: 34px; margin-bottom: 12px; display: block; color: #cbd5e1; }
-
-    .request-card {
-      background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 20px;
-      margin-bottom: 16px; box-shadow: 0 14px 34px rgba(15,23,42,0.06); overflow: hidden;
-    }
-    .request-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .request-worker { font-weight: 900; font-size: 15.5px; color: #0f172a; }
-    .request-worker span { display: block; font-weight: 700; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-    .request-id { font-size: 11.5px; color: var(--muted); font-weight: 800; margin-top: 4px; }
-
-    .status-badge { padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 900; white-space: nowrap; flex: none; }
-    .status-new { background: #e0f2fe; color: #0369a1; }
-    .status-accepted { background: #dcfce7; color: #15803d; }
-    .status-in_progress { background: #fef3c7; color: #b45309; }
-    .status-completed { background: #ede9fe; color: #6d28d9; }
-    .status-rejected { background: #fee2e2; color: #b91c1c; }
-    .status-cancelled { background: #f1f5f9; color: #475569; }
-
-    .request-desc { font-size: 13.5px; color: #334155; font-weight: 600; line-height: 1.8; margin: 8px 0; word-break: break-word; }
-    .request-meta { font-size: 12px; color: var(--muted); font-weight: 700; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-    .request-meta span i { margin-left: 4px; }
-    .rejected-reason { margin-top: 10px; font-size: 12.5px; color: var(--danger); font-weight: 700; background: #fef2f2; padding: 8px 12px; border-radius: 12px; word-break: break-word; }
-
-    .loading { text-align: center; padding: 40px; color: var(--muted); font-weight: 700; }
-
-    .rate-btn {
-      margin-top: 12px; background: linear-gradient(135deg, var(--gold), #fbbf24); color: #fff; border: none;
-      padding: 10px 18px; border-radius: 999px; font-family: inherit; font-weight: 900; font-size: 12.5px;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .rate-btn:hover { transform: translateY(-1px); }
-    .review-done-badge { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-weight: 800; font-size: 12.5px; }
-
-    .cancel-request-btn {
-      margin-top: 12px; margin-inline-start: 8px; background: #fff; color: var(--danger); border: 1px solid rgba(220,38,38,0.35);
-      padding: 9px 16px; border-radius: 999px; font-family: inherit; font-weight: 900; font-size: 12.5px;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .cancel-request-btn:hover { background: #fef2f2; }
-    .cancel-request-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .review-modal-overlay {
-      position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 4200;
-      display: none; align-items: center; justify-content: center; padding: 18px;
-    }
-    .review-modal-overlay.show { display: flex; }
-    .review-modal-box { width: min(440px, 100%); background: #fff; border-radius: 22px; padding: 22px; box-shadow: 0 25px 65px rgba(15,23,42,0.3); }
-    .review-modal-box h3 { margin: 0 0 6px; color: #0f172a; }
-    .review-modal-box p { color: var(--muted); font-weight: 700; margin: 0 0 16px; font-size: 13px; }
-    .review-modal-box select, .review-modal-box textarea {
-      width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px;
-      margin-bottom: 10px; font-family: inherit; font-weight: 700; outline: none; box-sizing: border-box;
-    }
-    .review-modal-box textarea { min-height: 90px; resize: vertical; }
-    .review-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-    .review-modal-actions button { flex: 1; min-height: 44px; border: 0; border-radius: 14px; font-weight: 900; cursor: pointer; }
-    .review-submit-btn { background: var(--sanay3i-navy); color: #fff; }
-    .review-cancel-btn { background: #f1f5f9; color: var(--sanay3i-navy); }
-    .review-modal-message { display: none; margin-top: 10px; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: 13px; }
-    .review-modal-message.success { display: block; background: #dcfce7; color: #166534; }
-    .review-modal-message.error { display: block; background: #fee2e2; color: #991b1b; }
-
-    @media (max-width: 400px) {
-      .header-content { justify-content: center; }
-      .brand-text h1 { font-size: 17px; }
-    }
-  </style>
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/account.css" />
 </head>
-<body>
+<body class="auth-page-body has-bottom-nav">
 
-  <header class="site-header">
-    <div class="header-content">
+  <header class="site-header site-header-compact">
+    <div class="header-content account-header-content">
       <a href="/" class="brand">
         <div class="brand-logo-frame">
           <img src="/icons/icon-192.png" alt="">
@@ -175,18 +26,20 @@
         </div>
       </a>
       <div class="header-actions">
+        <div id="notifBellSlot" style="position:relative;"></div>
+        <div id="supportBellSlot" style="position:relative;"></div>
         <a href="/" class="header-btn-ghost"><i class="fa-solid fa-house"></i> الرئيسية</a>
         <button class="logout-btn" id="logoutBtn" style="display:none">
           <i class="fa-solid fa-right-from-bracket"></i> خروج
         </button>
-        <button class="logout-btn" id="deleteAccountBtn" style="display:none; background:rgba(220,38,38,0.25); border-color:rgba(220,38,38,0.4);">
+        <button class="logout-btn danger" id="deleteAccountBtn" style="display:none">
           <i class="fa-solid fa-trash-can"></i> حذف الحساب
         </button>
       </div>
     </div>
   </header>
 
-  <main>
+  <main class="account-main">
     <div class="profile-card" id="profileCard" style="display:none;">
       <div class="profile-card-icon"><i class="fa-solid fa-circle-user"></i></div>
       <div class="profile-card-info">
@@ -194,6 +47,19 @@
         <span id="profileCardPhone">-</span>
       </div>
     </div>
+
+    <div class="theme-toggle-row">
+      <span class="theme-toggle-label"><i class="fa-solid fa-circle-half-stroke"></i> المظهر</span>
+      <div class="tabs theme-toggle-tabs">
+        <button type="button" class="tab-btn" data-theme-option="auto">تلقائي</button>
+        <button type="button" class="tab-btn" data-theme-option="light">فاتح</button>
+        <button type="button" class="tab-btn" data-theme-option="dark">داكن</button>
+      </div>
+    </div>
+
+    <button type="button" class="empty-state-cta" data-support-trigger style="width:100%;margin-bottom:var(--space-5);justify-content:center;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:manipulation;">
+      <i class="fa-solid fa-headset" style="pointer-events:none;"></i> <span style="pointer-events:none;">خدمة العملاء والدعم</span>
+    </button>
 
     <div class="page-title-row">
       <h2 class="page-title">طلباتي</h2>
@@ -213,6 +79,7 @@
       <h3><i class="fa-solid fa-star"></i> قيّم الصنايعي</h3>
       <p id="reviewModalWorkerName"></p>
       <form id="reviewForm">
+        <label class="review-rating-label">التقييم العام</label>
         <select id="reviewRatingInput" required>
           <option value="">اختر التقييم</option>
           <option value="5">5 نجوم - ممتاز</option>
@@ -221,6 +88,47 @@
           <option value="2">2 نجوم - مقبول</option>
           <option value="1">1 نجمة - ضعيف</option>
         </select>
+
+        <label class="review-rating-label">الالتزام بالموعد</label>
+        <select id="reviewPunctualityInput" required>
+          <option value="">اختر التقييم</option>
+          <option value="5">5 - ممتاز</option>
+          <option value="4">4 - جيد جدًا</option>
+          <option value="3">3 - جيد</option>
+          <option value="2">2 - مقبول</option>
+          <option value="1">1 - ضعيف</option>
+        </select>
+
+        <label class="review-rating-label">جودة العمل</label>
+        <select id="reviewQualityInput" required>
+          <option value="">اختر التقييم</option>
+          <option value="5">5 - ممتاز</option>
+          <option value="4">4 - جيد جدًا</option>
+          <option value="3">3 - جيد</option>
+          <option value="2">2 - مقبول</option>
+          <option value="1">1 - ضعيف</option>
+        </select>
+
+        <label class="review-rating-label">التعامل</label>
+        <select id="reviewInteractionInput" required>
+          <option value="">اختر التقييم</option>
+          <option value="5">5 - ممتاز</option>
+          <option value="4">4 - جيد جدًا</option>
+          <option value="3">3 - جيد</option>
+          <option value="2">2 - مقبول</option>
+          <option value="1">1 - ضعيف</option>
+        </select>
+
+        <label class="review-rating-label">السعر</label>
+        <select id="reviewPriceInput" required>
+          <option value="">اختر التقييم</option>
+          <option value="5">5 - ممتاز</option>
+          <option value="4">4 - جيد جدًا</option>
+          <option value="3">3 - جيد</option>
+          <option value="2">2 - مقبول</option>
+          <option value="1">1 - ضعيف</option>
+        </select>
+
         <textarea id="reviewCommentInput" maxlength="1000" placeholder="تعليقك (اختياري)..."></textarea>
         <div class="review-modal-actions">
           <button type="submit" class="review-submit-btn" id="reviewSubmitBtn">إرسال التقييم</button>
@@ -233,10 +141,10 @@
 
   <div class="review-modal-overlay" id="deleteAccountModal">
     <div class="review-modal-box">
-      <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> حذف الحساب نهائيًا</h3>
+      <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--color-error)"></i> حذف الحساب نهائيًا</h3>
       <p>هتفقد بياناتك الشخصية وحسابك نهائيًا، وده إجراء <strong>لا يمكن التراجع عنه</strong>. متأكد إنك عايز تكمل؟</p>
       <div class="review-modal-actions">
-        <button type="button" class="review-submit-btn" id="deleteAccountConfirmBtn" style="background:var(--danger);">
+        <button type="button" class="review-submit-btn" id="deleteAccountConfirmBtn" style="background:var(--color-error);">
           <i class="fa-solid fa-trash-can"></i> نعم، احذف حسابي نهائيًا
         </button>
         <button type="button" class="review-cancel-btn" id="deleteAccountCancelBtn">إلغاء</button>
@@ -245,14 +153,67 @@
     </div>
   </div>
 
+  <div class="review-modal-overlay" id="requestDetailModal">
+    <div class="review-modal-box rq-detail-box">
+      <div class="rq-detail-head">
+        <h3><i class="fa-solid fa-clipboard-list"></i> <span id="rqDetailId">طلب رقم #-</span></h3>
+        <button type="button" class="rq-detail-close" id="rqDetailCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="rq-timeline" id="rqTimeline"></div>
+
+      <div class="rq-detail-info" id="rqDetailInfo"></div>
+
+      <div class="rq-detail-attachments" id="rqDetailAttachments" style="display:none;">
+        <strong class="rq-detail-section-label"><i class="fa-solid fa-images"></i> المرفقات</strong>
+        <div class="rq-attach-grid" id="rqAttachGrid"></div>
+      </div>
+
+      <div class="rq-detail-actions" id="rqDetailActions"></div>
+    </div>
+  </div>
+
+  <!-- تنقل سفلي ثابت (موبايل فقط، أقل من 768px) - نفس مكوّن الرئيسية بالضبط -->
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <a href="/" class="bottom-nav-item">
+      <i class="fa-solid fa-house"></i>
+      <span>الرئيسية</span>
+    </a>
+    <a href="/#tradesShowcase" class="bottom-nav-item">
+      <i class="fa-solid fa-screwdriver-wrench"></i>
+      <span>الخدمات</span>
+    </a>
+    <a href="/my-requests" class="bottom-nav-item active">
+      <i class="fa-solid fa-clipboard-list"></i>
+      <span>طلباتي</span>
+    </a>
+    <a href="/favorites" class="bottom-nav-item">
+      <i class="fa-regular fa-heart"></i>
+      <span>المفضلة</span>
+    </a>
+    <a href="/account" class="bottom-nav-item">
+      <i class="fa-solid fa-circle-user"></i>
+      <span>حسابي</span>
+    </a>
+    <a href="/#workers" class="bottom-nav-fab" aria-label="اطلب صنايعي">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+  </nav>
+
+  <script src="/js/customerGate.js"></script>
   <script>
     const STATUS_LABELS = {
       new: 'جديد', accepted: 'تم القبول', in_progress: 'جاري التنفيذ',
       completed: 'مكتمل', rejected: 'مرفوض', cancelled: 'ملغي'
     };
+    const STATUS_ICONS = {
+      new: 'fa-clock', accepted: 'fa-circle-check', in_progress: 'fa-gears',
+      completed: 'fa-flag-checkered', rejected: 'fa-circle-xmark', cancelled: 'fa-ban'
+    };
     const ACTIVE_STATUSES = ['new', 'accepted', 'in_progress'];
     const POLL_INTERVAL_MS = 30000;
 
+    let currentRequests = [];
     const content = document.getElementById('content');
     const logoutBtn = document.getElementById('logoutBtn');
     const deleteAccountBtn = document.getElementById('deleteAccountBtn');
@@ -313,14 +274,18 @@
       content.innerHTML = `
         <div class="empty-state">
           <i class="fa-solid fa-inbox"></i>
-          لسه معملتش أي طلب خدمة.<br>هتلاقي زرار "اطلب خدمة" في صفحة أي صنايعي.
+          <h3>لسه ما طلبتش خدمة</h3>
+          <p>اطلب خدمة من أي صنايعي وتابع طلبتك هنا.</p>
+          <a href="/" class="empty-state-cta"><i class="fa-solid fa-hammer"></i> اطلب صنايعي</a>
         </div>`;
     }
 
     function renderRequests(requests) {
+      currentRequests = requests || [];
       content.innerHTML = requests.map(r => {
         const statusClass = 'status-' + (r.status || 'new');
         const statusLabel = STATUS_LABELS[r.status] || r.status;
+        const statusIcon = STATUS_ICONS[r.status] || 'fa-circle';
         const rejectedBlock = (r.status === 'rejected' && r.rejected_reason)
           ? `<div class="rejected-reason"><i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(r.rejected_reason)}</div>`
           : '';
@@ -341,13 +306,16 @@
                 <span>${escapeHtml(r.worker_trade || '')}${r.worker_area ? ' - ' + escapeHtml(r.worker_area) : ''}</span>
                 <span class="request-id">طلب رقم #${escapeHtml(r.id)}</span>
               </div>
-              <span class="status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>
+              <span class="status-badge ${statusClass}"><i class="fa-solid ${statusIcon}"></i> ${escapeHtml(statusLabel)}</span>
             </div>
             <div class="request-desc">${escapeHtml(r.description)}</div>
             ${rejectedBlock}
             <div class="request-meta">
               <span><i class="fa-regular fa-calendar"></i> ${formatDate(r.created_at)}</span>
             </div>
+            <button type="button" class="request-detail-btn" data-detail-id="${escapeHtml(r.id)}">
+              <i class="fa-solid fa-timeline"></i> تفاصيل الطلب ومتابعة الحالة
+            </button>
             ${reviewBlock}
             ${cancelBlock}
           </div>`;
@@ -397,6 +365,13 @@
           renderRequests(d.requests);
         }
         schedulePolling(d.requests);
+
+        // فتح طلب معيّن تلقائيًا لو جاي من رابط إشعار (?open=<id>) - مرة واحدة بس
+        if (!window.__openedFromNotif) {
+          window.__openedFromNotif = true;
+          const openId = new URLSearchParams(location.search).get('open');
+          if (openId && (d.requests || []).some(r => String(r.id) === String(openId))) openRequestDetail(openId);
+        }
       } catch (err) {
         if (!silent) {
           content.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(err.message)}</div>`;
@@ -542,8 +517,14 @@
       if (!activeReviewRequestId) return;
 
       const rating = Number(document.getElementById('reviewRatingInput').value);
+      const punctuality_rating = Number(document.getElementById('reviewPunctualityInput').value);
+      const quality_rating = Number(document.getElementById('reviewQualityInput').value);
+      const interaction_rating = Number(document.getElementById('reviewInteractionInput').value);
+      const price_rating = Number(document.getElementById('reviewPriceInput').value);
       const comment = document.getElementById('reviewCommentInput').value.trim();
-      if (!rating) return showReviewMessage('error', 'يرجى اختيار التقييم');
+      if (!rating || !punctuality_rating || !quality_rating || !interaction_rating || !price_rating) {
+        return showReviewMessage('error', 'يرجى اختيار كل التقييمات الخمسة');
+      }
 
       const token = getCustomerToken();
       if (!token) { closeReviewModal(); renderLoginRequired('expired'); return; }
@@ -557,7 +538,7 @@
         const r = await fetch('/api/service-requests/' + activeReviewRequestId + '/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ rating, comment })
+          body: JSON.stringify({ rating, punctuality_rating, quality_rating, interaction_rating, price_rating, comment })
         });
         const d = await r.json().catch(() => ({}));
 
@@ -582,7 +563,147 @@
       }
     });
 
+    // ===============================
+    // تفاصيل الطلب: Timeline + بيانات + مرفقات + اتصال/واتساب (customerGate)
+    // ===============================
+    function withCustomerGate(callback) {
+      if (window.CustomerGate && typeof window.CustomerGate.ensureIdentified === "function") {
+        callback(window.CustomerGate);
+      } else {
+        console.error("CustomerGate لم يتم تحميله - تم منع فتح بيانات الصنايعي احتياطيًا");
+      }
+    }
+
+    // الحالات الحقيقية المتاحة حاليًا: new/accepted/in_progress/completed/
+    // rejected/cancelled. مفيش حالة "الصنايعي في الطريق" منفصلة فعليًا في
+    // الـBackend، فبنعتبرها بديهيًا محققة مع بداية "in_progress" (نفس لحظة
+    // "بدأ العمل") بدل ما نخترع حالة وهمية جديدة
+    const RQ_TIMELINE_STEPS = [
+      { key: 'sent', label: 'تم إرسال الطلب', icon: 'fa-paper-plane' },
+      { key: 'received', label: 'تم استلام الطلب', icon: 'fa-inbox' },
+      { key: 'accepted', label: 'تم قبول الصنايعي', icon: 'fa-user-check' },
+      { key: 'on_the_way', label: 'الصنايعي في الطريق', icon: 'fa-route' },
+      { key: 'started', label: 'بدأ العمل', icon: 'fa-screwdriver-wrench' },
+      { key: 'completed', label: 'تم إنهاء الخدمة', icon: 'fa-flag-checkered' }
+    ];
+
+    function buildTimelineState(r) {
+      if (r.status === 'rejected') return { rejected: true };
+      if (r.status === 'cancelled') return { cancelled: true };
+      const started = r.status === 'in_progress' || r.status === 'completed';
+      const accepted = r.status === 'accepted' || started;
+      return {
+        sent: true, received: true, accepted,
+        on_the_way: started, started,
+        completed: r.status === 'completed'
+      };
+    }
+
+    function renderTimeline(r) {
+      const box = document.getElementById('rqTimeline');
+      const state = buildTimelineState(r);
+      if (state.rejected) {
+        box.innerHTML = `<div class="rq-timeline-terminal rq-timeline-rejected"><i class="fa-solid fa-circle-xmark"></i> تم رفض الطلب${r.rejected_reason ? ' - ' + escapeHtml(r.rejected_reason) : ''}</div>`;
+        return;
+      }
+      if (state.cancelled) {
+        box.innerHTML = `<div class="rq-timeline-terminal rq-timeline-cancelled"><i class="fa-solid fa-ban"></i> تم إلغاء الطلب</div>`;
+        return;
+      }
+      box.innerHTML = RQ_TIMELINE_STEPS.map(step => {
+        const done = !!state[step.key];
+        return `<div class="rq-timeline-step ${done ? 'done' : ''}">
+          <div class="rq-timeline-dot"><i class="fa-solid ${done ? 'fa-check' : step.icon}"></i></div>
+          <span>${escapeHtml(step.label)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderDetailInfo(r) {
+      const box = document.getElementById('rqDetailInfo');
+      const schedulingLabels = { now: 'الآن', today: 'اليوم', tomorrow: 'غدًا', scheduled: 'موعد محدد' };
+      const schedulingText = schedulingLabels[r.scheduling_type] || 'الآن';
+      const scheduledDateText = (r.scheduling_type === 'scheduled' && r.scheduled_at) ? ' - ' + formatDate(r.scheduled_at) : '';
+      box.innerHTML = `
+        <div class="rq-info-row"><span>الصنايعي</span><strong>${escapeHtml(r.worker_name || '-')}</strong></div>
+        <div class="rq-info-row"><span>الحرفة</span><strong>${escapeHtml(r.worker_trade || '-')}</strong></div>
+        <div class="rq-info-row"><span>تاريخ الطلب</span><strong>${formatDate(r.created_at)}</strong></div>
+        <div class="rq-info-row"><span>موعد الخدمة</span><strong>${escapeHtml(schedulingText + scheduledDateText)}</strong></div>
+        <div class="rq-info-row rq-info-desc"><span>وصف المشكلة</span><strong>${escapeHtml(r.description || '-')}</strong></div>
+      `;
+    }
+
+    async function renderDetailAttachments(requestId) {
+      const wrap = document.getElementById('rqDetailAttachments');
+      const grid = document.getElementById('rqAttachGrid');
+      wrap.style.display = 'none';
+      grid.innerHTML = '';
+      const token = getCustomerToken();
+      if (!token) return;
+      try {
+        const r = await fetch('/api/service-requests/' + requestId + '/attachments', { headers: { Authorization: 'Bearer ' + token } });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success || !d.attachments || !d.attachments.length) return;
+        grid.innerHTML = d.attachments.map(a => `<a href="${a.url}" target="_blank" rel="noopener" class="rq-attach-thumb"><img src="${a.url}" alt="مرفق"></a>`).join('');
+        wrap.style.display = 'block';
+      } catch (e) {}
+    }
+
+    function renderDetailActions(r) {
+      const box = document.getElementById('rqDetailActions');
+      const phone = (r.worker_phone || '').replace(/[^\d]/g, '');
+      const wa = (r.worker_whatsapp || '').replace(/[^\d]/g, '');
+      box.innerHTML = `
+        <a href="#" class="rq-action-btn rq-call-btn ${!phone ? 'disabled' : ''}" data-gate-action="call"><i class="fa-solid fa-phone"></i> اتصال بالصنايعي</a>
+        <a href="#" target="_blank" class="rq-action-btn rq-wa-btn ${!wa ? 'disabled' : ''}" data-gate-action="whatsapp"><i class="fa-brands fa-whatsapp"></i> واتساب</a>
+      `;
+      const callLink = box.querySelector('[data-gate-action="call"]');
+      const waLink = box.querySelector('[data-gate-action="whatsapp"]');
+      function gatedAction(e, hasNumber, eventType, url, external) {
+        e.preventDefault();
+        if (!hasNumber) return;
+        withCustomerGate((gate) => {
+          gate.ensureIdentified(function () {
+            gate.trackEvent(eventType, { worker_id: String(r.worker_id), source: 'my_requests_detail' });
+            if (external) window.open(url, '_blank');
+            else window.location.href = url;
+          });
+        });
+      }
+      if (callLink) callLink.addEventListener('click', (e) => gatedAction(e, !!phone, 'call_click', 'tel:' + phone, false));
+      if (waLink) waLink.addEventListener('click', (e) => gatedAction(e, !!wa, 'whatsapp_click', 'https://wa.me/2' + wa, true));
+    }
+
+    const requestDetailModal = document.getElementById('requestDetailModal');
+
+    function openRequestDetail(requestId) {
+      const r = currentRequests.find(x => String(x.id) === String(requestId));
+      if (!r) return;
+      document.getElementById('rqDetailId').textContent = 'طلب رقم #' + r.id;
+      renderTimeline(r);
+      renderDetailInfo(r);
+      renderDetailActions(r);
+      renderDetailAttachments(r.id);
+      requestDetailModal.classList.add('show');
+    }
+
+    function closeRequestDetail() {
+      requestDetailModal.classList.remove('show');
+    }
+
+    document.getElementById('rqDetailCloseBtn').addEventListener('click', closeRequestDetail);
+    requestDetailModal.addEventListener('click', (e) => { if (e.target === requestDetailModal) closeRequestDetail(); });
+
+    content.addEventListener('click', (e) => {
+      const btn = e.target.closest('.request-detail-btn');
+      if (!btn) return;
+      openRequestDetail(btn.dataset.detailId);
+    });
+
     loadRequests();
   </script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/notifications-widget.js?v=20260823"></script>
+  <script src="/js/support-widget.js?v=20260823"></script>
 </body>
 </html>

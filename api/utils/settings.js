@@ -58,8 +58,27 @@ async function setSubscriptionPricing({ monthly, discounts }) {
   return getSubscriptionPricing();
 }
 
+// قنوات التواصل مع خدمة العملاء (بند 22.8.1) - نفس جدول app_settings العام
+// الموجود بالفعل، بدون أي جدول جديد. لو غير مضبوطة بترجع فاضية والواجهة
+// (Bottom Sheet) بتخفي الزرار تمامًا، بدون أي رقم مُخترع كـFallback
+async function getSupportChannels() {
+  const phone = await getSetting("support_phone", "");
+  const whatsapp = await getSetting("support_whatsapp", "");
+  const workingHours = await getSetting("support_working_hours", "");
+  return { phone: String(phone || ""), whatsapp: String(whatsapp || ""), working_hours: String(workingHours || "") };
+}
+
+async function setSupportChannels({ phone, whatsapp, working_hours }) {
+  if (phone !== undefined) await setSetting("support_phone", String(phone || "").trim());
+  if (whatsapp !== undefined) await setSetting("support_whatsapp", String(whatsapp || "").trim());
+  if (working_hours !== undefined) await setSetting("support_working_hours", String(working_hours || "").trim());
+  return getSupportChannels();
+}
+
 module.exports = {
   PLAN_MONTHS,
   getSubscriptionPricing,
-  setSubscriptionPricing
+  setSubscriptionPricing,
+  getSupportChannels,
+  setSupportChannels
 };

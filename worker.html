@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme-app>
 <head>
+  <script>(function(){var t=localStorage.getItem('sanay3i_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
@@ -33,7 +34,6 @@
   />
 
   <link rel="stylesheet" href="/css/global.css" />
-  <link rel="stylesheet" href="/css/support.css" />
   <link rel="stylesheet" href="/css/cards.css" />
 
   <link rel="manifest" href="/manifest.json">
@@ -51,7 +51,7 @@
 
 <body>
 
-  <header class="site-header">
+  <header class="site-header site-header-compact">
     <div class="container header-content">
 
       <a href="/" class="brand">
@@ -68,7 +68,6 @@
         <a href="/" style="color:rgba(241, 245, 249, 0.88);">الرئيسية</a>
         <a href="/#workers" style="color:rgba(241, 245, 249, 0.88);">الصنايعية</a>
         <a href="/account" style="color:rgba(241, 245, 249, 0.88);">حسابي</a>
-        <a href="/status" style="color:rgba(241, 245, 249, 0.88);">حالة الطلب</a>
       </nav>
 
       <a href="/register" class="header-btn">
@@ -85,7 +84,6 @@
       <a href="/" onclick="toggleMobileMenu()">الرئيسية</a>
       <a href="/#workers" onclick="toggleMobileMenu()">الصنايعية</a>
       <a href="/account" onclick="toggleMobileMenu()">حسابي</a>
-      <a href="/status" onclick="toggleMobileMenu()">حالة الطلب</a>
       <a href="/register" onclick="toggleMobileMenu()">سجل كصنايعي</a>
     </div>
   </header>
@@ -152,20 +150,28 @@
                   <span id="workerArea">المنطقة</span>
                 </span>
 
-                <div class="featured-badge-details" id="featuredBadge">
-                  <i class="fa-solid fa-star"></i>
-                  صنايعي مميز
-                </div>
+                <div class="badge-row" id="profileBadgeRow"></div>
+                <div id="profileAvailabilityBadge"></div>
+                <div id="profileLevelBadge"></div>
+              </div>
 
-                <div class="verified-badge-details" id="verifiedBadge">
-                  <i class="fa-solid fa-shield-halved"></i>
-                  موثّق من الإدارة
+              <div class="details-quick-stats">
+                <div class="quick-stat">
+                  <div class="quick-stat-icon"><i class="fa-solid fa-star"></i></div>
+                  <div>
+                    <div class="rating-summary">
+                      <span class="rating-number" id="ratingAverage">0</span>
+                      <span class="rating-stars" id="ratingStars">☆☆☆☆☆</span>
+                    </div>
+                    <span class="rating-count" id="ratingCount">لا توجد تقييمات بعد</span>
+                  </div>
                 </div>
-
-                <div class="rating-summary">
-                  <span class="rating-number" id="ratingAverage">0</span>
-                  <span class="rating-stars" id="ratingStars">☆☆☆☆☆</span>
-                  <span class="rating-count" id="ratingCount">لا توجد تقييمات بعد</span>
+                <div class="quick-stat">
+                  <div class="quick-stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                  <div>
+                    <strong id="workerJoinDate">غير محدد</strong>
+                    <span>عضو منذ</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -257,48 +263,47 @@
                     <strong id="workerWhatsapp">غير متاح</strong>
                   </div>
                 </div>
-
-                <div class="info-item">
-                  <div class="info-item-icon">
-                    <i class="fa-solid fa-calendar-days"></i>
-                  </div>
-                  <div>
-                    <small>تاريخ الانضمام</small>
-                    <strong id="workerJoinDate">غير محدد</strong>
-                  </div>
-                </div>
               </div>
 
               <div class="contact-actions">
-                <button type="button" class="details-action details-request" id="requestServiceBtn">
+                <button type="button" class="details-action details-request primary-cta" id="requestServiceBtn">
                   <i class="fa-solid fa-handshake"></i>
                   اطلب خدمة
                 </button>
 
-                <a href="#" class="details-action details-call" id="callBtn">
-                  <i class="fa-solid fa-phone"></i>
-                  اتصال مباشر
-                </a>
+                <div class="contact-actions-secondary">
+                  <a href="#" class="details-action details-call" id="callBtn">
+                    <i class="fa-solid fa-phone"></i>
+                    اتصال مباشر
+                  </a>
 
-                <a href="#" target="_blank" class="details-action details-whatsapp" id="whatsappBtn">
-                  <i class="fa-brands fa-whatsapp"></i>
-                  تواصل واتساب
-                </a>
+                  <a href="#" target="_blank" class="details-action details-whatsapp" id="whatsappBtn">
+                    <i class="fa-brands fa-whatsapp"></i>
+                    تواصل واتساب
+                  </a>
+                </div>
 
-                <button type="button" class="details-action details-copy" id="copyPhoneBtn">
-                  <i class="fa-solid fa-copy"></i>
-                  نسخ الرقم
-                </button>
+                <div class="contact-actions-tertiary">
+                  <button type="button" class="details-action-mini details-favorite" id="favoriteBtn">
+                    <i class="fa-regular fa-heart" id="favoriteBtnIcon"></i>
+                    <span id="favoriteBtnText">المفضلة</span>
+                  </button>
 
-                <button type="button" class="details-action details-share" id="shareBtn">
-                  <i class="fa-solid fa-share-nodes"></i>
-                  مشاركة الصفحة
-                </button>
+                  <button type="button" class="details-action-mini details-copy" id="copyPhoneBtn">
+                    <i class="fa-solid fa-copy"></i>
+                    نسخ الرقم
+                  </button>
 
-                <button type="button" class="details-action details-report" id="reportBtn">
-                  <i class="fa-solid fa-triangle-exclamation"></i>
-                  بلاغ عن البيانات
-                </button>
+                  <button type="button" class="details-action-mini details-share" id="shareBtn">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    مشاركة
+                  </button>
+
+                  <button type="button" class="details-action-mini details-report" id="reportBtn">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    بلاغ
+                  </button>
+                </div>
               </div>
 
               <div class="contact-tip">
@@ -330,6 +335,24 @@
           <div class="similar-workers-grid" id="similarWorkersGrid"></div>
         </section>
 
+        <!-- شريط إجراءات ثابت للموبايل فقط - كل زرار مجرّد Proxy بيستدعي
+             .click() على الزرار الحقيقي (نفس الـid) عشان يستخدم بالظبط نفس
+             الحدث/الرابط/الـcustomerGate الحالي، من غير أي منطق جديد -->
+        <div class="sticky-action-bar" id="stickyActionBar">
+          <button type="button" class="sticky-action-btn sticky-action-primary" onclick="document.getElementById('requestServiceBtn').click()">
+            <i class="fa-solid fa-handshake"></i>
+            <span>اطلب خدمة</span>
+          </button>
+          <button type="button" class="sticky-action-btn" onclick="var b=document.getElementById('callBtn'); if (b && !b.classList.contains('is-disabled')) b.click();">
+            <i class="fa-solid fa-phone"></i>
+            <span>اتصال</span>
+          </button>
+          <button type="button" class="sticky-action-btn" onclick="var b=document.getElementById('whatsappBtn'); if (b && !b.classList.contains('is-disabled')) b.click();">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span>واتساب</span>
+          </button>
+        </div>
+
       </div>
 
     </div>
@@ -348,7 +371,6 @@
         <a href="/">الرئيسية</a>
         <a href="/register" class="footer-link-cta"><i class="fa-solid fa-star"></i> سجل كصنايعي</a>
         <a href="/#workers">الصنايعية</a>
-        <a href="/status">حالة الطلب</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -393,17 +415,82 @@
       <div id="requestServiceFormBox">
         <h3><i class="fa-solid fa-handshake"></i> اطلب خدمة</h3>
         <p id="requestServiceWorkerName">اكتب وصف مشكلتك أو الخدمة المطلوبة وهيوصل الصنايعي فورًا.</p>
+
+        <div class="rs-progress">
+          <div class="rs-progress-bar"><div class="rs-progress-fill" id="rsProgressFill"></div></div>
+          <span class="rs-progress-label" id="rsProgressLabel">الخطوة 1 من 6: نوع الخدمة</span>
+        </div>
+
         <form id="requestServiceForm">
-          <textarea id="requestServiceDescription" required maxlength="1000" placeholder="مثال: عندي تسريب مياه في المطبخ محتاج معاينة سريعة..."></textarea>
-          <div class="report-modal-actions">
-            <button type="submit" class="report-submit-btn" id="requestServiceSubmitBtn">إرسال الطلب</button>
-            <button type="button" class="report-cancel-btn" onclick="closeRequestServiceModal()">إلغاء</button>
+
+          <div class="rs-step" data-rs-step="1">
+            <label class="rs-step-label">نوع الخدمة المطلوبة</label>
+            <div class="rs-chip-grid" id="rsServiceTypeGrid">
+              <button type="button" class="rs-chip" data-service-type="معاينة"><i class="fa-solid fa-magnifying-glass"></i> معاينة</button>
+              <button type="button" class="rs-chip" data-service-type="إصلاح عطل"><i class="fa-solid fa-screwdriver-wrench"></i> إصلاح عطل</button>
+              <button type="button" class="rs-chip" data-service-type="تركيب جديد"><i class="fa-solid fa-plug-circle-bolt"></i> تركيب جديد</button>
+              <button type="button" class="rs-chip" data-service-type="صيانة دورية"><i class="fa-solid fa-arrows-rotate"></i> صيانة دورية</button>
+              <button type="button" class="rs-chip" data-service-type="استفسار وسعر"><i class="fa-solid fa-comment-dollar"></i> استفسار وسعر</button>
+              <button type="button" class="rs-chip" data-service-type="حالة طارئة"><i class="fa-solid fa-triangle-exclamation"></i> حالة طارئة</button>
+            </div>
+          </div>
+
+          <div class="rs-step" data-rs-step="2" style="display:none;">
+            <label class="rs-step-label">وصف المشكلة أو الخدمة</label>
+            <textarea id="requestServiceDescription" required maxlength="1000" placeholder="مثال: عندي تسريب مياه في المطبخ محتاج معاينة سريعة..."></textarea>
+          </div>
+
+          <div class="rs-step" data-rs-step="3" style="display:none;">
+            <label class="rs-step-label">صور أو فيديو (اختياري)</label>
+            <label class="rs-attach-btn" for="rsAttachmentsInput">
+              <i class="fa-solid fa-camera"></i> إضافة صور (حتى 3 صور)
+              <input type="file" id="rsAttachmentsInput" accept="image/*" multiple style="display:none;">
+            </label>
+            <div class="rs-attachment-preview" id="rsAttachmentPreview"></div>
+            <div class="rs-attachment-note">
+              <i class="fa-solid fa-circle-info"></i>
+              إرفاق الفيديو مش متاح حاليًا - الصور فقط، بحد أقصى 3 صور.
+            </div>
+          </div>
+
+          <div class="rs-step" data-rs-step="4" style="display:none;">
+            <label class="rs-step-label">موقع الخدمة</label>
+            <div class="rs-location-card">
+              <i class="fa-solid fa-location-dot"></i>
+              <div>
+                <strong id="rsLocationWorkerName">-</strong>
+                <span id="rsLocationArea">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rs-step" data-rs-step="5" style="display:none;">
+            <label class="rs-step-label">الموعد المناسب</label>
+            <div class="rs-chip-grid" id="rsTimingGrid">
+              <button type="button" class="rs-chip" data-timing="now"><i class="fa-solid fa-bolt"></i> الآن</button>
+              <button type="button" class="rs-chip" data-timing="today"><i class="fa-solid fa-sun"></i> اليوم</button>
+              <button type="button" class="rs-chip" data-timing="tomorrow"><i class="fa-solid fa-cloud-sun"></i> غدًا</button>
+              <button type="button" class="rs-chip" data-timing="custom"><i class="fa-solid fa-calendar-days"></i> تحديد موعد</button>
+            </div>
+            <input type="date" id="rsCustomDateInput" class="rs-date-input" style="display:none;">
+            <p class="rs-hint">التوقيت هنا استرشادي بس عشان الصنايعي ياخد فكرة، وهيتواصل معاك مباشرة لتأكيد الميعاد الفعلي.</p>
+          </div>
+
+          <div class="rs-step" data-rs-step="6" style="display:none;">
+            <label class="rs-step-label">مراجعة الطلب قبل الإرسال</label>
+            <div class="rs-review-list" id="rsReviewList"></div>
+          </div>
+
+          <div class="report-modal-actions rs-wizard-nav">
+            <button type="button" class="report-cancel-btn" id="rsPrevBtn">إلغاء</button>
+            <button type="button" class="report-submit-btn" id="rsNextBtn">التالي <i class="fa-solid fa-arrow-left"></i></button>
+            <button type="submit" class="report-submit-btn" id="requestServiceSubmitBtn" style="display:none;">إرسال الطلب</button>
           </div>
           <div class="report-message" id="requestServiceMessage"></div>
         </form>
       </div>
 
-      <div id="requestServiceSuccessBox" style="display:none; text-align:center;">
+      <div id="requestServiceSuccessBox" style="display:none; text-align:center; animation: fade-scale-in 220ms ease;">
         <i class="fa-solid fa-circle-check" style="font-size:34px;color:var(--green);margin-bottom:10px;display:block;"></i>
         <h3 style="margin:0 0 6px;">تم إرسال طلبك بنجاح</h3>
         <p style="margin:0 0 4px;">رقم الطلب: <strong id="requestServiceCreatedId"></strong></p>
@@ -676,6 +763,117 @@
       return v === 1 || v === true || v === "1" || v === "true";
     }
 
+    // حالة توفر الصنايعي (بند 10) - available/busy/offline من عمود حقيقي،
+    // available هو الافتراضي الآمن لأي حساب قديم
+    const AVAILABILITY_INFO = {
+      available: { dotClass: "avail-dot-green", label: "متاح" },
+      busy: { dotClass: "avail-dot-yellow", label: "مشغول" },
+      offline: { dotClass: "avail-dot-red", label: "غير متاح" }
+    };
+    function getAvailabilityInfo(w) {
+      return AVAILABILITY_INFO[w.availability_status] || AVAILABILITY_INFO.available;
+    }
+    function availabilityRank(w) { return { available: 0, busy: 1, offline: 2 }[w.availability_status] ?? 0; }
+    function renderAvailabilityBadgeHtml(w) {
+      const info = getAvailabilityInfo(w);
+      return `<span class="avail-badge"><span class="avail-dot ${info.dotClass}"></span> ${info.label}</span>`;
+    }
+
+    // زر المفضلة في البروفايل (بند 15) - غير المسجل بيستخدم نفس تدفق تسجيل
+    // العميل الحالي (CustomerGate) قبل تنفيذ الفعل الحقيقي
+    function setFavoriteBtnState(isFav, animate) {
+      const icon = document.getElementById("favoriteBtnIcon");
+      const text = document.getElementById("favoriteBtnText");
+      if (icon) icon.className = isFav ? "fa-solid fa-heart" : "fa-regular fa-heart";
+      if (text) text.textContent = isFav ? "في المفضلة" : "المفضلة";
+      const btn = document.getElementById("favoriteBtn");
+      btn?.classList.toggle("is-favorite", isFav);
+      if (animate && btn) {
+        btn.classList.remove("fav-pop");
+        void btn.offsetWidth;
+        btn.classList.add("fav-pop");
+      }
+    }
+
+    async function initFavoriteButton(workerId) {
+      const btn = document.getElementById("favoriteBtn");
+      if (!btn) return;
+      let isFav = false;
+
+      const token = getCustomerToken();
+      if (token) {
+        try {
+          const r = await fetch("/api/favorites", { headers: { Authorization: "Bearer " + token } });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok && d.success) isFav = (d.worker_ids || []).map(String).includes(String(workerId));
+        } catch (e) {}
+      }
+      setFavoriteBtnState(isFav);
+
+      btn.onclick = () => {
+        withCustomerGate((gate) => {
+          gate.ensureIdentified(async () => {
+            const t = getCustomerToken();
+            if (!t) return;
+            try {
+              const r = await fetch("/api/favorites" + (isFav ? "/" + workerId : ""), {
+                method: isFav ? "DELETE" : "POST",
+                headers: Object.assign({ Authorization: "Bearer " + t }, isFav ? {} : { "Content-Type": "application/json" }),
+                body: isFav ? undefined : JSON.stringify({ worker_id: workerId })
+              });
+              const d = await r.json().catch(() => ({}));
+              if (!r.ok || !d.success) return;
+              isFav = !isFav;
+              setFavoriteBtnState(isFav, true);
+            } catch (e) {}
+          });
+        });
+      };
+    }
+
+    // نظام الشارات الموحّد (بند 5 من الـMaster Plan) - نفس منطق/حدود الرئيسية
+    // بالضبط (راجع getWorkerBadges في home.js): "الأعلى تقييمًا" بحد أدنى
+    // متوسط 4.5 وحد أدنى 5 تقييمات معتمدة، مبني على تحليل فعلي لتوزيع
+    // التقييمات الحالية. كل شارة من بيانات حقيقية فقط - بدون قيم مُخترعة.
+    function getProfileBadges(w, ratingSummary) {
+      const badges = [];
+      if (verified(w)) badges.push({ type: "verified", icon: "fa-circle-check", text: "هوية موثقة", tooltip: "تم التحقق من هوية الصنايعي" });
+      if (featured(w)) badges.push({ type: "featured", icon: "fa-star", text: "صنايعي مميز", tooltip: "من الصنايعية المميزين على المنصة" });
+      const summary = ratingSummary || { average: 0, count: 0 };
+      if (Number(summary.average) >= 4.5 && Number(summary.count) >= 5) {
+        badges.push({ type: "top-rated", icon: "fa-trophy", text: "الأعلى تقييمًا", tooltip: "من الصنايعية الأعلى تقييمًا على المنصة" });
+      }
+      return badges;
+    }
+
+    function escapeHtmlLocal(str) {
+      return String(str == null ? "" : str).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+
+    function renderBadgeRowHtml(badges, cap) {
+      const list = cap ? badges.slice(0, cap) : badges;
+      return list.map(b => `<span class="badge badge-${b.type}" title="${b.tooltip}"><i class="fa-solid ${b.icon}"></i> ${b.text}</span>`).join("");
+    }
+
+    // وسم صغير (أيقونة بس) لمستوى الصنايعي (بند 17) على زاوية صورة الكارت -
+    // بيظهر بس من "محترف" فما فوق عشان معندهوش زحمة على أغلب الكروت
+    function renderLevelTagHtml(w) {
+      const level = w.level;
+      const icon = w.level_icon;
+      if (!level || level === "new" || !icon) return "";
+      return `<span class="svc-level-tag svc-level-${level}" title="${escapeHtmlLocal(w.level_label || '')}"><i class="fa-solid ${icon}"></i></span>`;
+    }
+
+    // شارة مستوى بالنص الكامل (نفس مكوّن .badge الموحّد) - للسياقات اللي
+    // فيها مساحة أكتر (بروفايل الصنايعي)
+    function renderLevelBadgeHtml(w) {
+      const level = w.level;
+      const icon = w.level_icon;
+      const label = w.level_label;
+      if (!level || !icon || !label) return "";
+      return `<span class="badge badge-level-${level}"><i class="fa-solid ${icon}"></i> ${escapeHtmlLocal(label)}</span>`;
+    }
+
     function imgPath(image) {
       if (!image) {
         return "/icons/default-worker-avatar.png";
@@ -788,7 +986,7 @@
           return { worker: w, score };
         })
         .filter(x => x.score > 0)
-        .sort((a,b) => b.score - a.score)
+        .sort((a,b) => availabilityRank(a.worker) - availabilityRank(b.worker) || b.score - a.score)
         .slice(0, 4)
         .map(x => x.worker);
 
@@ -801,52 +999,69 @@
       if (hint) hint.textContent = "اقتراحات قريبة من " + currentTrade + " أو " + currentArea + ".";
 
       picked.forEach(w => {
+        const name = getName(w);
+        const trade = getTrade(w);
+        const area = getArea(w);
+        const phone = w.phone || w.phone_number || "";
+        const cNum = callNum(phone);
+        const availInfo = getAvailabilityInfo(w);
+        const signals = w.smart_score_signals || w.smartScoreSignals || {};
+        const ratingSummary = { average: Number(signals.rating_average || w.rating_average || 0), count: Number(signals.review_count || w.review_count || 0) };
+        const locationLine = `<i class="fa-solid fa-location-dot"></i> ${escapeHtmlLocal(area)}`;
+        const availChip = `<span class="svc-avail-chip"><span class="avail-dot ${availInfo.dotClass}"></span>${escapeHtmlLocal(availInfo.label)}</span>`;
+        const secondaryLine = ratingSummary.count
+          ? `<i class="fa-solid fa-star"></i> ${ratingSummary.average}<span class="svc-dot">·</span>${availChip}`
+          : availChip;
+        const badgesHtml = renderBadgeRowHtml(getProfileBadges(w, ratingSummary), 2);
+
+        const targetUrl = "/worker/" + encodeURIComponent(w.id);
         const card = document.createElement("article");
-        card.className = "similar-worker-card";
-
-        const img = document.createElement("img");
-        img.loading = "lazy";
-        img.src = imgPath(w.image || w.photo || "");
-        img.alt = getName(w);
-        img.onerror = function(){ this.onerror = null; this.src = "/icons/default-worker-avatar.png"; };
-
-        const body = document.createElement("div");
-        body.className = "similar-worker-body";
-
-        const title = document.createElement("h3");
-        title.textContent = getName(w);
-
-        const meta = document.createElement("div");
-        meta.className = "similar-worker-meta";
-        const tradeSpan = document.createElement("span");
-        const tradeIcon = document.createElement("i");
-        tradeIcon.className = "fa-solid fa-screwdriver-wrench";
-        tradeSpan.appendChild(tradeIcon);
-        tradeSpan.appendChild(document.createTextNode(" " + getTrade(w)));
-        const areaSpan = document.createElement("span");
-        const areaIcon = document.createElement("i");
-        areaIcon.className = "fa-solid fa-location-dot";
-        areaSpan.appendChild(areaIcon);
-        areaSpan.appendChild(document.createTextNode(" " + getArea(w)));
-        meta.appendChild(tradeSpan);
-        meta.appendChild(areaSpan);
-
-        const link = document.createElement("a");
-        link.className = "similar-worker-link";
-        link.href = "/worker/" + encodeURIComponent(w.id);
-        link.innerHTML = '<i class="fa-solid fa-eye"></i> عرض التفاصيل';
-        link.addEventListener("click", function (e) {
-          e.preventDefault();
+        card.className = "svc-card" + (featured(w) ? " featured-card" : "") + (verified(w) ? " verified-card" : "");
+        card.addEventListener("click", () => {
           trackWorkerAction(currentId, "similar_worker_click", "worker_page");
-          const targetUrl = "/worker/" + encodeURIComponent(w.id);
           withCustomerGate(function (gate) { gate.ensureIdentified(function () { location.href = targetUrl; }); });
         });
 
-        body.appendChild(title);
-        body.appendChild(meta);
-        body.appendChild(link);
-        card.appendChild(img);
-        card.appendChild(body);
+        card.innerHTML = `
+          <div class="svc-card-header">
+            <div class="svc-card-avatar">
+              <img loading="lazy" src="${imgPath(w.image || w.photo || "")}" alt="${escapeHtmlLocal(name)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+            </div>
+            <div class="svc-card-identity">
+              <h3 class="svc-card-name" title="${escapeHtmlLocal(name)}"><span>${escapeHtmlLocal(name)}</span>${renderLevelTagHtml(w)}</h3>
+              <span class="svc-card-trade" title="${escapeHtmlLocal(trade)}">${escapeHtmlLocal(trade)}</span>
+              <div class="svc-card-info">${locationLine}</div>
+              <div class="svc-card-info svc-card-info-light">${secondaryLine}</div>
+            </div>
+          </div>
+          ${badgesHtml ? `<div class="svc-card-badges badge-row">${badgesHtml}</div>` : ''}
+          <div class="svc-card-footer">
+            <button type="button" class="svc-btn-primary">عرض الملف</button>
+            <a href="#" class="svc-btn-call ${!cNum ? 'disabled' : ''}" data-gate-action="call" aria-label="اتصال"><i class="fa-solid fa-phone"></i> اتصال</a>
+          </div>
+        `;
+
+        card.querySelector(".svc-btn-primary").addEventListener("click", (e) => {
+          e.stopPropagation();
+          trackWorkerAction(currentId, "similar_worker_click", "worker_page");
+          withCustomerGate(function (gate) { gate.ensureIdentified(function () { location.href = targetUrl; }); });
+        });
+
+        const callLink = card.querySelector('[data-gate-action="call"]');
+        if (callLink) {
+          callLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!cNum) return;
+            withCustomerGate((gate) => {
+              gate.ensureIdentified(function () {
+                gate.trackEvent("call_click", { worker_id: String(w.id), source: "similar_workers" });
+                window.location.href = "tel:" + cNum;
+              });
+            });
+          });
+        }
+
         grid.appendChild(card);
       });
 
@@ -965,7 +1180,7 @@
         const photos = r.ok ? await r.json() : [];
         gallery.innerHTML = "";
         if (!photos.length) {
-          gallery.innerHTML = '<div class="gallery-empty">لا توجد صور أعمال مضافة حاليًا.</div>';
+          gallery.innerHTML = '<div class="empty-state"><i class="fa-solid fa-images"></i><h3>لا توجد صور أعمال</h3><p>الصنايعي لم يضف صور أعماله حتى الآن.</p></div>';
           return;
         }
         photos.forEach(p => {
@@ -980,7 +1195,7 @@
       }
     }
 
-    async function loadReviews(id) {
+    async function loadReviews(id, w) {
       const list = document.getElementById("reviewsList");
       const avgEl = document.getElementById("ratingAverage");
       const starsEl = document.getElementById("ratingStars");
@@ -999,9 +1214,12 @@
         starsEl.textContent = renderStars(summary.average || 0);
         countEl.textContent = summary.count ? "بناءً على " + summary.count + " تقييم" : "لا توجد تقييمات بعد";
 
+        const badgeRow = document.getElementById("profileBadgeRow");
+        if (badgeRow && w) badgeRow.innerHTML = renderBadgeRowHtml(getProfileBadges(w, summary));
+
         list.innerHTML = "";
         if (!reviews.length) {
-          list.innerHTML = '<div class="review-empty">لا توجد ريفيوهات معتمدة حتى الآن. كن أول من يقيّم هذا الصنايعي.</div>';
+          list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-star"></i><h3>لا توجد تقييمات بعد</h3><p>كن أول من يقيّم هذا الصنايعي وساعد آخرين يختاروه.</p></div>';
           return;
         }
 
@@ -1126,6 +1344,174 @@
       msg.textContent = text || "";
     }
 
+    // ===============================
+    // Wizard "اطلب خدمة" (6 خطوات) - واجهة بصرية بس فوق نفس فورم/Endpoint
+    // إنشاء الطلب الحالي بالظبط (POST /api/service-requests بنفس {worker_id,
+    // description})؛ خطوة نوع الخدمة والموعد بيانات استرشادية بتساعد العميل
+    // يكتب وصف أوضح، ومفيش أي بيانات وهمية بتتبعت للسيرفر غير الموجودة فعليًا
+    // ===============================
+    const RS_TOTAL_STEPS = 6;
+    const RS_STEP_LABELS = {
+      1: "نوع الخدمة", 2: "وصف المشكلة", 3: "صور/فيديو",
+      4: "الموقع", 5: "الموعد المناسب", 6: "مراجعة الطلب"
+    };
+    let rsStep = 1;
+    let rsServiceType = "";
+    let rsTiming = "now";
+    let rsAttachmentFiles = [];
+    const RS_MAX_ATTACHMENTS = 3;
+    const RS_TIMING_LABELS = { now: "الآن", today: "اليوم", tomorrow: "غدًا", custom: "تحديد موعد" };
+    // rsTiming (واجهة) -> scheduling_type (API) - "custom" هو الوحيد اللي
+    // بيحتاج تاريخ فعلي يتبعت مع الطلب
+    const RS_TIMING_TO_SCHEDULING_TYPE = { now: "now", today: "today", tomorrow: "tomorrow", custom: "scheduled" };
+
+    function rsRenderAttachmentPreview() {
+      const box = document.getElementById("rsAttachmentPreview");
+      if (!box) return;
+      box.innerHTML = rsAttachmentFiles.map((f, i) => `
+        <div class="rs-attach-thumb">
+          <img src="${URL.createObjectURL(f)}" alt="">
+          <button type="button" class="rs-attach-remove" data-idx="${i}"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      `).join("");
+      box.querySelectorAll(".rs-attach-remove").forEach(btn => {
+        btn.addEventListener("click", () => {
+          rsAttachmentFiles.splice(Number(btn.dataset.idx), 1);
+          rsRenderAttachmentPreview();
+        });
+      });
+    }
+
+    function rsRenderStep() {
+      document.querySelectorAll(".rs-step").forEach(el => {
+        el.style.display = Number(el.dataset.rsStep) === rsStep ? "block" : "none";
+      });
+
+      const fill = document.getElementById("rsProgressFill");
+      if (fill) fill.style.width = (rsStep / RS_TOTAL_STEPS * 100) + "%";
+      const label = document.getElementById("rsProgressLabel");
+      if (label) label.textContent = "الخطوة " + rsStep + " من " + RS_TOTAL_STEPS + ": " + RS_STEP_LABELS[rsStep];
+
+      const prevBtn = document.getElementById("rsPrevBtn");
+      const nextBtn = document.getElementById("rsNextBtn");
+      const submitBtn = document.getElementById("requestServiceSubmitBtn");
+      if (prevBtn) prevBtn.textContent = rsStep === 1 ? "إلغاء" : "السابق";
+      if (nextBtn) nextBtn.style.display = rsStep === RS_TOTAL_STEPS ? "none" : "flex";
+      if (submitBtn) submitBtn.style.display = rsStep === RS_TOTAL_STEPS ? "flex" : "none";
+
+      if (rsStep === 4) rsFillLocationStep();
+      if (rsStep === 6) rsBuildReview();
+      showRequestServiceMessage("", "");
+    }
+
+    function rsFillLocationStep() {
+      const nameEl = document.getElementById("rsLocationWorkerName");
+      const areaEl = document.getElementById("rsLocationArea");
+      const workerArea = document.getElementById("workerArea")?.textContent?.trim() || "غير محدد";
+      if (nameEl) nameEl.textContent = currentReportWorker.name || "الصنايعي";
+      if (areaEl) areaEl.innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + workerArea;
+    }
+
+    function rsBuildReview() {
+      const list = document.getElementById("rsReviewList");
+      if (!list) return;
+      const description = (document.getElementById("requestServiceDescription")?.value || "").trim();
+      const workerArea = document.getElementById("workerArea")?.textContent?.trim() || "غير محدد";
+      const timingText = RS_TIMING_LABELS[rsTiming] || "الآن";
+      const customDate = document.getElementById("rsCustomDateInput")?.value || "";
+      const rows = [
+        { label: "نوع الخدمة", value: rsServiceType || "غير محدد" },
+        { label: "الوصف", value: description || "-" },
+        { label: "المرفقات", value: rsAttachmentFiles.length ? (rsAttachmentFiles.length + " صورة") : "لا يوجد" },
+        { label: "الموقع", value: (currentReportWorker.name || "الصنايعي") + " - " + workerArea },
+        { label: "الموعد", value: timingText + (rsTiming === "custom" && customDate ? " (" + customDate + ")" : "") }
+      ];
+      list.innerHTML = rows.map(r => `<div class="rs-review-row"><span>${r.label}</span><strong>${(r.value || "").replace(/</g, "&lt;")}</strong></div>`).join("");
+    }
+
+    function rsValidateStep() {
+      if (rsStep === 1 && !rsServiceType) {
+        showRequestServiceMessage("error", "اختار نوع الخدمة المطلوبة الأول");
+        return false;
+      }
+      if (rsStep === 2) {
+        const description = (document.getElementById("requestServiceDescription")?.value || "").trim();
+        if (description.length < 3) {
+          showRequestServiceMessage("error", "اكتب وصف مختصر للمشكلة أو الخدمة المطلوبة");
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function rsGoNext() {
+      if (!rsValidateStep()) return;
+      // لو العميل مختار نوع خدمة وسايب الوصف فاضي، نساعده ببداية جاهزة يقدر
+      // يكمّلها أو يعدّلها - النص ده هيبقى هو نفسه اللي بيتبعت، مفيش إخفاء
+      if (rsStep === 1) {
+        const desc = document.getElementById("requestServiceDescription");
+        if (desc && !desc.value.trim() && rsServiceType) {
+          desc.value = "الخدمة المطلوبة: " + rsServiceType + "\n";
+        }
+      }
+      if (rsStep < RS_TOTAL_STEPS) rsStep++;
+      rsRenderStep();
+    }
+
+    function rsGoPrev() {
+      if (rsStep === 1) { closeRequestServiceModal(); return; }
+      rsStep--;
+      rsRenderStep();
+    }
+
+    function rsSelectChip(container, btn, dataAttr) {
+      container.querySelectorAll(".rs-chip").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      return btn.dataset[dataAttr];
+    }
+
+    function rsInitWizardEvents() {
+      const typeGrid = document.getElementById("rsServiceTypeGrid");
+      if (typeGrid) {
+        typeGrid.addEventListener("click", (e) => {
+          const btn = e.target.closest(".rs-chip");
+          if (!btn) return;
+          rsServiceType = rsSelectChip(typeGrid, btn, "serviceType");
+        });
+      }
+      const timingGrid = document.getElementById("rsTimingGrid");
+      if (timingGrid) {
+        timingGrid.addEventListener("click", (e) => {
+          const btn = e.target.closest(".rs-chip");
+          if (!btn) return;
+          rsTiming = rsSelectChip(timingGrid, btn, "timing");
+          const dateInput = document.getElementById("rsCustomDateInput");
+          if (dateInput) dateInput.style.display = rsTiming === "custom" ? "block" : "none";
+        });
+      }
+      const prevBtn = document.getElementById("rsPrevBtn");
+      if (prevBtn) prevBtn.addEventListener("click", rsGoPrev);
+      const nextBtn = document.getElementById("rsNextBtn");
+      if (nextBtn) nextBtn.addEventListener("click", rsGoNext);
+
+      const attachInput = document.getElementById("rsAttachmentsInput");
+      if (attachInput) {
+        attachInput.addEventListener("change", () => {
+          const picked = Array.from(attachInput.files || []);
+          const room = RS_MAX_ATTACHMENTS - rsAttachmentFiles.length;
+          if (room <= 0) {
+            showRequestServiceMessage("error", "أقصى عدد صور مسموح " + RS_MAX_ATTACHMENTS);
+          } else {
+            rsAttachmentFiles = rsAttachmentFiles.concat(picked.slice(0, room));
+            if (picked.length > room) showRequestServiceMessage("error", "أقصى عدد صور مسموح " + RS_MAX_ATTACHMENTS);
+          }
+          attachInput.value = "";
+          rsRenderAttachmentPreview();
+        });
+      }
+    }
+    rsInitWizardEvents();
+
     function openRequestModal() {
       const modal = document.getElementById("requestServiceModal");
       if (!modal) return;
@@ -1140,6 +1526,20 @@
       showRequestServiceMessage("", "");
       const form = document.getElementById("requestServiceForm");
       if (form) form.reset();
+
+      // إعادة ضبط الـWizard لأول خطوة في كل مرة يتفتح فيها الطلب من جديد
+      rsStep = 1;
+      rsServiceType = "";
+      rsTiming = "now";
+      rsAttachmentFiles = [];
+      rsRenderAttachmentPreview();
+      document.querySelectorAll("#rsServiceTypeGrid .rs-chip, #rsTimingGrid .rs-chip").forEach(c => c.classList.remove("active"));
+      const nowChip = document.querySelector('#rsTimingGrid .rs-chip[data-timing="now"]');
+      if (nowChip) nowChip.classList.add("active");
+      const dateInput = document.getElementById("rsCustomDateInput");
+      if (dateInput) { dateInput.style.display = "none"; dateInput.value = ""; }
+      rsRenderStep();
+
       modal.classList.add("show");
     }
 
@@ -1152,6 +1552,10 @@
     async function submitServiceRequest(e) {
       e.preventDefault();
       if (!currentReportWorker.id) return;
+      // حماية إضافية ضد أي Submit ضمني (زي الضغط على Enter) وإحنا لسه في
+      // خطوة قبل المراجعة الأخيرة - نفس فورم الطلب الحالي، بس بنتأكد إن
+      // العميل وصل فعليًا لخطوة المراجعة قبل ما نبعت الطلب الحقيقي
+      if (rsStep !== RS_TOTAL_STEPS) { rsGoNext(); return; }
 
       const description = (document.getElementById("requestServiceDescription")?.value || "").trim();
       if (description.length < 3) {
@@ -1171,10 +1575,21 @@
       showRequestServiceMessage("", "");
 
       try {
+        const schedulingType = RS_TIMING_TO_SCHEDULING_TYPE[rsTiming] || "now";
+        const scheduledAt = schedulingType === "scheduled" ? document.getElementById("rsCustomDateInput")?.value : undefined;
+        if (schedulingType === "scheduled" && !scheduledAt) {
+          showRequestServiceMessage("error", "من فضلك حدد تاريخ الموعد");
+          return;
+        }
+
         const r = await fetch("/api/service-requests", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify({ worker_id: currentReportWorker.id, description })
+          body: JSON.stringify({
+            worker_id: currentReportWorker.id, description,
+            scheduling_type: schedulingType,
+            scheduled_at: scheduledAt
+          })
         });
         const d = await r.json().catch(() => ({}));
 
@@ -1184,6 +1599,19 @@
           return;
         }
         if (!r.ok || !d.success) throw new Error(d.error || "تعذر إرسال الطلب");
+
+        // رفع الصور المرفقة (إن وجدت) بعد إنشاء الطلب بنجاح - فشل رفع الصور
+        // لا يلغي الطلب نفسه (اتبعت وخلاص)، بس بنعرض تنبيه بسيط للعميل
+        if (rsAttachmentFiles.length) {
+          try {
+            const fd = new FormData();
+            rsAttachmentFiles.forEach(f => fd.append("attachments", f));
+            const upRes = await fetch("/api/service-requests/" + d.request.id + "/attachments", {
+              method: "POST", headers: { "Authorization": "Bearer " + token }, body: fd
+            });
+            if (!upRes.ok) console.warn("تعذر رفع صور الطلب");
+          } catch (upErr) { console.warn("تعذر رفع صور الطلب", upErr); }
+        }
 
         document.getElementById("requestServiceFormBox").style.display = "none";
         document.getElementById("requestServiceSuccessBox").style.display = "block";
@@ -1302,11 +1730,11 @@
         document.getElementById("workerTrade").textContent = trade;
         document.getElementById("workerArea").textContent = area;
         document.getElementById("workerDescription").textContent = desc;
+        document.getElementById("profileAvailabilityBadge").innerHTML = renderAvailabilityBadgeHtml(w);
+        document.getElementById("profileLevelBadge").innerHTML = renderLevelBadgeHtml(w);
+        initFavoriteButton(id);
 
         document.getElementById("workerJoinDate").textContent = joinDate;
-
-        if (featured(w)) document.getElementById("featuredBadge").classList.add("show");
-        if (verified(w)) document.getElementById("verifiedBadge").classList.add("show");
 
         const callUrl = call ? "tel:" + call : "#";
         const whatsappUrl = wa ? "https://wa.me/" + wa + "?text=" + txt : "#";
@@ -1338,7 +1766,7 @@
         });
 
         await loadPhotos(id);
-        await loadReviews(id);
+        await loadReviews(id, w);
         loadSimilarWorkers({ ...w, id });
 
         loading.style.display = "none";
@@ -1419,5 +1847,6 @@
       });
     }
   </script>
+  <script src="/js/theme.js"></script>
 </body>
 </html>

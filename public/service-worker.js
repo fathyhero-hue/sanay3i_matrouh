@@ -1,4 +1,9 @@
-const CACHE_NAME = 'sanay3i-matrouh-v5';
+const CACHE_NAME = 'sanay3i-matrouh-v8';
+
+// ملفات JS حرجة وظيفيًا لازم تتحدث فورًا مع أي نشر جديد (Network First) - لو
+// اتخزنت نسخة قديمة منها في كاش زائر قديم ماينفعش يفضل عالق عليها. باقي
+// أصول JS/CSS/الصور بتفضل على Stale-While-Revalidate تحت.
+const CRITICAL_JS_PATHS = ['/js/support-widget.js', '/js/notifications-widget.js', '/js/home.js'];
 
 // أصول ثابتة بس (CSS/أيقونات/خطوط) - مش صفحات HTML. صفحات HTML بتتعامل معاها
 // استراتيجية Network First تحت، فمش محتاجة تتخزن هنا مسبقًا؛ offline.html هي
@@ -6,7 +11,6 @@ const CACHE_NAME = 'sanay3i-matrouh-v5';
 // النت تمامًا وما فيش أي نسخة تانية متخزنة بعد.
 const STATIC_ASSETS_TO_CACHE = [
   '/css/global.css',
-  '/css/support.css',
   '/css/cards.css',
   '/css/worker.css',
   '/css/status.css',
@@ -99,6 +103,13 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isNavigationRequest(request)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  const url = new URL(request.url);
+  const isCriticalJs = CRITICAL_JS_PATHS.some((p) => url.pathname === p);
+  if (isCriticalJs) {
     event.respondWith(networkFirst(request));
     return;
   }

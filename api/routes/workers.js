@@ -8,7 +8,7 @@ const { workerUpload, uploadImage, uploadPrivateImage, mainFile, workFiles, idFr
 const { logAdminActivity } = require("../utils/activityLogger");
 
 // العواميد المسموح بعرضها للعملاء
-const PUBLIC_WORKER_COLUMNS = "id,name,phone,whatsapp,trade,area,description,image,approved,active,featured,identity_verified,subscription_start,subscription_end,created_at";
+const PUBLIC_WORKER_COLUMNS = "id,name,phone,whatsapp,trade,area,description,image,approved,active,featured,identity_verified,availability_status,latitude,longitude,subscription_start,subscription_end,created_at";
 
 // دالة فحص التكرار (لتجنب تسجيل نفس الصنايعي مرتين بنفس الرقم)
 // بدل سحب كل جدول الصنايعية (ممكن يبقى آلاف الصفوف) مع كل تسجيل، بنعمل فلترة أولية
@@ -41,12 +41,14 @@ router.get("/", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit || 1200) || 1200, 1), 3000);
   
   try {
+    // ملحوظة: توثيق الهوية (identity_verified) بيتحكم في ظهور Badge "هوية
+    // موثقة" بس - مش شرط لظهور الصنايعي في الدليل العام. فلترة القائمة هنا
+    // بتعتمد فقط على approved/active/الاشتراك، تمامًا زي أي صنايعي تاني
     const { data, error } = await supabase
       .from("workers")
       .select(PUBLIC_WORKER_COLUMNS)
       .eq("approved", true)
       .eq("active", true)
-      .eq("identity_status", "verified")
       .or(`subscription_end.is.null,subscription_end.gte.${today()}`)
       .order("featured", { ascending: false })
       .order("created_at", { ascending: false })
@@ -60,6 +62,30 @@ router.get("/", async (req, res) => {
     // 🚀 Vercel Edge Caching: هنا نستخدم التخزين السحابي لـ Vercel لسرعة خارقة بدلاً من ذاكرة السيرفر
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120");
     res.json(scored);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 1ب. عدد الطلبات المكتملة لكل صنايعي (بند 16 - أفضل الصنايعية/Ranking) -
+// تجميع بسيط بدون أي بيانات شخصية، معيار ترتيب ثالث بعد التقييم/عدد التقييمات
+router.get("/completed-counts", async (req, res) => {
+  if (!isSupabaseReady(res)) return;
+  try {
+    const { data, error } = await supabase
+      .from("service_requests")
+      .select("worker_id")
+      .eq("status", "completed")
+      .limit(50000);
+    if (error) throw error;
+    const counts = {};
+    (data || []).forEach(r => {
+      const key = String(r.worker_id || "");
+      if (!key) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120");
+    res.json({ success: true, counts });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -114,6 +140,12 @@ router.post("/register", workerUpload, async (req, res) => {
     const start = today();
     const end = addMonths(start, 1); // إعطاء شهر مجاني للمسجل الجديد
 
+    // Workflow التوثيق الرسمي: not_submitted -> pending -> approved/rejected.
+    // رفع البطاقة اختياري تمامًا؛ توثيق الهوية (identity_verified) ما بيتفعّلش
+    // إلا بعد موافقة صريحة من الإدارة - ممنوع أي اعتماد تلقائي هنا
+    const hasIdCard = !!(id_front_path || id_back_path);
+    const submittedAt = hasIdCard ? new Date().toISOString() : null;
+
     const { data: worker, error } = await supabase.from("workers").insert({
       name: String(name).trim(),
       phone: String(phone).trim(),
@@ -124,9 +156,11 @@ router.post("/register", workerUpload, async (req, res) => {
       image,
       id_front_path,
       id_back_path,
-      id_submitted_at: (id_front_path || id_back_path) ? new Date().toISOString() : null,
+      id_submitted_at: submittedAt,
       identity_status: "pending",
       identity_verified: false,
+      identity_verification_status: hasIdCard ? "pending" : "not_submitted",
+      identity_verification_requested_at: submittedAt,
       approved: false,
       active: true,
       featured: false,

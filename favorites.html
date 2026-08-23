@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme-app>
+<head>
+  <script>(function(){var t=localStorage.getItem('sanay3i_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المفضلة | صنايعي مطروح</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#061A3D">
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/account.css" />
+  <link rel="stylesheet" href="/css/cards.css" />
+</head>
+<body class="auth-page-body has-bottom-nav">
+
+  <header class="site-header site-header-compact">
+    <div class="header-content account-header-content">
+      <a href="/" class="brand">
+        <div class="brand-logo-frame">
+          <img src="/icons/icon-192.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>صنايعي مطروح</h1>
+          <span>دليل موثوق لصنايعية مرسى مطروح</span>
+        </div>
+      </a>
+      <div class="header-actions">
+        <a href="/" class="header-btn-ghost"><i class="fa-solid fa-house"></i> الرئيسية</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="account-main">
+    <div class="page-title-row">
+      <h2 class="page-title">المفضلة</h2>
+      <button class="refresh-btn" id="refreshBtn" style="display:none">
+        <i class="fa-solid fa-rotate"></i> تحديث
+      </button>
+    </div>
+    <p class="page-subtitle">الصنايعية اللي حفظتهم في المفضلة عشان ترجعلهم بسهولة</p>
+
+    <div id="content">
+      <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</div>
+    </div>
+  </main>
+
+  <!-- تنقل سفلي ثابت (موبايل فقط، أقل من 768px) - نفس مكوّن الرئيسية بالضبط -->
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <a href="/" class="bottom-nav-item">
+      <i class="fa-solid fa-house"></i>
+      <span>الرئيسية</span>
+    </a>
+    <a href="/#tradesShowcase" class="bottom-nav-item">
+      <i class="fa-solid fa-screwdriver-wrench"></i>
+      <span>الخدمات</span>
+    </a>
+    <a href="/my-requests" class="bottom-nav-item">
+      <i class="fa-solid fa-clipboard-list"></i>
+      <span>طلباتي</span>
+    </a>
+    <a href="/favorites" class="bottom-nav-item active">
+      <i class="fa-solid fa-heart"></i>
+      <span>المفضلة</span>
+    </a>
+    <a href="/account" class="bottom-nav-item">
+      <i class="fa-solid fa-circle-user"></i>
+      <span>حسابي</span>
+    </a>
+    <a href="/#workers" class="bottom-nav-fab" aria-label="اطلب صنايعي">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+  </nav>
+
+  <script src="/js/customerGate.js"></script>
+  <script>
+    // ===============================
+    // صفحة المفضلة (بند 15) - بتستخدم الكارت الموحّد الجديد (.svc-card من
+    // global.css)، وبتعتمد على /api/workers العام (بيانات حقيقية كاملة زي
+    // الرئيسية بالظبط) + /api/favorites لمعرفة مين المفضّل فعليًا لدى العميل
+    // الحالي. القلب هنا دايمًا Active لأن كل كارت في الصفحة دي أصلًا مفضّل.
+    // ===============================
+    const content = document.getElementById('content');
+    const refreshBtn = document.getElementById('refreshBtn');
+    let ratingsByWorker = {};
+
+    function getCustomerToken() { return localStorage.getItem('sanay3i_customer_token') || ''; }
+    function clearCustomerSession() {
+      localStorage.removeItem('sanay3i_customer_token');
+      localStorage.removeItem('sanay3i_customer_id');
+      localStorage.removeItem('sanay3i_customer_name');
+    }
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function renderLoginRequired(reason) {
+      refreshBtn.style.display = 'none';
+      content.innerHTML = `
+        <div class="login-required">
+          <i class="fa-solid fa-lock"></i>
+          <h3>${reason === 'expired' ? 'انتهت جلستك' : 'سجّل دخولك الأول'}</h3>
+          <p>${reason === 'expired' ? 'يرجى تسجيل الدخول تاني عشان تقدر تشوف مفضلتك' : 'لازم تسجّل دخول كعميل عشان تقدر تحفظ وتشوف الصنايعية المفضلين عندك'}</p>
+          <a href="/account"><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</a>
+        </div>`;
+    }
+
+    function renderEmpty() {
+      content.innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-heart-crack"></i>
+          <h3>لسه ما أضفتش صنايعية للمفضلة</h3>
+          <p>هتلاقي أيقونة القلب على أي كارت صنايعي في الرئيسية أو صفحته.</p>
+          <a href="/" class="empty-state-cta"><i class="fa-solid fa-magnifying-glass"></i> استكشف الصنايعية</a>
+        </div>`;
+    }
+
+    function getWorkerImage(worker) {
+      const image = worker.image || worker.photo || worker.image_url || "";
+      if (!image) return "/icons/default-worker-avatar.png";
+      if (image.startsWith("http") || image.startsWith("/")) return image;
+      return "/uploads/" + image;
+    }
+    function getRatingSummary(workerId) { return ratingsByWorker[workerId] || { average: 0, count: 0 }; }
+
+    function isFeatured(w) {
+      const v = w.is_featured ?? w.featured ?? false;
+      return v === 1 || v === true || v === "1" || v === "true";
+    }
+    function isVerified(w) {
+      const v = w.identity_verified ?? w.identityVerified ?? w.is_verified ?? w.verified ?? false;
+      return v === 1 || v === true || v === "1" || v === "true";
+    }
+    const AVAILABILITY_INFO = {
+      available: { dotClass: "avail-dot-green", label: "متاح" },
+      busy: { dotClass: "avail-dot-yellow", label: "مشغول" },
+      offline: { dotClass: "avail-dot-red", label: "غير متاح" }
+    };
+    function getAvailabilityInfo(w) { return AVAILABILITY_INFO[w.availability_status] || AVAILABILITY_INFO.available; }
+
+    // نفس ترتيب أولوية الشارات الموحّد: هوية موثقة، صنايعي مميز، الأعلى تقييمًا
+    function getWorkerBadges(w, ratingSummary) {
+      const badges = [];
+      if (isVerified(w)) badges.push({ type: "verified", icon: "fa-circle-check", text: "هوية موثقة", tooltip: "تم التحقق من هوية الصنايعي" });
+      if (isFeatured(w)) badges.push({ type: "featured", icon: "fa-star", text: "صنايعي مميز", tooltip: "من الصنايعية المميزين على المنصة" });
+      if (Number(ratingSummary.average) >= 4.5 && Number(ratingSummary.count) >= 5) {
+        badges.push({ type: "top-rated", icon: "fa-trophy", text: "الأعلى تقييمًا", tooltip: "من الصنايعية الأعلى تقييمًا على المنصة" });
+      }
+      return badges;
+    }
+    function renderBadgeRowHtml(badges, cap) {
+      const list = cap ? badges.slice(0, cap) : badges;
+      return list.map(b => `<span class="badge badge-${b.type}" title="${b.tooltip}"><i class="fa-solid ${b.icon}"></i> ${b.text}</span>`).join("");
+    }
+
+    function withCustomerGate(callback) {
+      if (window.CustomerGate && typeof window.CustomerGate.ensureIdentified === "function") {
+        callback(window.CustomerGate);
+      } else {
+        console.error("CustomerGate لم يتم تحميله");
+      }
+    }
+
+    // وسم صغير (أيقونة بس) لمستوى الصنايعي (بند 17) - بيظهر بس من "محترف"
+    // فما فوق عشان معندهوش زحمة على أغلب الكروت
+    function renderLevelTagHtml(w) {
+      const level = w.level;
+      const icon = w.level_icon;
+      if (!level || level === "new" || !icon) return "";
+      return `<span class="svc-level-tag svc-level-${level}" title="${escapeHtml(w.level_label || '')}"><i class="fa-solid ${icon}"></i></span>`;
+    }
+
+    function renderFavorites(workers) {
+      if (!workers.length) { renderEmpty(); return; }
+      workers.forEach(w => {
+        const signals = w.smart_score_signals || {};
+        ratingsByWorker[w.id] = { average: Number(signals.rating_average || 0) || 0, count: Number(signals.review_count || 0) || 0 };
+      });
+
+      const grid = document.createElement('div');
+      grid.className = 'workers-grid';
+      content.innerHTML = '';
+      content.appendChild(grid);
+
+      workers.forEach(worker => {
+        const name = worker.name || 'صنايعي';
+        const trade = worker.trade || 'حرفة غير محددة';
+        const area = worker.area || 'منطقة غير محددة';
+        const phone = String(worker.phone || '');
+        const id = worker.id;
+        const callNumber = phone.replace(/[^\d]/g, '');
+        const availInfo = getAvailabilityInfo(worker);
+        const ratingSummary = getRatingSummary(id);
+
+        const locationLine = `<i class="fa-solid fa-location-dot"></i> ${escapeHtml(area)}`;
+        const availChip = `<span class="svc-avail-chip"><span class="avail-dot ${availInfo.dotClass}"></span>${escapeHtml(availInfo.label)}</span>`;
+        const secondaryLine = ratingSummary.count
+          ? `<i class="fa-solid fa-star"></i> ${ratingSummary.average}<span class="svc-dot">·</span>${availChip}`
+          : availChip;
+        const badgesHtml = renderBadgeRowHtml(getWorkerBadges(worker, ratingSummary), 2);
+
+        const card = document.createElement('article');
+        card.className = 'svc-card' + (isFeatured(worker) ? ' featured-card' : '') + (isVerified(worker) ? ' verified-card' : '');
+        card.addEventListener('click', () => {
+          withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = '/worker/' + id; }));
+        });
+
+        card.innerHTML = `
+          <button type="button" class="svc-fav-btn svc-fav-active" data-worker-id="${id}" title="إزالة من المفضلة" aria-label="إزالة من المفضلة"><i class="fa-solid fa-heart"></i></button>
+          <div class="svc-card-header">
+            <div class="svc-card-avatar">
+              <img loading="lazy" src="${escapeHtml(getWorkerImage(worker))}" alt="${escapeHtml(name)}" onerror="this.onerror=null;this.src='/icons/default-worker-avatar.png'">
+            </div>
+            <div class="svc-card-identity">
+              <h3 class="svc-card-name" title="${escapeHtml(name)}"><span>${escapeHtml(name)}</span>${renderLevelTagHtml(worker)}</h3>
+              <span class="svc-card-trade" title="${escapeHtml(trade)}">${escapeHtml(trade)}</span>
+              <div class="svc-card-info">${locationLine}</div>
+              <div class="svc-card-info svc-card-info-light">${secondaryLine}</div>
+            </div>
+          </div>
+          ${badgesHtml ? `<div class="svc-card-badges badge-row">${badgesHtml}</div>` : ''}
+          <div class="svc-card-footer">
+            <button type="button" class="svc-btn-primary">عرض الملف</button>
+            <a href="#" class="svc-btn-call ${!callNumber ? 'disabled' : ''}" data-gate-action="call" aria-label="اتصال"><i class="fa-solid fa-phone"></i> اتصال</a>
+          </div>
+        `;
+
+        card.querySelector('.svc-btn-primary').addEventListener('click', (e) => {
+          e.stopPropagation();
+          withCustomerGate((gate) => gate.ensureIdentified(() => { location.href = '/worker/' + id; }));
+        });
+
+        const heartBtn = card.querySelector('.svc-fav-btn');
+        heartBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFavoriteFromList(id, card);
+        });
+
+        const callLink = card.querySelector('[data-gate-action="call"]');
+        if (callLink) {
+          callLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!callNumber) return;
+            withCustomerGate((gate) => {
+              gate.ensureIdentified(function () {
+                gate.trackEvent('call_click', { worker_id: String(id), source: 'favorites_page' });
+                window.location.href = 'tel:' + callNumber;
+              });
+            });
+          });
+        }
+
+        grid.appendChild(card);
+      });
+    }
+
+    // إزالة فورية من المفضلة (حالة القلب + اختفاء الكارت فورًا بعد نجاح الحذف)
+    async function toggleFavoriteFromList(workerId, cardEl) {
+      const token = getCustomerToken();
+      if (!token) { renderLoginRequired('expired'); return; }
+      try {
+        const r = await fetch('/api/favorites/' + workerId, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.error || 'تعذر الحذف من المفضلة');
+        cardEl.classList.add('svc-card-removing');
+        setTimeout(() => {
+          cardEl.remove();
+          if (!document.querySelector('.svc-card')) renderEmpty();
+        }, 180);
+      } catch (e) {
+        alert(e.message || 'تعذر الحذف من المفضلة');
+      }
+    }
+
+    function showLoadingSkeleton() {
+      content.innerHTML = '<div class="workers-grid">' + Array.from({length:6}, () =>
+        '<div class="svc-card-skeleton"><div class="svc-card-header"><div class="svc-card-avatar"></div><div class="svc-card-identity"><h3 class="svc-card-name"></h3><p class="svc-card-trade"></p><div class="svc-card-info"></div></div><button class="svc-fav-btn" disabled></button></div><div class="svc-card-badges badge-row"><div class="badge"></div><div class="badge"></div></div><div class="svc-card-footer"><button class="svc-btn-primary" disabled></button><button class="svc-btn-call" disabled></button></div></div>'
+      ).join('') + '</div>';
+    }
+
+    async function loadFavorites() {
+      const token = getCustomerToken();
+      if (!token) { renderLoginRequired(); return; }
+      refreshBtn.style.display = 'flex';
+      showLoadingSkeleton();
+
+      try {
+        const favRes = await fetch('/api/favorites', { headers: { Authorization: 'Bearer ' + token } });
+        if (favRes.status === 401) { clearCustomerSession(); renderLoginRequired('expired'); return; }
+        const favData = await favRes.json();
+        if (!favRes.ok || !favData.success) throw new Error(favData.error || 'تعذر تحميل المفضلة');
+
+        const ids = new Set((favData.worker_ids || []).map(String));
+        if (!ids.size) { renderEmpty(); return; }
+
+        const workersRes = await fetch('/api/workers?limit=1200');
+        const allWorkers = await workersRes.json();
+        const workers = (Array.isArray(allWorkers) ? allWorkers : []).filter(w => ids.has(String(w.id)));
+        renderFavorites(workers);
+      } catch (e) {
+        content.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    refreshBtn.addEventListener('click', loadFavorites);
+    loadFavorites();
+  </script>
+  <script src="/js/theme.js"></script>
+</body>
+</html>
