@@ -127,14 +127,23 @@
     if (!container) return;
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      container.innerHTML = '<p class="push-toggle-note">إشعارات الجهاز غير مدعومة على هذا المتصفح.</p>';
+      container.innerHTML =
+        '<div class="push-toggle-section">' +
+        '<h3 class="push-toggle-title"><i class="fa-solid fa-bell"></i> الإشعارات</h3>' +
+        '<p class="push-toggle-desc">استقبل تحديثات الطلبات والرسائل حتى لو التطبيق في الخلفية.</p>' +
+        '<p class="push-toggle-note">إشعارات الجهاز غير مدعومة على هذا المتصفح.</p>' +
+        '</div>';
       return;
     }
 
     container.innerHTML =
+      '<div class="push-toggle-section">' +
+      '<h3 class="push-toggle-title"><i class="fa-solid fa-bell"></i> الإشعارات</h3>' +
+      '<p class="push-toggle-desc">استقبل تحديثات الطلبات والرسائل حتى لو التطبيق في الخلفية.</p>' +
       '<button type="button" id="pushEnableBtn" class="push-toggle-btn">' +
       '<i class="fa-solid fa-bell"></i> تفعيل إشعارات الجهاز</button>' +
-      '<p class="push-toggle-note" id="pushToggleNote" style="display:none;"></p>';
+      '<p class="push-toggle-note" id="pushToggleNote" style="display:none;"></p>' +
+      '</div>';
 
     var btn = document.getElementById('pushEnableBtn');
     var note = document.getElementById('pushToggleNote');
@@ -144,9 +153,29 @@
       note.style.display = 'block';
     }
 
-    if (Notification && Notification.permission === 'granted') {
-      btn.textContent = 'إشعارات الجهاز مفعّلة';
+    function markEnabled() {
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> الإشعارات مفعّلة ✓';
+      btn.classList.add('push-toggle-btn-active');
       btn.disabled = true;
+    }
+
+    if (Notification && Notification.permission === 'granted') {
+      markEnabled();
+      // نتأكد إن فيه Subscription فعلي متزامن (مش بس إن الإذن ممنوح) - لو
+      // مفيش (مثلًا اتحذف من قاعدة البيانات) نرجّع الزر قابل للضغط تاني
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (!reg) { btn.disabled = false; return; }
+        reg.pushManager.getSubscription().then(function (sub) {
+          if (!sub) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-bell"></i> تفعيل إشعارات الجهاز';
+            btn.classList.remove('push-toggle-btn-active');
+          }
+        });
+      });
+    } else if (Notification && Notification.permission === 'denied') {
+      btn.disabled = true;
+      showNote('الإشعارات محظورة من إعدادات الجهاز');
     }
 
     btn.addEventListener('click', async function () {
@@ -165,7 +194,7 @@
           return;
         }
         await subscribeToPush(ctx);
-        btn.textContent = 'إشعارات الجهاز مفعّلة';
+        markEnabled();
         showNote('تم تفعيل إشعارات الجهاز بنجاح');
       } catch (e) {
         showNote('تعذر تفعيل الإشعارات، حاول مرة أخرى.');

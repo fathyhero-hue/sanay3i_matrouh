@@ -100,6 +100,7 @@
           <button class="admin-more-item" data-permission="backup:export" onclick="downloadBackup();closeAdminMoreMenu()"><i class="fa-solid fa-database"></i> نسخ احتياطي</button>
           <button class="admin-more-item" data-permission="backup:export" onclick="exportWorkersReport();closeAdminMoreMenu()"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
           <button class="admin-more-item" onclick="renewAllWorkers();closeAdminMoreMenu()"><i class="fa-solid fa-calendar-plus"></i> تجديد للكل</button>
+          <button class="admin-more-item" onclick="closeAdminMoreMenu();document.getElementById('pushToggleAdminPanel').style.display='block';"><i class="fa-solid fa-bell"></i> إشعارات الجهاز</button>
           <a class="admin-more-item" href="/"><i class="fa-solid fa-house"></i> الرئيسية</a>
           <button class="admin-more-item admin-more-item-danger" onclick="logoutAdmin()"><i class="fa-solid fa-arrow-right-from-bracket"></i> تسجيل الخروج</button>
         </div>
