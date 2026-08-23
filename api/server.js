@@ -70,6 +70,7 @@ const { isValidEmail, generateSecureToken, hashToken, extendSubscription } = req
 const { logAdminActivity } = require("./utils/activityLogger");
 const mailer = require("./utils/mailer");
 const { createNotification } = require("./utils/notifications");
+const { notifyAdminsWithPermission } = require("./utils/adminNotify");
 const paymob = require("./utils/paymob");
 const { getSubscriptionPricing, setSubscriptionPricing, getSupportChannels, setSupportChannels } = require("./utils/settings");
 
@@ -1626,7 +1627,7 @@ app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.f
 
     const { data: current, error: currentError } = await supabase
       .from('workers')
-      .select('identity_verification_status')
+      .select('identity_verification_status, name')
       .eq('id', req.params.id)
       .maybeSingle();
     if (currentError || !current) {
@@ -1660,6 +1661,16 @@ app.post('/api/worker/profile/:id/reupload-id', requireWorkerOwnership, upload.f
       .eq('id', req.params.id);
 
     if (error) throw error;
+
+    // إشعار الإدارة (المستهدف بصلاحية workers:review - نفس صلاحية مسار
+    // المراجعة النهائي handleIdentityReview فوق) - مرة واحدة بس بعد نجاح
+    // الـUPDATE مباشرة، جسم مختصر (اسم الصنايعي بس، مش محتوى المستندات)
+    notifyAdminsWithPermission("workers:review", {
+      type: "admin_new_identity_request",
+      title: "طلب توثيق جديد",
+      body: current.name ? `الصنايعي: ${current.name}` : "طلب توثيق هوية جديد بانتظار المراجعة",
+      link: "/admin.html?tab=identityRequests"
+    });
 
     res.json({ success: true, message: 'تم إرسال صورة البطاقة الجديدة للإدارة للمراجعة' });
   } catch (err) {
@@ -2166,6 +2177,7 @@ const serviceRequestsRoutes = require("./routes/serviceRequests");
 const customersRoutes = require("./routes/customers");
 const favoritesRoutes = require("./routes/favorites");
 const notificationsRoutes = require("./routes/notifications");
+const pushRoutes = require("./routes/push");
 const homepageSlidersRoutes = require("./routes/homepageSliders");
 
 app.use("/api/admin", adminRoutes);
@@ -2179,6 +2191,7 @@ app.use("/api/service-requests", serviceRequestsRoutes);
 app.use("/api/customers", customersRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use("/api/notifications", notificationsRoutes);
+app.use("/api/push", pushRoutes);
 app.use("/api", homepageSlidersRoutes);
 
 

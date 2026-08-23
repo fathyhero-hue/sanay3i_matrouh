@@ -61,6 +61,8 @@
       <i class="fa-solid fa-headset" style="pointer-events:none;"></i> <span style="pointer-events:none;">خدمة العملاء والدعم</span>
     </button>
 
+    <div id="pushToggleContainer" style="margin-bottom:var(--space-5);"></div>
+
     <div class="page-title-row">
       <h2 class="page-title">طلباتي</h2>
       <button class="refresh-btn" id="refreshBtn" style="display:none">
@@ -704,6 +706,8 @@
   </script>
   <script src="/js/theme.js"></script>
   <script src="/js/notifications-widget.js?v=20260823"></script>
+  <script src="/js/push-notifications.js?v=20260823"></script>
+  <script>if (window.initPushToggle) window.initPushToggle('pushToggleContainer', 'customer');</script>
   <script src="/js/support-widget.js?v=20260823"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ const { requireCustomerAuth } = require("../middlewares/customerAuth");
 const { reportsRateLimit } = require("../middlewares/rateLimit");
 const { serviceRequestUpload, uploadPrivateImage, serviceRequestFiles } = require("../controllers/uploadController");
 const { createNotification } = require("../utils/notifications");
+const { notifyAdminsWithPermission } = require("../utils/adminNotify");
 
 const SR_STATUS_NOTIFY = {
   accepted: { title: "تم قبول طلبك", body: "الصنايعي وافق على تنفيذ طلب الخدمة." },
@@ -76,7 +77,7 @@ async function createServiceRequest(req, res) {
 
     const { data: worker, error: workerErr } = await supabase
       .from("workers")
-      .select("id")
+      .select("id, trade")
       .eq("id", workerId)
       .maybeSingle();
 
@@ -117,6 +118,17 @@ async function createServiceRequest(req, res) {
     createNotification({
       recipientType: "worker", recipientId: workerId, type: "new_request",
       title: "طلب خدمة جديد", body: description.slice(0, 120), link: "/worker-dashboard?id=" + workerId + "&tab=serviceRequests"
+    });
+
+    // إشعار الإدارة (المستهدف بصلاحية reports:read - نفس الصلاحية اللي
+    // بوابة /api/admin/service-requests وتبويب "طلبات الخدمة" في admin.html
+    // فعليًا محميين بيها) - مرة واحدة بس هنا بعد نجاح الـINSERT مباشرة، وجسم
+    // مختصر جدًا (اسم الحرفة بس، مش وصف الطلب الكامل)
+    notifyAdminsWithPermission("reports:read", {
+      type: "admin_new_service_request",
+      title: "طلب خدمة جديد",
+      body: worker.trade ? `حرفة: ${worker.trade}` : "طلب خدمة جديد بانتظار المراجعة",
+      link: "/admin.html?tab=serviceRequests"
     });
 
     res.json({ success: true, request: created });

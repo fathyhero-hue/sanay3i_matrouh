@@ -6,6 +6,7 @@ const { attachSmartScoresToWorkers } = require("../utils/smartScore");
 const { requirePermission } = require("../middlewares/auth");
 const { workerUpload, uploadImage, uploadPrivateImage, mainFile, workFiles, idFrontFile, idBackFile } = require("../controllers/uploadController");
 const { logAdminActivity } = require("../utils/activityLogger");
+const { notifyAdminsWithPermission } = require("../utils/adminNotify");
 
 // العواميد المسموح بعرضها للعملاء
 const PUBLIC_WORKER_COLUMNS = "id,name,phone,whatsapp,trade,area,description,image,approved,active,featured,identity_verified,availability_status,latitude,longitude,subscription_start,subscription_end,created_at";
@@ -186,7 +187,19 @@ router.post("/register", workerUpload, async (req, res) => {
       entity_type: "worker", entity_id: worker.id, entity_name: worker.name,
       details: { registration_code: registrationCode, trade, area }
     });
-    
+
+    // إشعار الإدارة (workers:review) لو التسجيل جاي ببطاقة هوية مرفوعة من
+    // أول مرة - ده كمان "طلب توثيق جديد" بانتظار المراجعة (identity_verification_status='pending')
+    // بالظبط زي حالة إعادة الرفع (/reupload-id) في server.js
+    if (hasIdCard) {
+      notifyAdminsWithPermission("workers:review", {
+        type: "admin_new_identity_request",
+        title: "طلب توثيق جديد",
+        body: `الصنايعي: ${worker.name}`,
+        link: "/admin.html?tab=identityRequests"
+      });
+    }
+
     res.json({ success: true, message: "تم إرسال طلب التسجيل بنجاح", id: worker.id, registration_code: registrationCode });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message || "حدث خطأ أثناء التسجيل" });

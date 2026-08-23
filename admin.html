@@ -86,8 +86,12 @@
         <button class="admin-icon-btn" data-permission="backup:export" onclick="downloadBackup()" title="نسخ احتياطي" aria-label="نسخ احتياطي"><i class="fa-solid fa-database"></i></button>
         <button class="admin-icon-btn" data-permission="backup:export" onclick="exportWorkersReport()" title="تصدير Excel" aria-label="تصدير Excel"><i class="fa-solid fa-file-excel"></i></button>
         <button class="admin-icon-btn" onclick="renewAllWorkers()" title="تجديد للكل" aria-label="تجديد للكل"><i class="fa-solid fa-calendar-plus"></i></button>
+        <button class="admin-icon-btn" id="pushToggleAdminBtn" title="تفعيل إشعارات الجهاز" aria-label="تفعيل إشعارات الجهاز" onclick="document.getElementById('pushToggleAdminPanel').style.display = document.getElementById('pushToggleAdminPanel').style.display === 'none' ? 'block' : 'none';"><i class="fa-solid fa-bell"></i></button>
         <a href="/" class="admin-icon-btn" title="الرئيسية" aria-label="الرئيسية"><i class="fa-solid fa-house"></i></a>
         <button class="admin-icon-btn admin-icon-btn-logout" onclick="logoutAdmin()" title="خروج" aria-label="خروج"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+      <div id="pushToggleAdminPanel" style="display:none; position:absolute; top:100%; left:16px; z-index:50; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,.12); min-width:240px;">
+        <div id="pushToggleContainer"></div>
       </div>
       <div class="admin-actions-mobile">
         <button type="button" class="admin-icon-btn admin-more-toggle" id="adminMoreToggle" onclick="toggleAdminMoreMenu()" aria-label="المزيد من الإجراءات" aria-expanded="false" aria-controls="adminMoreMenu"><i class="fa-solid fa-ellipsis-vertical"></i></button>
@@ -1019,6 +1023,8 @@ const notifySound = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04
 
 <!-- استدعاء ملف الـ JS الموحد للإدارة -->
 <script src="/js/admin.js"></script>
+<script src="/js/push-notifications.js?v=20260823"></script>
+<script>if (window.initPushToggle) window.initPushToggle('pushToggleContainer', 'admin');</script>
 
 </body>
 </html>

@@ -7,6 +7,7 @@ const { requireCustomerAuth } = require("../middlewares/customerAuth");
 const { requireWorkerOwnership } = require("../middlewares/auth");
 const { chatUpload, chatAttachmentFile, uploadPrivateImage } = require("../controllers/uploadController");
 const { createNotification } = require("../utils/notifications");
+const { notifyAdminsWithPermission } = require("../utils/adminNotify");
 const { reportsRateLimit } = require("../middlewares/rateLimit");
 
 const TICKET_TYPE_LABELS = { technical: "مشكلة تقنية", account: "الحساب", worker_issue: "مشكلة مع صنايعي", payment: "الدفع والاشتراك", other: "أخرى" };
@@ -203,6 +204,16 @@ async function createConversation({ senderType, ownerId, ownerName, ownerPhone, 
   await supabase.from("support_chat_messages").insert({
     conversation_id: conv.id, sender_type: senderType, sender_id: ownerId, sender_name: ownerName, message_text: description, is_read: false
   });
+
+  // إشعار الإدارة (support:read) على حدث "محادثة دعم جديدة" - مرة واحدة بس
+  // هنا (مش تاني مرة لرسالتها الأولى اللي هي جزء من نفس عملية الإنشاء دي)
+  notifyAdminsWithPermission("support:read", {
+    type: "admin_new_support_conversation",
+    title: "طلب دعم جديد",
+    body: `من: ${ownerName || "مستخدم"}`,
+    link: "/admin.html?tab=support&conversation=" + conv.id
+  });
+
   return conv;
 }
 
@@ -221,6 +232,17 @@ async function addReply(conv, senderType, ownerId, ownerName, message) {
   await supabase.from("support_chat_conversations")
     .update({ last_message_at: new Date().toISOString(), admin_unread_count: (conv.admin_unread_count || 0) + 1 })
     .eq("id", conv.id);
+
+  // إشعار الإدارة (support:read) على حدث "رسالة دعم جديدة" - هنا الحدث
+  // منفصل فعلًا عن إنشاء المحادثة (رد لاحق على تذكرة موجودة أصلًا)، فمفيش
+  // ازدواج مع إشعار createConversation فوق
+  notifyAdminsWithPermission("support:read", {
+    type: "admin_new_support_message",
+    title: "رسالة جديدة في خدمة العملاء",
+    body: `من: ${ownerName || "مستخدم"}`,
+    link: "/admin.html?tab=support&conversation=" + conv.id
+  });
+
   return data;
 }
 

@@ -226,5 +226,6 @@ module.exports = {
   clearAdminCookie,
   createWorkerToken,
   verifyWorkerToken,
-  requireWorkerOwnership
+  requireWorkerOwnership,
+  adminHasPermission
 };

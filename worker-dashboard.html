@@ -407,6 +407,9 @@
     <!-- 1. تبويبة البيانات الشخصية -->
     <div id="info" class="tab-content active">
 
+      <!-- إشعارات الجهاز -->
+      <div id="pushToggleContainer" style="margin-bottom:25px; padding:16px; border-radius:12px; border:1px solid #93c5fd; background:#eff6ff;"></div>
+
       <!-- البريد الإلكتروني -->
       <div id="emailSection" style="margin-bottom:25px; padding:16px; border-radius:12px; border:1px solid #93c5fd; background:#eff6ff;">
         <h3 style="margin-top:0; color:#0f172a;"><i class="fa-solid fa-envelope"></i> البريد الإلكتروني</h3>
@@ -1716,6 +1719,8 @@
     if (urlParams.get('tab') === 'serviceRequests') switchTab('serviceRequests');
   </script>
   <script src="/js/notifications-widget.js?v=20260823"></script>
+  <script src="/js/push-notifications.js?v=20260823"></script>
+  <script>if (window.initPushToggle) window.initPushToggle('pushToggleContainer', 'worker');</script>
   <script src="/js/support-widget.js?v=20260823"></script>
 </body>
 </html>

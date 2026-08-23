@@ -37,7 +37,26 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.addEventListener("keydown",(e)=>{if(e.key==="Escape"){closeAdminDrawer();closeAdminMoreMenu()}});
   document.addEventListener("click",(e)=>{if(!e.target.closest(".admin-actions-mobile"))closeAdminMoreMenu()});
 });
-function showDashboard(){document.getElementById("loginScreen").style.display="none";document.getElementById("dashboard").classList.add("show");applyPermissionUI();loadAllData()}
+function showDashboard(){document.getElementById("loginScreen").style.display="none";document.getElementById("dashboard").classList.add("show");applyPermissionUI();loadAllData().then(applyAdminDeepLink)}
+
+// دعم روابط التعميق القادمة من إشعارات الإدارة (push/داخل التطبيق) - نفس
+// نمط ?tab= المستخدم أصلًا في worker-dashboard.html، بس هنا لسه مكانش موجود
+// لصفحة admin.html فعرفناه بأقل تدخل ممكن: admin.html?tab=<اسم القسم>
+// (و&conversation=<id> إضافية لفتح محادثة دعم بعينها في تبويب support)
+function applyAdminDeepLink(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const tab=params.get("tab");
+    if(!tab) return;
+    const btn=Array.from(document.querySelectorAll(".admin-tab")).find(b=>(b.getAttribute("onclick")||"").includes(`switchTab('${tab}'`));
+    if(!btn || btn.style.display==="none") return;
+    switchTab(tab, btn);
+    if(tab==="support"){
+      const convId=Number(params.get("conversation"));
+      if(convId) setTimeout(()=>{ if(typeof loadAdminSupportMessages==="function") loadAdminSupportMessages(convId); }, 600);
+    }
+  }catch(e){}
+}
 function showLogin(){document.getElementById("dashboard").classList.remove("show");document.getElementById("loginScreen").style.display="flex"}
 async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST",credentials:"include"})}catch(e){} location.reload()}
 async function checkLogin(){try{const r=await fetch("/api/admin/me",{credentials:"include"});const d=await r.json();if(d.authenticated){currentAdmin=d.admin||null;showDashboard()}else showLogin()}catch(e){showLogin()}}

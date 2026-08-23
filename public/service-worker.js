@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sanay3i-matrouh-v8';
+const CACHE_NAME = 'sanay3i-matrouh-v9';
 
 // ملفات JS حرجة وظيفيًا لازم تتحدث فورًا مع أي نشر جديد (Network First) - لو
 // اتخزنت نسخة قديمة منها في كاش زائر قديم ماينفعش يفضل عالق عليها. باقي
@@ -115,4 +115,56 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(staleWhileRevalidate(request));
+});
+
+// ===============================
+// Web Push - طبقة توصيل إضافية فوق نظام الإشعارات الداخلي الحالي (لا تلمس
+// أي من منطق الكاش فوق). الصوت عند وصول push بيتحكم فيه نظام التشغيل/
+// المتصفح نفسه حسب إعدادات الجهاز، مفيش أي تشغيل صوت من هنا.
+// ===============================
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = { title: 'إشعار جديد', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = payload.title || 'صنايعي مطروح';
+  const options = {
+    body: payload.body || '',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/icon-192.png',
+    data: {
+      url: payload.url || '/',
+      notification_id: payload.notification_id || null,
+      type: payload.type || 'general'
+    },
+    // نفس notification_id كـ tag - بيمنع ظهور نفس الإشعار مرتين لو وصل الـ
+    // push بالخطأ أكتر من مرة لنفس الحدث
+    tag: payload.notification_id ? String(payload.notification_id) : undefined
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.notification.close();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsList) => {
+      for (const client of clientsList) {
+        try {
+          const clientUrl = new URL(client.url);
+          const target = new URL(targetUrl, self.location.origin);
+          if (clientUrl.origin === target.origin) {
+            client.postMessage({ type: 'push-notification-click', url: targetUrl });
+            if ('focus' in client) return client.focus();
+          }
+        } catch (e) { /* تجاهل روابط غير صالحة */ }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
 });

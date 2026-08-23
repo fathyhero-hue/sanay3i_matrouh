@@ -154,6 +154,15 @@ const workerActivationRateLimit = createDbRateLimiter({
   message: "محاولات كثيرة لتفعيل الحساب. انتظر شوية وحاول تاني"
 });
 
+// حارس على اشتراك/إلغاء اشتراك Web Push (منع سبام تسجيل اشتراكات وهمية)
+const pushSubscribeRateLimit = createDbRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: Number(process.env.PUSH_SUBSCRIBE_RATE_LIMIT || 30),
+  keyFn: req => clientIp(req),
+  prefix: "push-subscribe",
+  message: "محاولات كثيرة جدًا. حاول مرة أخرى بعد قليل"
+});
+
 module.exports = {
   analyticsRateLimit,
   reportsRateLimit,
@@ -164,6 +173,7 @@ module.exports = {
   customerRegisterRateLimit,
   customerLoginRateLimit,
   workerActivationRateLimit,
+  pushSubscribeRateLimit,
   createMemoryRateLimiter,
   createDbRateLimiter
 };
