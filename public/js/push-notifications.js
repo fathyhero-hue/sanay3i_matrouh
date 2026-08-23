@@ -53,48 +53,71 @@
     return true;
   }
 
-  async function subscribeToPush(ctx) {
+  // diag: دالة اختيارية (key, label, status, detail) بتحدّث UI التشخيص -
+  // ممنوع تمامًا تمرير أي endpoint/p256dh/auth/token لها، فقط نصوص آمنة
+  async function subscribeToPush(ctx, diag) {
+    if (!diag) diag = function () {};
+
     // بعض الصفحات (حسابي/لوحة الصنايعي/لوحة الإدارة) ما بتسجّلش الـ Service
     // Worker بنفسها (بيتسجل من index.html/status.html/worker.html بس) -
     // بنتأكد هنا إنه مسجّل قبل ما نستنى .ready، عشان معلقش لو المستخدم دخل
     // الصفحة دي مباشرة من غير ما يمر بصفحة بتسجله
     var existingReg = await navigator.serviceWorker.getRegistration();
     if (!existingReg) await navigator.serviceWorker.register('/service-worker.js');
-    var reg = await navigator.serviceWorker.ready;
-    console.log('[PUSH] sw-ready');
+    var reg;
+    try {
+      reg = await navigator.serviceWorker.ready;
+      console.log('[PUSH] sw-ready');
+      diag('sw', 'Service Worker', 'ok', 'ready');
+    } catch (e) {
+      diag('sw', 'Service Worker', 'fail', 'failed');
+      throw new Error('تعذّر تجهيز Service Worker');
+    }
 
     var keyRes = await fetch('/api/push/public-key');
-    var keyData = await keyRes.json();
-    if (!keyData.publicKey) throw new Error('لا يوجد مفتاح عام متاح');
+    var keyData = await keyRes.json().catch(function () { return {}; });
+    if (!keyData.publicKey) {
+      diag('key', 'المفتاح العام', 'fail', 'غير متاح (HTTP ' + keyRes.status + ')');
+      throw new Error('لا يوجد مفتاح عام متاح');
+    }
     var currentKeyBytes = base64UrlToUint8Array(keyData.publicKey);
 
     var existing = await reg.pushManager.getSubscription();
+    diag('existing', 'اشتراك سابق على الجهاز', 'ok', existing ? 'existing' : 'none');
     var sub = existing;
 
-    if (existing) {
-      // لازم نتأكد إن الـ subscription الموجود لسه مرتبط بنفس المفتاح
-      // الحالي - لو المفتاح اتغيّر على السيرفر (VAPID rotation) أو تعذّر
-      // التحقق أصلًا، الاشتراك القديم بقى عديم الفائدة ولازم نستبدله
-      var existingKey = null;
-      try { existingKey = existing.options && existing.options.applicationServerKey; } catch (e) { existingKey = null; }
-      var matches = existingKey ? sameKey(existingKey, currentKeyBytes) : false;
+    try {
+      if (existing) {
+        // لازم نتأكد إن الـ subscription الموجود لسه مرتبط بنفس المفتاح
+        // الحالي - لو المفتاح اتغيّر على السيرفر (VAPID rotation) أو تعذّر
+        // التحقق أصلًا، الاشتراك القديم بقى عديم الفائدة ولازم نستبدله
+        var existingKey = null;
+        try { existingKey = existing.options && existing.options.applicationServerKey; } catch (e) { existingKey = null; }
+        var matches = existingKey ? sameKey(existingKey, currentKeyBytes) : false;
 
-      if (!matches) {
-        console.log('[PUSH] existing/new: stale key, resubscribing');
-        try { await existing.unsubscribe(); } catch (e) { /* تجاهل - هنعمل subscribe جديد بغض النظر */ }
+        if (!matches) {
+          console.log('[PUSH] existing/new: stale key, resubscribing');
+          try { await existing.unsubscribe(); } catch (e) { /* تجاهل - هنعمل subscribe جديد بغض النظر */ }
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: currentKeyBytes
+          });
+        } else {
+          console.log('[PUSH] existing/new: existing subscription valid');
+        }
+      } else {
+        console.log('[PUSH] existing/new: creating new subscription');
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: currentKeyBytes
         });
-      } else {
-        console.log('[PUSH] existing/new: existing subscription valid');
       }
-    } else {
-      console.log('[PUSH] existing/new: creating new subscription');
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: currentKeyBytes
-      });
+      diag('subscribe', 'PushManager.subscribe()', 'ok', 'success');
+    } catch (e) {
+      // رسالة آمنة ومختصرة بس - اسم الخطأ فقط، من غير أي تفاصيل حساسة
+      var safeMsg = (e && e.name) ? e.name : 'subscribe failed';
+      diag('subscribe', 'PushManager.subscribe()', 'fail', safeMsg);
+      throw new Error('تعذّر إنشاء اشتراك الإشعارات');
     }
 
     // مهم: وجود subscription في المتصفح لا يعني وجوده في قاعدة البيانات
@@ -105,27 +128,41 @@
       // فحص دفاعي قبل الإرسال أصلًا - لو الـ subscription اللي رجعه المتصفح
       // ناقص (حالة نادرة لكن ممكنة على بعض الأجهزة)، منبعتوش لسيرفر بشكل
       // غير مكتمل، ومنسمحش لرسالة النجاح تظهر أصلًا
+      diag('sync', 'مزامنة السيرفر', 'fail', 'بيانات الاشتراك من المتصفح غير مكتملة');
       throw new Error('بيانات الاشتراك من المتصفح غير مكتملة');
     }
 
     console.log('[PUSH] subscribe-url:', ctx.subscribeUrl);
-    var res = await fetch(ctx.subscribeUrl, {
-      method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, ctx.headers),
-      body: JSON.stringify({
-        endpoint: subJson.endpoint,
-        keys: subJson.keys,
-        user_agent: navigator.userAgent
-      })
-    });
+    var res;
+    try {
+      res = await fetch(ctx.subscribeUrl, {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, ctx.headers),
+        body: JSON.stringify({
+          endpoint: subJson.endpoint,
+          keys: subJson.keys,
+          user_agent: navigator.userAgent
+        })
+      });
+    } catch (e) {
+      diag('sync', 'مزامنة السيرفر', 'fail', 'تعذّر الوصول للسيرفر (شبكة)');
+      throw new Error('تعذّر الوصول للسيرفر');
+    }
     console.log('[PUSH] subscribe-status:', res.status);
     var out = await res.json().catch(function () { return {}; });
     console.log('[PUSH] subscribe-response-success:', out.success === true);
+
+    var authOk = res.status !== 401 && res.status !== 403;
+    var syncDetail = 'URL: ' + ctx.subscribeUrl + ' | HTTP ' + res.status +
+      ' | authenticated=' + (authOk ? 'yes' : 'no') + ' | success=' + (out.success === true);
+
     if (!res.ok || !out.success) {
       console.log('[PUSH] server-sync fail');
+      diag('sync', 'مزامنة السيرفر', 'fail', syncDetail);
       throw new Error(out.error || 'تعذر تفعيل الإشعارات');
     }
     console.log('[PUSH] server-sync success');
+    diag('sync', 'مزامنة السيرفر', 'ok', syncDetail);
     return true;
   }
 
@@ -135,13 +172,21 @@
   function initPushToggle(containerId, role) {
     var container = document.getElementById(containerId);
     if (!container) return;
+    console.log('[PUSH] push module loaded = yes');
 
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    var supportsSW = 'serviceWorker' in navigator;
+    var supportsPush = 'PushManager' in window;
+
+    if (!supportsSW || !supportsPush) {
       container.innerHTML =
         '<div class="push-toggle-section">' +
         '<h3 class="push-toggle-title"><i class="fa-solid fa-bell"></i> الإشعارات</h3>' +
         '<p class="push-toggle-desc">استقبل تحديثات الطلبات والرسائل حتى لو التطبيق في الخلفية.</p>' +
         '<p class="push-toggle-note">إشعارات الجهاز غير مدعومة على هذا المتصفح.</p>' +
+        '<ol class="push-diag-list" style="display:block;">' +
+        '<li class="push-diag-item push-diag-fail">بيئة التشغيل: secureContext=' + window.isSecureContext +
+        ', serviceWorker=' + supportsSW + ', PushManager=' + supportsPush + '</li>' +
+        '</ol>' +
         '</div>';
       return;
     }
@@ -153,10 +198,31 @@
       '<button type="button" id="pushEnableBtn" class="push-toggle-btn">' +
       '<i class="fa-solid fa-bell"></i> تفعيل إشعارات الجهاز</button>' +
       '<p class="push-toggle-note" id="pushToggleNote" style="display:none;"></p>' +
+      '<ol class="push-diag-list" id="pushDiagList" style="display:none;"></ol>' +
       '</div>';
 
     var btn = document.getElementById('pushEnableBtn');
     var note = document.getElementById('pushToggleNote');
+    var diagList = document.getElementById('pushDiagList');
+    var diagItems = {};
+
+    function diagInit() {
+      diagList.innerHTML = '';
+      diagList.style.display = 'block';
+      diagItems = {};
+    }
+    // آمن تمامًا: detail هنا نصوص وصفية قصيرة فقط (حالة/status code/اسم دور) -
+    // ممنوع تمريره أي endpoint/p256dh/auth/token من أي نقطة استدعاء
+    function diagStep(key, label, status, detail) {
+      var li = diagItems[key];
+      if (!li) {
+        li = document.createElement('li');
+        diagList.appendChild(li);
+        diagItems[key] = li;
+      }
+      li.className = 'push-diag-item push-diag-' + status;
+      li.textContent = label + ': ' + detail;
+    }
 
     function showNote(text) {
       note.textContent = text;
@@ -189,7 +255,13 @@
     }
 
     btn.addEventListener('click', async function () {
+      diagInit();
+      diagStep('runtime', 'بيئة التشغيل', 'ok',
+        'secureContext=' + window.isSecureContext + ', SW=' + supportsSW + ', PushManager=' + supportsPush +
+        ', permission=' + (('Notification' in window) ? Notification.permission : 'unsupported'));
+
       var ctx = resolveContext(role);
+      diagStep('role', 'الدور/المسار المستخدم', ctx ? 'ok' : 'fail', ctx ? ctx.subscribeUrl : 'لا يوجد حساب مسجّل دخول');
       if (!ctx) { showNote('يجب تسجيل الدخول أولاً لتفعيل إشعارات الجهاز.'); return; }
 
       if (!('Notification' in window)) { showNote('هذا المتصفح لا يدعم إشعارات الجهاز.'); return; }
@@ -198,16 +270,17 @@
       try {
         var permission = await Notification.requestPermission();
         console.log('[PUSH] permission:', permission);
+        diagStep('permission', 'إذن الإشعارات', permission === 'granted' ? 'ok' : 'fail', permission);
         if (permission !== 'granted') {
           showNote('تم رفض الإذن. يمكنك تفعيله لاحقًا من إعدادات المتصفح/الجهاز.');
           btn.disabled = false;
           return;
         }
-        await subscribeToPush(ctx);
+        await subscribeToPush(ctx, diagStep);
         markEnabled();
         showNote('تم تفعيل إشعارات الجهاز بنجاح');
       } catch (e) {
-        showNote('تعذر تفعيل الإشعارات، حاول مرة أخرى.');
+        showNote('تعذر تفعيل الإشعارات، حاول مرة أخرى. (' + ((e && e.message) || 'خطأ غير معروف') + ')');
         btn.disabled = false;
       }
     });
