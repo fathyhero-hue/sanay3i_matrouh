@@ -1,9 +1,9 @@
-const CACHE_NAME = 'sanay3i-matrouh-v9';
+const CACHE_NAME = 'sanay3i-matrouh-v10';
 
 // ملفات JS حرجة وظيفيًا لازم تتحدث فورًا مع أي نشر جديد (Network First) - لو
 // اتخزنت نسخة قديمة منها في كاش زائر قديم ماينفعش يفضل عالق عليها. باقي
 // أصول JS/CSS/الصور بتفضل على Stale-While-Revalidate تحت.
-const CRITICAL_JS_PATHS = ['/js/support-widget.js', '/js/notifications-widget.js', '/js/home.js'];
+const CRITICAL_JS_PATHS = ['/js/support-widget.js', '/js/notifications-widget.js', '/js/home.js', '/js/push-notifications.js'];
 
 // أصول ثابتة بس (CSS/أيقونات/خطوط) - مش صفحات HTML. صفحات HTML بتتعامل معاها
 // استراتيجية Network First تحت، فمش محتاجة تتخزن هنا مسبقًا؛ offline.html هي

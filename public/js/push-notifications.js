@@ -101,6 +101,14 @@
     // (ممكن يكون اتحذف من السيرفر لأي سبب بينما المتصفح لسه محتفظ بيه) -
     // فبنعمل POST/Upsert دايمًا هنا، حتى لو الاشتراك الحالي كان صالح أصلًا
     var subJson = sub.toJSON();
+    if (!subJson.endpoint || !subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
+      // فحص دفاعي قبل الإرسال أصلًا - لو الـ subscription اللي رجعه المتصفح
+      // ناقص (حالة نادرة لكن ممكنة على بعض الأجهزة)، منبعتوش لسيرفر بشكل
+      // غير مكتمل، ومنسمحش لرسالة النجاح تظهر أصلًا
+      throw new Error('بيانات الاشتراك من المتصفح غير مكتملة');
+    }
+
+    console.log('[PUSH] subscribe-url:', ctx.subscribeUrl);
     var res = await fetch(ctx.subscribeUrl, {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, ctx.headers),
@@ -110,7 +118,9 @@
         user_agent: navigator.userAgent
       })
     });
+    console.log('[PUSH] subscribe-status:', res.status);
     var out = await res.json().catch(function () { return {}; });
+    console.log('[PUSH] subscribe-response-success:', out.success === true);
     if (!res.ok || !out.success) {
       console.log('[PUSH] server-sync fail');
       throw new Error(out.error || 'تعذر تفعيل الإشعارات');
