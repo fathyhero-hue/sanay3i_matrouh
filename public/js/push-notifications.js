@@ -191,12 +191,18 @@
       return;
     }
 
+    // data-push-toggle بدل الاعتماد على id بس - الـclick handler بتاعه
+    // مربوط بـ Event Delegation على document (تحت)، مش بـaddEventListener
+    // مباشر هنا، عشان يفضل شغال حتى لو الزر اتعمله render تاني لاحقًا أو
+    // كان فيه أكتر من نسخة من الحاوية في نفس الصفحة
     container.innerHTML =
       '<div class="push-toggle-section">' +
       '<h3 class="push-toggle-title"><i class="fa-solid fa-bell"></i> الإشعارات</h3>' +
       '<p class="push-toggle-desc">استقبل تحديثات الطلبات والرسائل حتى لو التطبيق في الخلفية.</p>' +
-      '<button type="button" id="pushEnableBtn" class="push-toggle-btn">' +
-      '<i class="fa-solid fa-bell"></i> تفعيل إشعارات الجهاز</button>' +
+      '<button type="button" id="pushEnableBtn" class="push-toggle-btn" data-push-toggle data-push-role="' + (role || '') + '" ' +
+      'style="pointer-events:auto;touch-action:manipulation;position:relative;z-index:1;">' +
+      '<i class="fa-solid fa-bell" style="pointer-events:none;"></i> ' +
+      '<span style="pointer-events:none;">تفعيل إشعارات الجهاز</span></button>' +
       '<p class="push-toggle-note" id="pushToggleNote" style="display:none;"></p>' +
       '<ol class="push-diag-list" id="pushDiagList" style="display:none;"></ol>' +
       '</div>';
@@ -290,17 +296,31 @@
       })();
     }
 
-    btn.addEventListener('click', async function () {
+    // منطق الضغط نفسه بقى Function مستقلة معلّقة على العنصر مباشرة، مش
+    // addEventListener هنا - الـEvent الفعلي بيتلقطه Event Delegation واحد
+    // على document (تحت آخر الملف) بحث عن [data-push-toggle] وينده الدالة
+    // دي، عشان يفضل شغال حتى لو الزر اتعمله render تاني أو كان فيه أكتر
+    // من نسخة من نفس الحاوية
+    var running = false;
+    btn.__runPushFlow = async function () {
+      if (running) return; // منع Double-tap أثناء التنفيذ فعليًا
+      running = true;
+
       diagInit();
+      // أول سطر تشخيص فوري، قبل أي async operation نهائيًا - لو ده ظهر
+      // يبقى الضغط اتلقط فعليًا، ولو مش ظهر تبقى المشكلة Event binding
+      diagStep('tap', 'الضغط', 'ok', 'تم التقاط الضغط ✓');
+      diagStep('flow', 'التنفيذ', 'ok', 'بدء تفعيل الإشعارات...');
+
       diagStep('runtime', 'بيئة التشغيل', 'ok',
         'secureContext=' + window.isSecureContext + ', SW=' + supportsSW + ', PushManager=' + supportsPush +
         ', permission=' + (('Notification' in window) ? Notification.permission : 'unsupported'));
 
       var ctx = resolveContext(role);
       diagStep('role', 'الدور/المسار المستخدم', ctx ? 'ok' : 'fail', ctx ? ctx.subscribeUrl : 'لا يوجد حساب مسجّل دخول');
-      if (!ctx) { showNote('يجب تسجيل الدخول أولاً لتفعيل إشعارات الجهاز.'); return; }
+      if (!ctx) { showNote('يجب تسجيل الدخول أولاً لتفعيل إشعارات الجهاز.'); running = false; return; }
 
-      if (!('Notification' in window)) { showNote('هذا المتصفح لا يدعم إشعارات الجهاز.'); return; }
+      if (!('Notification' in window)) { showNote('هذا المتصفح لا يدعم إشعارات الجهاز.'); running = false; return; }
 
       btn.disabled = true;
       try {
@@ -310,6 +330,7 @@
         if (permission !== 'granted') {
           showNote('تم رفض الإذن. يمكنك تفعيله لاحقًا من إعدادات المتصفح/الجهاز.');
           btn.disabled = false;
+          running = false;
           return;
         }
         await subscribeToPush(ctx, diagStep);
@@ -318,9 +339,24 @@
       } catch (e) {
         showNote('تعذر تفعيل الإشعارات، حاول مرة أخرى. (' + ((e && e.message) || 'خطأ غير معروف') + ')');
         btn.disabled = false;
+      } finally {
+        running = false;
       }
-    });
+    };
   }
+
+  // Event Delegation واحد فقط على document لكل أزرار [data-push-toggle] -
+  // بيتربط مرة واحدة عند تحميل الملف، مش مرتبط بلحظة إنشاء زر معيّن، فيفضل
+  // شغال حتى لو container اتعمله render تاني بعدين. pointerup كـfallback
+  // إضافي لبعض أجهزة Android/TWA اللي أحيانًا مابتبعتش click event بشكل
+  // موثوق لعناصر معينة، من غير ما نعمل الفعل مرتين (running guard فوق).
+  function delegatedPushToggleHandler(event) {
+    var target = event.target && event.target.closest && event.target.closest('[data-push-toggle]');
+    if (!target || target.disabled) return;
+    if (typeof target.__runPushFlow === 'function') target.__runPushFlow();
+  }
+  document.addEventListener('click', delegatedPushToggleHandler);
+  document.addEventListener('pointerup', delegatedPushToggleHandler);
 
   // لو الصفحة كانت مفتوحة بالفعل والـ Service Worker ركّز عليها بدل ما يفتح
   // تاب جديد (نفس origin)، بيبعتلها الرابط المستهدف عشان تتنقل جوّها بنفسها
