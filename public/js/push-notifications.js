@@ -235,23 +235,59 @@
       btn.disabled = true;
     }
 
-    if (Notification && Notification.permission === 'granted') {
-      markEnabled();
-      // نتأكد إن فيه Subscription فعلي متزامن (مش بس إن الإذن ممنوح) - لو
-      // مفيش (مثلًا اتحذف من قاعدة البيانات) نرجّع الزر قابل للضغط تاني
-      navigator.serviceWorker.getRegistration().then(function (reg) {
-        if (!reg) { btn.disabled = false; return; }
-        reg.pushManager.getSubscription().then(function (sub) {
-          if (!sub) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-bell"></i> تفعيل إشعارات الجهاز';
-            btn.classList.remove('push-toggle-btn-active');
-          }
-        });
-      });
-    } else if (Notification && Notification.permission === 'denied') {
+    // ممنوع اعتبار Notification.permission==='granted' وحده يعني إن الإشعارات
+    // مفعّلة فعليًا - ده إذن نظام التشغيل بس، مش دليل على وجود Subscription
+    // حقيقي متزامن مع السيرفر. الزر يبقى في حالته الافتراضية (قابل للضغط)
+    // لحد ما نتحقق فعليًا: sw.ready → getSubscription → إعادة مزامنة مع
+    // السيرفر وترجع 2xx+success:true - ساعتها بس نستدعي markEnabled().
+    // لو مفيش Subscription أصلًا، منعملش subscribe() تلقائي هنا (حتى لو
+    // الإذن ممنوح بالفعل) - لازم المستخدم يضغط الزر صراحة.
+    if (Notification && Notification.permission === 'denied') {
       btn.disabled = true;
       showNote('الإشعارات محظورة من إعدادات الجهاز');
+    } else if (Notification && Notification.permission === 'granted') {
+      (async function verifyExistingSubscription() {
+        diagInit();
+        diagStep('runtime', 'بيئة التشغيل', 'ok',
+          'secureContext=' + window.isSecureContext + ', SW=' + supportsSW + ', PushManager=' + supportsPush +
+          ', permission=' + Notification.permission);
+        try {
+          var reg = await navigator.serviceWorker.ready;
+          diagStep('sw', 'Service Worker', 'ok', 'ready');
+
+          var sub = await reg.pushManager.getSubscription();
+          diagStep('existing', 'اشتراك سابق على الجهاز', sub ? 'ok' : 'fail', sub ? 'existing' : 'none');
+          if (!sub) return; // يفضل الزر في حالته الافتراضية - مفيش subscribe() تلقائي
+
+          var ctx = resolveContext(role);
+          diagStep('role', 'الدور/المسار المستخدم', ctx ? 'ok' : 'fail', ctx ? ctx.subscribeUrl : 'لا يوجد حساب مسجّل دخول');
+          if (!ctx) return;
+
+          var subJson = sub.toJSON();
+          if (!subJson.endpoint || !subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
+            diagStep('sync', 'مزامنة السيرفر', 'fail', 'بيانات الاشتراك من المتصفح غير مكتملة');
+            return;
+          }
+
+          var res = await fetch(ctx.subscribeUrl, {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, ctx.headers),
+            body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys, user_agent: navigator.userAgent })
+          });
+          var out = await res.json().catch(function () { return {}; });
+          var authOk = res.status !== 401 && res.status !== 403;
+          var syncDetail = 'HTTP ' + res.status + ' | authenticated=' + (authOk ? 'yes' : 'no') + ' | success=' + (out.success === true);
+
+          if (res.ok && out.success) {
+            diagStep('sync', 'مزامنة السيرفر', 'ok', syncDetail);
+            markEnabled();
+          } else {
+            diagStep('sync', 'مزامنة السيرفر', 'fail', syncDetail);
+          }
+        } catch (e) {
+          diagStep('sw', 'Service Worker', 'fail', (e && e.name) || 'failed');
+        }
+      })();
     }
 
     btn.addEventListener('click', async function () {
