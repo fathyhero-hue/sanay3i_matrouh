@@ -28,9 +28,9 @@
    + JS خفيف للـ Autoplay/Pagination/الأسهم (بدون مكتبات خارجية). إضافة شريحة
    جديدة لاحقًا = عنصر .hero-slide واحد إضافي في index.html بس */
 .hero-slider-section { padding: var(--space-3) 0; }
-.hero-slider { position: relative; border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 14px 34px rgba(6,26,61,0.16); }
+.hero-slider { position: relative; max-width: 100%; min-width: 0; border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 14px 34px rgba(6,26,61,0.16); }
 .hero-slide-track {
-  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  display: flex; max-width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
 .hero-slide-track::-webkit-scrollbar { display: none; }
@@ -67,7 +67,7 @@
 
 /* صنايعية بالقرب منك - Cards أفقية (Scroll) للموبايل، بدون مسافة مُخترعة */
 .nearby-section { padding: var(--space-3) 0; }
-.nearby-scroll-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
+.nearby-scroll-row { display: flex; max-width: 100%; min-width: 0; gap: 12px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
 .nearby-scroll-row::-webkit-scrollbar { height: 6px; }
 .nearby-scroll-row::-webkit-scrollbar-thumb { background: rgba(148,163,184,.45); border-radius: 999px; }
 /* كارت "بالقرب منك" - نفس الكارت الموحّد (.svc-card من global.css) بعرض
@@ -119,7 +119,8 @@
 
 /* Sections Common */
 .workers-section { padding: 10px 0 20px; }
-.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 8px; }
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 8px; min-width: 0; }
+.section-head > div { min-width: 0; }
 .section-label { display: inline-block; color: var(--blue); font-weight: 900; font-size: 12px; margin-bottom: 4px; }
 .section-head h2 { margin: 0; font-size: 23px; font-weight: 900; color: var(--primary); }
 .section-head p { margin: 4px 0 0; color: var(--muted); font-weight: 700; font-size: 13px; line-height: 1.6; }
@@ -129,11 +130,13 @@
    لكل شريحة + scroll-snap)، بس شريحة واحدة ممكن تحوي أكتر من بطاقة لو حبينا
    لاحقًا - حاليًا بطاقة واحدة لكل شريحة عشان يفضل واضح على الموبايل. */
 .stats-section { padding: 10px 0 14px; }
-.stats-slider { position: relative; }
-.stats-slide-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; border-radius: 22px; }
+.stats-slider { position: relative; max-width: 100%; min-width: 0; overflow: hidden; border-radius: 22px; }
+.stats-slide-track { display: flex; max-width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .stats-slide-track::-webkit-scrollbar { display: none; }
 .stats-slide { flex: 0 0 100%; scroll-snap-align: start; }
-.stat-box { border-radius: 22px; padding: 18px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm); color: #fff; }
+.stat-box { min-width: 0; border-radius: 22px; padding: 18px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm); color: #fff; }
+.stat-box > div { min-width: 0; }
+.stat-box h3, .stat-box p, .stat-box .stat-subtitle { overflow-wrap: break-word; }
 /* لوحة الألوان الثابتة الوحيدة المسموحة من لوحة الإدارة (5 فقط) - مبنية على
    توكنز التصميم الحقيقية في global.css (--sanay3i-navy/--blue/--green/--gold
    وبنفسجي badge-top-rated) بدل أي لون حر */
@@ -152,7 +155,7 @@
 
 /* Area Chips (horizontal scroll row) */
 .area-icons-section { padding: 10px 0; }
-.area-chip-row { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.area-chip-row { display: flex; max-width: 100%; min-width: 0; align-items: center; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
 .area-chip-row::-webkit-scrollbar { height: 6px; }
 .area-chip-row::-webkit-scrollbar-thumb { background: rgba(148,163,184,.45); border-radius: 999px; }
 .area-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--primary); border-radius: 999px; padding: 11px 16px; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 900; transition: 0.25s ease; box-shadow: var(--shadow-sm); }

@@ -40,7 +40,7 @@
 
 /* Worker Cards - الكارت نفسه (.svc-card) مكوّن عام في global.css، هنا بس
    حاوية الشبكة اللي بتحتويه في سياق القائمة الرئيسية */
-.workers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.workers-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 
 /* share-btn لسه مستخدم في مكان تاني (مش جزء من كارت الصنايعي) */
 .share-btn { border: 0; min-height: 42px; border-radius: var(--radius-md); padding: 8px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12.5px; font-weight: 900; cursor: pointer; transition: transform var(--duration-base) ease, background var(--duration-base) ease; background: rgba(15, 23, 42, 0.07); color: var(--primary); border: 1px solid rgba(15, 23, 42, 0.10); }
@@ -49,13 +49,14 @@
 
 /* Demand Highlights Section */
 .demand-highlights-section { padding: 6px 0 8px; }
-.demand-highlights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.demand-highlight-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 24px; padding: 14px; box-shadow: var(--shadow-sm); }
-.demand-highlight-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.demand-highlights-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.demand-highlight-panel { min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 24px; padding: 14px; box-shadow: var(--shadow-sm); }
+.demand-highlight-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; min-width: 0; }
+.demand-highlight-head > div { min-width: 0; }
 .demand-highlight-head h2 { margin: 0; color: var(--primary); font-size: 22px; font-weight: 950; line-height: 1.35; }
 .demand-highlight-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; font-weight: 800; line-height: 1.7; }
 .demand-highlight-icon { width: 48px; height: 48px; border-radius: 17px; display: grid; place-items: center; flex: 0 0 auto; color: #fff; background: linear-gradient(135deg,#061A3D,#2563eb); box-shadow: 0 14px 28px rgba(37,99,235,.18); }
-.demand-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.demand-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .demand-chip { min-width: 0; border: 1px solid var(--color-border); background: var(--color-surface-soft); color: var(--primary); border-radius: 14px; padding: 8px 10px; display: flex; align-items: center; gap: 7px; cursor: pointer; text-align: right; transition: .22s ease; }
 .demand-chip:hover { transform: translateY(-2px); background: #eff6ff; border-color: rgba(37,99,235,.24); }
 .demand-chip-rank { width: 20px; height: 20px; border-radius: 7px; display: grid; place-items: center; background: var(--color-surface); border: 1px solid var(--color-border); color: #2563eb; font-size: 10px; font-weight: 950; flex: 0 0 auto; }

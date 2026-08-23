@@ -99,6 +99,12 @@ html[data-theme-app][data-theme="dark"] body {
 html { scroll-behavior: smooth; background-color: #061A3D; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (display-mode: standalone) { html { background-color: #061A3D; } }
 
+/* حماية نهائية ضد أي Horizontal Overflow (بند إصلاح طارئ) - مش الحل الوحيد،
+   لازم أي عنصر فعليًا بيوسّع الصفحة يتصلح لوحده (شوف .container/الـGrids
+   تحت)، لكن الـclip هنا شبكة أمان أخيرة تمنع ظهور خلفية html الكحلية على
+   الجوانب لو عنصر مستقبلي كسر العرض بالغلط */
+html, body { width: 100%; max-width: 100%; overflow-x: hidden; overflow-x: clip; }
+
 body {
   margin: 0; font-family: "Cairo", sans-serif;
   font-size: var(--font-size-base); line-height: var(--line-height-normal);
@@ -112,7 +118,7 @@ body {
 a { text-decoration: none; color: inherit; -webkit-tap-highlight-color: transparent; }
 button, input, select, textarea { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 button, a, [role="button"] { touch-action: manipulation; }
-.container { width: min(1180px, calc(100% - 30px)); margin: auto; }
+.container { width: min(1180px, calc(100% - 30px)); max-width: 100%; min-width: 0; margin: auto; box-sizing: border-box; }
 
 /* حالة الـfocus عند التنقل بالكيبورد فقط (مش عند اللمس/الضغط بالماوس) -
    إضافية بالكامل، مبتلغيش أي سلوك focus افتراضي موجود */
