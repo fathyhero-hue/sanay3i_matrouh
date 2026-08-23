@@ -53,25 +53,71 @@
     return true;
   }
 
+  // Promise.race مع Timeout آمن - أي await على serviceWorker.ready ممنوع
+  // يفضل معلّق للأبد؛ لو محصلش activation خلال المهلة، نرمي خطأ واضح
+  // بدل ما نسيب الزر معلّق بدون رد
+  function withTimeout(promise, ms, timeoutMessage) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error(timeoutMessage)); }, ms);
+      promise.then(function (v) { clearTimeout(timer); resolve(v); }, function (e) { clearTimeout(timer); reject(e); });
+    });
+  }
+
   // diag: دالة اختيارية (key, label, status, detail) بتحدّث UI التشخيص -
   // ممنوع تمامًا تمرير أي endpoint/p256dh/auth/token لها، فقط نصوص آمنة
   async function subscribeToPush(ctx, diag) {
     if (!diag) diag = function () {};
 
+    // فحص فعلي قبل انتظار .ready أصلًا - يوضّح فورًا هل فيه Registration
+    // موجود، حالته، وهل الصفحة الحالية تحت سيطرة Worker فعلي (controller)
+    // أم لسه لأ (حالة معروفة أول تسجيل على صفحة معينة قبل أي reload)
+    var controllerYes = !!navigator.serviceWorker.controller;
+    var existingReg = await navigator.serviceWorker.getRegistration();
+    var allRegs = await navigator.serviceWorker.getRegistrations();
+    var swState = 'none';
+    if (existingReg) {
+      if (existingReg.installing) swState = 'installing';
+      else if (existingReg.waiting) swState = 'waiting';
+      else if (existingReg.active) swState = 'active';
+    }
+    diag('sw-controller', 'SW controller', controllerYes ? 'ok' : 'fail', controllerYes ? 'yes' : 'no');
+    diag('sw-registration', 'SW registration', existingReg ? 'ok' : 'fail',
+      (existingReg ? 'found' : 'none') + ' (كل التسجيلات: ' + allRegs.length + ')');
+    diag('sw-state', 'SW state/scope', existingReg ? 'ok' : 'fail',
+      swState + (existingReg ? ' | scope=' + existingReg.scope : ''));
+
     // بعض الصفحات (حسابي/لوحة الصنايعي/لوحة الإدارة) ما بتسجّلش الـ Service
     // Worker بنفسها (بيتسجل من index.html/status.html/worker.html بس) -
-    // بنتأكد هنا إنه مسجّل قبل ما نستنى .ready، عشان معلقش لو المستخدم دخل
-    // الصفحة دي مباشرة من غير ما يمر بصفحة بتسجله
-    var existingReg = await navigator.serviceWorker.getRegistration();
-    if (!existingReg) await navigator.serviceWorker.register('/service-worker.js');
+    // بنسجّله هنا بنفس الملف "/service-worker.js" ونفس scope "/" الافتراضي
+    // (مفيش Service Worker جديد ولا architecture مختلفة) لو مفيش Registration
+    // أصلًا، قبل ما نستنى .ready
+    if (!existingReg) {
+      try {
+        var newReg = await navigator.serviceWorker.register('/service-worker.js');
+        diag('sw-register', 'تسجيل Service Worker', 'ok', 'scope=' + newReg.scope);
+      } catch (e) {
+        diag('sw-register', 'تسجيل Service Worker', 'fail', (e && e.name) || 'register failed');
+        throw new Error('تعذّر تسجيل Service Worker');
+      }
+    }
+
     var reg;
     try {
-      reg = await navigator.serviceWorker.ready;
+      // مهلة آمنة 5 ثوانٍ - ممنوع يفضل معلّق للأبد
+      reg = await withTimeout(navigator.serviceWorker.ready, 5000, 'Service Worker غير جاهز');
       console.log('[PUSH] sw-ready');
-      diag('sw', 'Service Worker', 'ok', 'ready');
+      diag('sw', 'Service Worker', 'ok', 'ready (state=' + (reg.active ? 'active' : 'unknown') + ')');
     } catch (e) {
-      diag('sw', 'Service Worker', 'fail', 'failed');
-      throw new Error('تعذّر تجهيز Service Worker');
+      diag('sw', 'Service Worker', 'fail', (e && e.message) || 'Service Worker غير جاهز');
+      throw new Error('Service Worker غير جاهز');
+    }
+
+    // لو الـRegistration بقى Active لكن مفيش controller على الصفحة الحالية،
+    // ده معروف في أول تسجيل قبل أي reload - reg.pushManager هنا لسه شغال
+    // بشكل مستقل عن الـcontroller (مش محتاجين نجبر reload)، فبنكمل عادي،
+    // بس بنوضّح الحالة في التشخيص فقط
+    if (!navigator.serviceWorker.controller) {
+      diag('sw-controller', 'SW controller', 'fail', 'لسه no (Active لكن لم يتحكم في الصفحة الحالية بعد - عادي، هنكمل)');
     }
 
     var keyRes = await fetch('/api/push/public-key');
