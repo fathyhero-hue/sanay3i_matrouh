@@ -54,14 +54,16 @@ workflows:
           echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
           echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/cm_profile.mobileprovision
 
-          echo "----- CM_PROVISIONING_PROFILE runtime diagnostic -----"
+          mkdir -p /tmp/xcodebuild_logs
           security cms -D -i /tmp/cm_profile.mobileprovision > /tmp/cm_profile.plist
-          /usr/libexec/PlistBuddy -c "Print :Name" /tmp/cm_profile.plist
-          /usr/libexec/PlistBuddy -c "Print :UUID" /tmp/cm_profile.plist
-          /usr/libexec/PlistBuddy -c "Print :application-identifier" /tmp/cm_profile.plist
-          /usr/libexec/PlistBuddy -c "Print :Entitlements:aps-environment" /tmp/cm_profile.plist
-          /usr/libexec/PlistBuddy -c "Print :ExpirationDate" /tmp/cm_profile.plist
-          echo "--------------------------------------------------------"
+
+          {
+            echo "Name=$(/usr/libexec/PlistBuddy -c "Print :Name" /tmp/cm_profile.plist 2>/dev/null)"
+            echo "UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/cm_profile.plist 2>/dev/null)"
+            echo "application-identifier=$(/usr/libexec/PlistBuddy -c "Print :application-identifier" /tmp/cm_profile.plist 2>/dev/null)"
+            echo "aps-environment=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:aps-environment" /tmp/cm_profile.plist 2>/dev/null)"
+            echo "ExpirationDate=$(/usr/libexec/PlistBuddy -c "Print :ExpirationDate" /tmp/cm_profile.plist 2>/dev/null)"
+          } > /tmp/xcodebuild_logs/provisioning-runtime.txt
 
           keychain initialize
           keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
@@ -74,7 +76,8 @@ workflows:
         script: |
           xcode-project use-profiles
 
-          echo "----- installed profiles matching com.sanay3imatrouh.app -----"
+          echo "" >> /tmp/xcodebuild_logs/provisioning-runtime.txt
+          echo "----- installed profiles matching com.sanay3imatrouh.app -----" >> /tmp/xcodebuild_logs/provisioning-runtime.txt
           PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
           for f in "$PROFILES_HOME"/*.mobileprovision; do
             [ -e "$f" ] || continue
@@ -82,13 +85,15 @@ workflows:
             APP_ID=$(/usr/libexec/PlistBuddy -c "Print :application-identifier" /tmp/installed_profile.plist 2>/dev/null)
             case "$APP_ID" in
               *com.sanay3imatrouh.app*)
-                UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/installed_profile.plist 2>/dev/null)
-                APS_ENV=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:aps-environment" /tmp/installed_profile.plist 2>/dev/null)
-                echo "file=$f | UUID=$UUID | aps-environment=$APS_ENV"
+                {
+                  echo "InstalledName=$(/usr/libexec/PlistBuddy -c "Print :Name" /tmp/installed_profile.plist 2>/dev/null)"
+                  echo "InstalledUUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/installed_profile.plist 2>/dev/null)"
+                  echo "InstalledApsEnvironment=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:aps-environment" /tmp/installed_profile.plist 2>/dev/null)"
+                  echo "InstalledFile=$f"
+                } >> /tmp/xcodebuild_logs/provisioning-runtime.txt
                 ;;
             esac
           done
-          echo "----------------------------------------------------------------"
 
       - name: ترقيم البناء تلقائيًا (build number) عشان كل رفعة تاخد رقم جديد
         script: |
