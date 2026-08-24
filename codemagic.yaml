@@ -73,6 +73,31 @@ workflows:
           cd "$CM_BUILD_DIR/ios-app/ios/App"
           agvtool new-version -all $(date +%s)
 
+      - name: أرشفة تشخيصية مباشرة عبر xcodebuild لإظهار الخطأ الحقيقي عند فشل Archive
+        script: |
+          set -o pipefail
+          mkdir -p /tmp/xcodebuild_logs
+
+          xcodebuild archive \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -archivePath /tmp/Sanay3iDiagnostic.xcarchive \
+            -destination "generic/platform=iOS" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            DEVELOPMENT_TEAM=HEEQRGYJ64 \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            CODE_SIGN_STYLE=Manual \
+            2>&1 | tee /tmp/xcodebuild_logs/archive.log
+
+          ARCHIVE_STATUS=$?
+          if [ $ARCHIVE_STATUS -ne 0 ]; then
+            echo "----- أول 40 سطر من الخطأ الحقيقي في archive.log -----"
+            grep -E "error:|CodeSign|Provisioning|profile|entitlement|SwiftCompile|SwiftEmitModule|Package|dependency|CapacitorPushNotifications" /tmp/xcodebuild_logs/archive.log | head -40
+            exit $ARCHIVE_STATUS
+          fi
+
+          echo "DIAGNOSTIC ARCHIVE SUCCESS"
+
       - name: بناء الـ IPA
         script: |
           xcode-project build-ipa \
