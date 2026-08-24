@@ -49,7 +49,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                       fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        NotificationCenter.default.post(name: .capacitorDidReceiveRemoteNotification, object: nil, userInfo: (userInfo as? [String: Any] ?? [:]).merging(["completionHandler": completionHandler]) { current, _ in current })
+        completionHandler(.newData)
     }
 
     func application(_ application: UIApplication,
