@@ -2178,6 +2178,7 @@ const customersRoutes = require("./routes/customers");
 const favoritesRoutes = require("./routes/favorites");
 const notificationsRoutes = require("./routes/notifications");
 const pushRoutes = require("./routes/push");
+const pushIosRoutes = require("./routes/pushIos");
 const homepageSlidersRoutes = require("./routes/homepageSliders");
 
 app.use("/api/admin", adminRoutes);
@@ -2192,6 +2193,7 @@ app.use("/api/customers", customersRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/push", pushRoutes);
+app.use("/api/push/ios", pushIosRoutes);
 app.use("/api", homepageSlidersRoutes);
 
 

@@ -2,6 +2,135 @@
 // لا يطلب Notification.requestPermission() تلقائيًا أبدًا؛ فقط عند ضغط
 // المستخدم صراحة على الزر. هذا ملف إضافي بحت فوق نظام الإشعارات الداخلي
 // الحالي (notifications-widget.js) ولا يمسّه.
+//
+// فرع iOS Native (APNs عبر @capacitor/push-notifications) - إضافي بحت،
+// موازٍ تمامًا لمسار Web Push الحالي (Android TWA/سطح المكتب/متصفح الويب)
+// اللي يفضل يشتغل بالظبط زي ما هو من غير أي تغيير. الفرع ده بيتفعّل بس
+// جوه تطبيق iOS الأصلي (Capacitor.getPlatform() === 'ios')، ونفس مبدأ
+// "بلا طلب إذن تلقائي" منطبق هنا كمان - التسجيل بيحصل فقط عند ضغط المستخدم.
+(function () {
+  function isIosNativeShell() {
+    try {
+      return !!(window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios');
+    } catch (e) { return false; }
+  }
+
+  function iosRegisterUrl(role) {
+    if (role === 'admin') return { url: '/api/push/ios/register/admin', headers: {} };
+    var customerToken = localStorage.getItem('sanay3i_customer_token');
+    if (customerToken) return { url: '/api/push/ios/register/customer', headers: { Authorization: 'Bearer ' + customerToken } };
+    var workerToken = localStorage.getItem('sanay3i_worker_token');
+    var workerId = localStorage.getItem('sanay3i_current_worker_id');
+    if (workerToken && workerId) return { url: '/api/push/ios/register/worker/' + workerId, headers: { Authorization: 'Bearer ' + workerToken } };
+    return null;
+  }
+
+  // تسجيل فعلي عبر Capacitor PushNotifications - بيرجع true فقط لما التوكن
+  // يوصل فعليًا ويتحفظ على السيرفر بنجاح (نفس مبدأ "اعتماد على دليل فعلي"
+  // المستخدم في مسار الويب: مفيش markEnabled() إلا بعد تأكيد نجاح المزامنة)
+  function registerIosPush(role, diag) {
+    if (!diag) diag = function () {};
+    return new Promise(function (resolve, reject) {
+      var Push = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+      if (!Push) { diag('plugin', 'مكوّن الإشعارات', 'fail', 'PushNotifications plugin غير متاح'); return reject(new Error('مكوّن الإشعارات غير متاح')); }
+
+      var ctx = iosRegisterUrl(role);
+      diag('role', 'الدور/المسار المستخدم', ctx ? 'ok' : 'fail', ctx ? ctx.url : 'لا يوجد حساب مسجّل دخول');
+      if (!ctx) { return reject(new Error('يجب تسجيل الدخول أولاً')); }
+
+      var settled = false;
+      var registrationHandle, errorHandle;
+
+      function cleanup() {
+        try { registrationHandle && registrationHandle.remove(); } catch (e) {}
+        try { errorHandle && errorHandle.remove(); } catch (e) {}
+      }
+
+      Push.addListener('registration', function (token) {
+        if (settled) return;
+        settled = true;
+        diag('token', 'توكن الجهاز', 'ok', 'تم الاستلام');
+        fetch(ctx.url, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, ctx.headers),
+          body: JSON.stringify({ device_token: token.value })
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (out) {
+            var ok = res.ok && out.success === true;
+            diag('sync', 'مزامنة السيرفر', ok ? 'ok' : 'fail', 'HTTP ' + res.status + ' | success=' + (out.success === true));
+            cleanup();
+            if (ok) resolve(true); else reject(new Error(out.error || 'تعذر تفعيل الإشعارات'));
+          });
+        }).catch(function () {
+          diag('sync', 'مزامنة السيرفر', 'fail', 'تعذّر الوصول للسيرفر (شبكة)');
+          cleanup();
+          reject(new Error('تعذّر الوصول للسيرفر'));
+        });
+      }).then(function (h) { registrationHandle = h; });
+
+      Push.addListener('registrationError', function (err) {
+        if (settled) return;
+        settled = true;
+        diag('token', 'توكن الجهاز', 'fail', (err && err.error) || 'registration failed');
+        cleanup();
+        reject(new Error('تعذّر تسجيل الجهاز لدى Apple'));
+      }).then(function (h) { errorHandle = h; });
+
+      Push.checkPermissions().then(function (perm) {
+        diag('permission', 'إذن الإشعارات', perm.receive === 'granted' ? 'ok' : 'checking', perm.receive);
+        if (perm.receive === 'granted') return Push.register();
+        if (perm.receive === 'denied') {
+          settled = true;
+          cleanup();
+          return reject(Object.assign(new Error('DENIED'), { denied: true }));
+        }
+        return Push.requestPermissions().then(function (req) {
+          diag('permission', 'إذن الإشعارات', req.receive === 'granted' ? 'ok' : 'fail', req.receive);
+          if (req.receive !== 'granted') {
+            settled = true;
+            cleanup();
+            return reject(Object.assign(new Error('DENIED'), { denied: true }));
+          }
+          return Push.register();
+        });
+      }).catch(function (e) {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(e);
+      });
+    });
+  }
+
+  // pushNotificationActionPerformed (ضغط المستخدم على إشعار نظام التشغيل) -
+  // نفس منطق تحديد رابط الوجهة المستخدم في service-worker.js (notificationclick)،
+  // بيتنقل داخل الـ WebView مباشرة لنفس المسار
+  function wireIosForegroundListeners() {
+    var Push = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (!Push || Push.__sanay3iWired) return;
+    Push.__sanay3iWired = true;
+
+    // pushNotificationReceived (foreground): مفيش أي toast/صوت إضافي هنا -
+    // ودجت الإشعارات الداخلي (notifications-widget.js) أصلًا بيعرض نفس
+    // الحدث عبر الـ polling الدوري بتاعه، فمفيش داعي لعرض مضاعف لنفس الحدث
+    Push.addListener('pushNotificationReceived', function () { /* لا شيء عمدًا - تجنّب الازدواج مع notifications-widget.js */ });
+
+    Push.addListener('pushNotificationActionPerformed', function (action) {
+      try {
+        var data = action && action.notification && action.notification.data;
+        var url = data && data.url;
+        if (url && window.location.pathname + window.location.search !== url) {
+          window.location.href = url;
+        }
+      } catch (e) { /* تجاهل */ }
+    });
+  }
+
+  if (isIosNativeShell()) wireIosForegroundListeners();
+
+  window.__sanay3iIosPush = { isIosNativeShell: isIosNativeShell, registerIosPush: registerIosPush };
+})();
+
 (function () {
   function base64UrlToUint8Array(base64String) {
     var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -221,6 +350,76 @@
     return true;
   }
 
+  // نسخة iOS Native من نفس عنصر "تفعيل إشعارات الجهاز" - نفس الشكل/النصوص
+  // العامة، لكن التسجيل عبر Capacitor PushNotifications بدل Web Push API
+  function initIosPushToggle(container, role) {
+    container.innerHTML =
+      '<div class="push-toggle-section">' +
+      '<h3 class="push-toggle-title"><i class="fa-solid fa-bell"></i> الإشعارات</h3>' +
+      '<p class="push-toggle-desc">استقبل تحديثات الطلبات والرسائل حتى لو التطبيق في الخلفية.</p>' +
+      '<button type="button" id="pushEnableBtnIos" class="push-toggle-btn" ' +
+      'style="pointer-events:auto;touch-action:manipulation;position:relative;z-index:1;">' +
+      '<i class="fa-solid fa-bell" style="pointer-events:none;"></i> ' +
+      '<span style="pointer-events:none;">تفعيل إشعارات الجهاز</span></button>' +
+      '<p class="push-toggle-note" id="pushToggleNoteIos" style="display:none;"></p>' +
+      '<ol class="push-diag-list" id="pushDiagListIos" style="display:none;"></ol>' +
+      '</div>';
+
+    var btn = document.getElementById('pushEnableBtnIos');
+    var note = document.getElementById('pushToggleNoteIos');
+    var diagList = document.getElementById('pushDiagListIos');
+    var diagItems = {};
+
+    function diagInit() { diagList.innerHTML = ''; diagList.style.display = 'block'; diagItems = {}; }
+    function diagStep(key, label, status, detail) {
+      var li = diagItems[key];
+      if (!li) { li = document.createElement('li'); diagList.appendChild(li); diagItems[key] = li; }
+      li.className = 'push-diag-item push-diag-' + status;
+      li.textContent = label + ': ' + detail;
+    }
+    function showNote(text) { note.textContent = text; note.style.display = 'block'; }
+    function markEnabled() {
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> الإشعارات مفعّلة ✓';
+      btn.classList.add('push-toggle-btn-active');
+      btn.disabled = true;
+    }
+    function markDenied() {
+      btn.disabled = true;
+      showNote('الإشعارات محظورة من إعدادات iPhone');
+    }
+
+    // فحص أولي بلا أي طلب إذن - لو فيه تسجيل ناجح وتوكن متزامن مع السيرفر
+    // بالفعل من قبل، نعرض الحالة الصحيحة فورًا (نفس مبدأ التحقق بدليل فعلي
+    // المستخدم في مسار الويب أعلاه). لو الإذن مرفوض من قبل من إعدادات
+    // النظام، نعرض ذلك فورًا بدل الزر الافتراضي
+    var Push = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (Push) {
+      Push.checkPermissions().then(function (perm) {
+        if (perm.receive === 'denied') markDenied();
+      }).catch(function () {});
+    }
+
+    var running = false;
+    btn.addEventListener('click', function () {
+      if (running) return;
+      running = true;
+      diagInit();
+      diagStep('tap', 'الضغط', 'ok', 'تم التقاط الضغط ✓');
+      btn.disabled = true;
+      window.__sanay3iIosPush.registerIosPush(role, diagStep).then(function () {
+        markEnabled();
+        showNote('تم تفعيل إشعارات الجهاز بنجاح');
+      }).catch(function (e) {
+        if (e && e.denied) {
+          markDenied();
+        } else {
+          showNote('تعذر تفعيل الإشعارات، حاول مرة أخرى. (' + ((e && e.message) || 'خطأ غير معروف') + ')');
+          btn.disabled = false;
+        }
+      }).finally(function () { running = false; });
+    });
+  }
+
   // ينشئ زر "تفعيل إشعارات الجهاز" داخل العنصر المحدد بـ containerId.
   // role: 'customer' | 'worker' | 'admin' (اختياري - يُكتشف تلقائيًا لو
   // اتسيب فاضي لعميل/صنايعي)
@@ -228,6 +427,14 @@
     var container = document.getElementById(containerId);
     if (!container) return;
     console.log('[PUSH] push module loaded = yes');
+
+    // فرع iOS Native منفصل بالكامل - لا يمر أبدًا على منطق Web Push
+    // (Service Worker/PushManager) تحت، وميعرضش رسالة "غير مدعومة على هذا
+    // المتصفح" اللي المفروض تفضل مقصورة على متصفحات الويب الفعلية غير
+    // الداعمة فقط
+    if (window.__sanay3iIosPush && window.__sanay3iIosPush.isIosNativeShell()) {
+      return initIosPushToggle(container, role);
+    }
 
     var supportsSW = 'serviceWorker' in navigator;
     var supportsPush = 'PushManager' in window;

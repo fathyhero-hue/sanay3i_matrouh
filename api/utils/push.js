@@ -149,4 +149,14 @@ async function sendPushToOwner(ownerType, ownerId, notification) {
   }
 }
 
-module.exports = { sendPushToOwner, getPublicKey, ensureVapid };
+// دالة مشتركة لبناء عنوان/جسم آمنين للإشعار - مستخدمة من هنا (Web Push)
+// ومن utils/pushIos.js (APNs) عشان نفس انضباط الحمولة الأدنى (بند 9 في
+// المهمة) يتطبق في المسارين بدون تكرار/تباعد في المنطق
+function buildSafeTitleAndBody({ type, title }) {
+  return {
+    title: String(title || "إشعار جديد").slice(0, 100),
+    body: PUSH_GENERIC_BODY_BY_TYPE[type] || "لديك تحديث جديد، افتح التطبيق لمعرفة التفاصيل."
+  };
+}
+
+module.exports = { sendPushToOwner, getPublicKey, ensureVapid, buildSafeTitleAndBody };

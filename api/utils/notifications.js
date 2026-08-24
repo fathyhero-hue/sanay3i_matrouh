@@ -1,5 +1,6 @@
 const { supabase } = require("../config/supabase");
 const { sendPushToOwner } = require("./push");
+const { sendApnsToOwner } = require("./pushIos");
 
 // إنشاء إشعار داخل التطبيق (بند 22.7) - جدول notifications عام لكل
 // المستقبلين، بيتنادى من أي مكان في الكود لما يحصل حدث حقيقي (تغيير حالة
@@ -25,6 +26,16 @@ async function createNotification({ recipientType, recipientId, type, title, bod
     if (error) throw error;
 
     sendPushToOwner(recipientType, recipientId, {
+      id: data ? data.id : null,
+      type,
+      title,
+      link
+    }).catch(() => {});
+
+    // طبقة APNs (iOS Native) إضافية موازية - نفس الحدث، مسار مستقل تمامًا
+    // عن Web Push أعلاه، فشل أي منهما لا يؤثر على الآخر ولا على إنشاء
+    // الإشعار الداخلي اللي أصلًا نجح
+    sendApnsToOwner(recipientType, recipientId, {
       id: data ? data.id : null,
       type,
       title,

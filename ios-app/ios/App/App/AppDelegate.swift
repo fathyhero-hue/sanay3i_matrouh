@@ -33,6 +33,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+    // MARK: - Push Notifications (APNs via @capacitor/push-notifications)
+    // إضافي بحت - مطلوب يدويًا لأن الـ AppDelegate ده مخصص (delegateClass
+    // مضبوط على SceneDelegate) مش الافتراضي التلقائي؛ الـ plugin بيسجل نفسه
+    // كمراقب على NotificationCenter، فبنعيد توجيه الاستدعاءين دول لـ
+    // NotificationCenter بنفس الأسماء اللي الـ plugin بيستنى منها (نفس
+    // النمط الموثق رسميًا من Capacitor لإضافة Push Notifications يدويًا)
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        NotificationCenter.default.post(name: .capacitorDidReceiveRemoteNotification, object: nil, userInfo: (userInfo as? [String: Any] ?? [:]).merging(["completionHandler": completionHandler]) { current, _ in current })
+    }
+
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
