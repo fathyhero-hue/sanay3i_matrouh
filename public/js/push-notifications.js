@@ -395,7 +395,12 @@
     var Push = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
     if (Push) {
       Push.checkPermissions().then(function (perm) {
-        if (perm.receive === 'denied') markDenied();
+        if (perm.receive === 'denied') {
+          markDenied();
+        } else if (perm.receive === 'granted') {
+          markEnabled();
+          Push.register().catch(function () {});
+        }
       }).catch(function () {});
     }
 
