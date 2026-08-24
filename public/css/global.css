@@ -355,9 +355,9 @@ button, a, [role="button"] { touch-action: manipulation; }
 .support-bell-btn:hover { background: rgba(37,99,235,.26); }
 .support-bell-btn #supportBellBadge { pointer-events: none; }
 .notif-panel {
-  display: none; position: absolute; top: 60px; left: 12px; right: 12px; max-width: 360px; margin-inline-start: auto;
+  display: none; position: fixed; top: 60px; left: auto; right: 12px; width: 360px; max-width: calc(100vw - 24px);
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
-  z-index: 3100; max-height: 70vh; overflow: hidden; display: none; flex-direction: column;
+  z-index: 5000; max-height: 70vh; overflow: hidden; flex-direction: column;
 }
 .notif-panel.show { display: flex; }
 .notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
