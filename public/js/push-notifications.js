@@ -46,7 +46,7 @@
         try { errorHandle && errorHandle.remove(); } catch (e) {}
       }
 
-      Push.addListener('registration', function (token) {
+      registrationHandle = Push.addListener('registration', function (token) {
         if (settled) return;
         settled = true;
         diag('token', 'توكن الجهاز', 'ok', 'تم الاستلام');
@@ -66,15 +66,15 @@
           cleanup();
           reject(new Error('تعذّر الوصول للسيرفر'));
         });
-      }).then(function (h) { registrationHandle = h; });
+      });
 
-      Push.addListener('registrationError', function (err) {
+      errorHandle = Push.addListener('registrationError', function (err) {
         if (settled) return;
         settled = true;
         diag('token', 'توكن الجهاز', 'fail', (err && err.error) || 'registration failed');
         cleanup();
         reject(new Error('تعذّر تسجيل الجهاز لدى Apple'));
-      }).then(function (h) { errorHandle = h; });
+      });
 
       Push.checkPermissions().then(function (perm) {
         diag('permission', 'إذن الإشعارات', perm.receive === 'granted' ? 'ok' : 'checking', perm.receive);
