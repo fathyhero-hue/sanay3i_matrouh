@@ -329,7 +329,7 @@
       let options = { method:"POST" };
       if(action === "id_reupload") url = "/api/registration-reupload-id";
       if(action === "work_photos") url = "/api/registration-upload-work-photos";
-      if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...'; }
+      if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري معالجة الصور والإرسال...'; }
       try{
         if(action === "update_data"){
           const fd = new FormData(formEl);
@@ -338,9 +338,43 @@
           body.lookup = lookup;
           options.headers = {"Content-Type":"application/json"};
           options.body = JSON.stringify(body);
+          options.body = fd;
         }else{
           const fd = new FormData(formEl);
           fd.set("lookup", lookup);
+
+          if(action === "id_reupload"){
+            const frontInput = formEl.querySelector('input[name="idFront"]');
+            const backInput = formEl.querySelector('input[name="idBack"]');
+            if(frontInput && frontInput.files[0] && backInput && backInput.files[0]){
+              try {
+                const [frontCompressed, backCompressed] = await Promise.all([
+                  compressImageWithProfile(frontInput.files[0], "identity"),
+                  compressImageWithProfile(backInput.files[0], "identity")
+                ]);
+                fd.set("idFront", frontCompressed);
+                fd.set("idBack", backCompressed);
+              } catch(compressionErr) {
+                throw new Error(compressionErr.message || "تعذر معالجة صور البطاقة");
+              }
+            }
+          }
+
+          if(action === "work_photos"){
+            const workPhotosInput = formEl.querySelector('input[name="workPhotos"]');
+            if(workPhotosInput && workPhotosInput.files.length > 0){
+              fd.delete("workPhotos");
+              for(let i = 0; i < workPhotosInput.files.length; i++){
+                try {
+                  const compressed = await compressImageWithProfile(workPhotosInput.files[i], "portfolio");
+                  fd.append("workPhotos", compressed);
+                } catch(compressionErr) {
+                  throw new Error("تعذر معالجة صورة عمل رقم " + (i + 1));
+                }
+              }
+            }
+          }
+
           options.body = fd;
         }
         const response = await fetch(url, options);
@@ -410,6 +444,7 @@
       setTimeout(function(){ form.dispatchEvent(new Event("submit")); }, 250);
     }
   </script>
+  <script src="/js/image-compressor.js"></script>
 
   <!-- Service Worker -->
   <script>

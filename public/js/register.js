@@ -141,34 +141,6 @@ async function loadAreas() {
   });
 }
 
-function compressImage(file, maxWidth, maxHeight, quality) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = function (event) {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = function () {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth; }
-        } else {
-          if (height > maxHeight) { width = Math.round(width * maxHeight / height); height = maxHeight; }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
-      };
-      img.onerror = reject;
-    };
-    reader.onerror = reject;
-  });
-}
-
 async function setIdPreview(side, file) {
   if (!file) return;
   if (!file.type || !file.type.startsWith("image/")) {
@@ -177,7 +149,7 @@ async function setIdPreview(side, file) {
   }
   showResult("success", "جاري تهيئة وضغط الصورة...");
   try {
-    const compressedBlob = await compressImage(file, 1200, 1200, 0.7);
+    const compressedBlob = await compressImageWithProfile(file, "identity");
     hideResult();
     if (side === "front") {
       idFrontFile = compressedBlob;
@@ -193,7 +165,7 @@ async function setIdPreview(side, file) {
       if (idBackPreviewFrame) idBackPreviewFrame.classList.add("show");
     }
   } catch (err) {
-    showResult("error", "حدث خطأ أثناء معالجة الصورة.");
+    showResult("error", err.message || "حدث خطأ أثناء معالجة الصورة.");
   }
 }
 
@@ -246,8 +218,8 @@ if (registerForm) {
     formData.append("area", area);
     formData.append("description", description);
     // صور البطاقة اختيارية - تتبعت بس لو المستخدم رفعها فعلاً
-    if (idFrontFile) formData.append("idFront", idFrontFile, "id-front.jpg");
-    if (idBackFile) formData.append("idBack", idBackFile, "id-back.jpg");
+    if (idFrontFile) formData.append("idFront", idFrontFile);
+    if (idBackFile) formData.append("idBack", idBackFile);
 
     if (submitBtn) {
       submitBtn.disabled = true;

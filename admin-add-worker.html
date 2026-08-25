@@ -375,17 +375,67 @@
         return;
       }
 
-      const fd = new FormData(form);
-      if (!verifyInput.checked) fd.delete("identity_verified");
-      if (!form.querySelector('[name="approved"]').checked) fd.delete("approved");
-      if (!form.querySelector('[name="active"]').checked) fd.delete("active");
-      if (!form.querySelector('[name="featured"]').checked) fd.delete("featured");
-
       submitBtn.disabled = true;
       submitBtn.classList.add("loading");
-      showStatus("warning", "جاري إضافة الصنايعي... انتظر لحظات.");
+      showStatus("warning", "جاري معالجة الصور وإضافة الصنايعي... انتظر لحظات.");
 
       try {
+        const fd = new FormData();
+
+        for (const [key, value] of new FormData(form).entries()) {
+          if (key === "image" || key === "workPhotos" || key === "idFront" || key === "idBack") continue;
+          fd.append(key, value);
+        }
+
+        if (!verifyInput.checked) fd.delete("identity_verified");
+        if (!form.querySelector('[name="approved"]').checked) fd.delete("approved");
+        if (!form.querySelector('[name="active"]').checked) fd.delete("active");
+        if (!form.querySelector('[name="featured"]').checked) fd.delete("featured");
+
+        const profileImageInput = document.getElementById("image");
+        if (profileImageInput && profileImageInput.files.length > 0) {
+          try {
+            const compressed = await compressImageWithProfile(profileImageInput.files[0], "avatar");
+            fd.append("image", compressed);
+          } catch (err) {
+            showStatus("error", err.message || "تعذر معالجة الصورة الشخصية");
+            submitBtn.disabled = false;
+            submitBtn.classList.remove("loading");
+            return;
+          }
+        }
+
+        const workPhotosInput = document.getElementById("workPhotos");
+        if (workPhotosInput && workPhotosInput.files.length > 0) {
+          for (let i = 0; i < workPhotosInput.files.length; i++) {
+            try {
+              const compressed = await compressImageWithProfile(workPhotosInput.files[i], "portfolio");
+              fd.append("workPhotos", compressed);
+            } catch (err) {
+              showStatus("error", "تعذر معالجة صورة عمل رقم " + (i + 1));
+              submitBtn.disabled = false;
+              submitBtn.classList.remove("loading");
+              return;
+            }
+          }
+        }
+
+        if (idFront.files.length > 0 && idBack.files.length > 0) {
+          try {
+            const [frontCompressed, backCompressed] = await Promise.all([
+              compressImageWithProfile(idFront.files[0], "identity"),
+              compressImageWithProfile(idBack.files[0], "identity")
+            ]);
+            fd.append("idFront", frontCompressed);
+            fd.append("idBack", backCompressed);
+          } catch (err) {
+            showStatus("error", err.message || "تعذر معالجة صور البطاقة");
+            submitBtn.disabled = false;
+            submitBtn.classList.remove("loading");
+            return;
+          }
+        }
+
         const res = await fetch("/api/admin/workers/create", {
           method: "POST",
           body: fd,
@@ -436,5 +486,6 @@
     loadLookups();
     updateVerifyState();
   </script>
+  <script src="/js/image-compressor.js"></script>
 </body>
 </html>

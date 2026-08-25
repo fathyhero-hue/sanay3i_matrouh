@@ -897,8 +897,19 @@ async function saveHeroSlide(e){
   if(endAt) fd.append("end_at", endAt);
   const imageUrl = document.getElementById("heroSlideImageUrl").value.trim();
   if(imageUrl) fd.append("image", imageUrl);
-  const file = document.getElementById("heroSlideImageFile").files[0];
-  if(file) fd.append("image", file);
+  const fileInput = document.getElementById("heroSlideImageFile");
+  const file = fileInput.files[0];
+
+  // ضغط صورة السلايدر client-side قبل الرفع (WebP، max 1600px، quality 0.75)
+  if(file){
+    try {
+      const compressed = await compressImageWithProfile(file, "banner");
+      fd.append("image", compressed);
+    } catch(err) {
+      toast("error", err.message || "تعذر تحسين الصورة");
+      return;
+    }
+  }
 
   try{
     const res = await fetch(id ? `/api/admin/hero-slides/${id}` : "/api/admin/hero-slides", {
@@ -2398,13 +2409,22 @@ async function sendAdminChatMessage(e){
   const btn=e.currentTarget.querySelector('button[type="submit"]'); const old=btn?btn.innerHTML:'';
   if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';}
   try{
-    const fd=new FormData(); fd.set('message',msg); fd.set('worker_id', adminChatCurrentWorkerId); 
-    if(file&&file.files&&file.files[0])fd.set('attachment',file.files[0]);
+    const fd=new FormData(); fd.set('message',msg); fd.set('worker_id', adminChatCurrentWorkerId);
+    if(file&&file.files&&file.files[0]){
+      try {
+        const compressed = await compressImageWithProfile(file.files[0], "portfolio");
+        fd.set('attachment', compressed);
+      } catch(compressionErr) {
+        toast('error', compressionErr.message || 'تعذر معالجة الصورة');
+        if(btn){btn.disabled=false;btn.innerHTML=old;}
+        return;
+      }
+    }
     const r=await fetch(`/api/admin/worker-chat/messages`,{method:'POST',credentials:'include',body:fd});
     const d=await r.json().catch(()=>({}));
     if(r.status===401){showLogin();return}
     if(!r.ok||!d.success)throw new Error(d.error||'تعذر إرسال الرد');
-    if(input)input.value=''; if(file)file.value=''; toast('success',d.message||'تم إرسال الرد'); 
+    if(input)input.value=''; if(file)file.value=''; toast('success',d.message||'تم إرسال الرد');
     loadAdminChatMessages(adminChatCurrentWorkerId);
   }catch(err){ toast('error',err.message||'تعذر إرسال الرد'); }
   finally{ if(btn){btn.disabled=false;btn.innerHTML=old;} }

@@ -672,6 +672,7 @@
 </script>
 
   <script src="/js/customerGate.js"></script>
+  <script src="/js/image-compressor.js"></script>
   <script>
     let currentReportWorker = { id: "", name: "" };
 
@@ -1605,7 +1606,15 @@
         if (rsAttachmentFiles.length) {
           try {
             const fd = new FormData();
-            rsAttachmentFiles.forEach(f => fd.append("attachments", f));
+            for (let i = 0; i < rsAttachmentFiles.length; i++) {
+              try {
+                const compressed = await compressImageWithProfile(rsAttachmentFiles[i], "portfolio");
+                fd.append("attachments", compressed);
+              } catch (compressionErr) {
+                console.warn("تعذر ضغط صورة رقم " + (i + 1) + "، سيتم رفع النسخة الأصلية:", compressionErr);
+                fd.append("attachments", rsAttachmentFiles[i]);
+              }
+            }
             const upRes = await fetch("/api/service-requests/" + d.request.id + "/attachments", {
               method: "POST", headers: { "Authorization": "Bearer " + token }, body: fd
             });
